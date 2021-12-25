@@ -34,3 +34,5 @@
 *.ipdb
 *.iobj
 *.recipe
+*.zip
+*.bak

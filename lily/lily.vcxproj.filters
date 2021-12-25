@@ -1,0 +1,254 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="hack">
+      <UniqueIdentifier>{8bee4936-afbd-44ae-8cb3-0054b700a373}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="imgui">
+      <UniqueIdentifier>{855a6451-f588-4aa8-aae1-b1e6899e4942}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="math">
+      <UniqueIdentifier>{db01860d-9575-4b12-8c85-e9dcb3f7216a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="pubg">
+      <UniqueIdentifier>{c37ffaac-f326-479d-abfa-fc0c7425ac79}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="pubg\dumped">
+      <UniqueIdentifier>{fdd6729f-7fba-4ff4-865f-d26d171ef5b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="pubg\info">
+      <UniqueIdentifier>{5fc5ae3a-7d4f-4cd9-b8fc-d06efd8dbff8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="system">
+      <UniqueIdentifier>{e8c9e512-c08c-435f-a93c-8aade66745f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="system\basic">
+      <UniqueIdentifier>{b54d0f0d-37c9-4f01-9522-7b159d82da42}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="system\entrypoint">
+      <UniqueIdentifier>{b1ac245a-1340-4f56-a918-7b636b94f557}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="system\kernel">
+      <UniqueIdentifier>{3fccfb5d-3ce7-4da8-b1f2-599457b8783c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="dump.h">
+      <Filter>hack</Filter>
+    </ClInclude>
+    <ClInclude Include="global.h">
+      <Filter>hack</Filter>
+    </ClInclude>
+    <ClInclude Include="hack.h">
+      <Filter>hack</Filter>
+    </ClInclude>
+    <ClInclude Include="init.h">
+      <Filter>hack</Filter>
+    </ClInclude>
+    <ClInclude Include="render.h">
+      <Filter>hack</Filter>
+    </ClInclude>
+    <ClInclude Include="render_directdrawoverlay.h">
+      <Filter>hack</Filter>
+    </ClInclude>
+    <ClInclude Include="render_restreamchat.h">
+      <Filter>hack</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imconfig.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imgui.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imgui_impl_dx9.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imgui_impl_win32.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imgui_internal.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imstb_rectpack.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imstb_textedit.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imstb_truetype.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="matrix.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="mymath.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="quat.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="rotator.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="transform.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="vector.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="pubg_class_input.h">
+      <Filter>pubg\dumped</Filter>
+    </ClInclude>
+    <ClInclude Include="pubg_class_output.h">
+      <Filter>pubg\dumped</Filter>
+    </ClInclude>
+    <ClInclude Include="info_bone.h">
+      <Filter>pubg\info</Filter>
+    </ClInclude>
+    <ClInclude Include="info_character.h">
+      <Filter>pubg\info</Filter>
+    </ClInclude>
+    <ClInclude Include="info_item.h">
+      <Filter>pubg\info</Filter>
+    </ClInclude>
+    <ClInclude Include="info_package.h">
+      <Filter>pubg\info</Filter>
+    </ClInclude>
+    <ClInclude Include="info_proj.h">
+      <Filter>pubg\info</Filter>
+    </ClInclude>
+    <ClInclude Include="info_vehicle.h">
+      <Filter>pubg\info</Filter>
+    </ClInclude>
+    <ClInclude Include="GNames.h">
+      <Filter>pubg</Filter>
+    </ClInclude>
+    <ClInclude Include="GObjects.h">
+      <Filter>pubg</Filter>
+    </ClInclude>
+    <ClInclude Include="pubg_class.h">
+      <Filter>pubg</Filter>
+    </ClInclude>
+    <ClInclude Include="pubg_struct.h">
+      <Filter>pubg</Filter>
+    </ClInclude>
+    <ClInclude Include="xenuine.h">
+      <Filter>pubg</Filter>
+    </ClInclude>
+    <ClInclude Include="compiletime.hpp">
+      <Filter>system\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="debug.hpp">
+      <Filter>system\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="encrypt_string.hpp">
+      <Filter>system\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="exception.hpp">
+      <Filter>system\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="fixed_string.hpp">
+      <Filter>system\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="hash_switch.hpp">
+      <Filter>system\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="ida_defs.h">
+      <Filter>system\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="initializer.hpp">
+      <Filter>system\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="keystate.h">
+      <Filter>system\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="msrnames.h">
+      <Filter>system\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="patternscan.hpp">
+      <Filter>system\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="peb.h">
+      <Filter>system\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="physicalmemory.hpp">
+      <Filter>system\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="dbvm.h">
+      <Filter>system\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="inthandler.h">
+      <Filter>system\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="process.h">
+      <Filter>system\kernel</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="hack_main.cpp">
+      <Filter>hack</Filter>
+    </ClCompile>
+    <ClCompile Include="hack_render.cpp">
+      <Filter>hack</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_draw.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_impl_dx9_custom.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_impl_win32.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_tables.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_widgets.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="matrix.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="quat.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="rotator.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="transform.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="vector.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="pubg_class_pubg.cpp">
+      <Filter>pubg</Filter>
+    </ClCompile>
+    <ClCompile Include="pubg_class_ue4.cpp">
+      <Filter>pubg</Filter>
+    </ClCompile>
+    <ClCompile Include="pubg_struct.cpp">
+      <Filter>pubg</Filter>
+    </ClCompile>
+    <ClCompile Include="crtmain.cpp">
+      <Filter>system\entrypoint</Filter>
+    </ClCompile>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>system\entrypoint</Filter>
+    </ClCompile>
+    <ClCompile Include="inthandler.cpp">
+      <Filter>system\kernel</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="xenuine.asm">
+      <Filter>pubg</Filter>
+    </MASM>
+    <MASM Include="kernelstack.asm">
+      <Filter>system\kernel</Filter>
+    </MASM>
+  </ItemGroup>
+</Project>
