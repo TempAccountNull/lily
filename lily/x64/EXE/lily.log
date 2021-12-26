@@ -1,18 +1,7 @@
-﻿  crtmain.cpp
-  hack_main.cpp
-  hack_render.cpp
-  kernel.cpp
-  matrix.cpp
-  pubg_class_pubg.cpp
-  pubg_class_ue4.cpp
-  pubg_struct.cpp
-  quat.cpp
-  rotator.cpp
-  transform.cpp
-  vector.cpp
+﻿  hack_main.cpp
   코드를 생성하고 있습니다.
-  490 of 3572 functions (13.7%) were compiled, the rest were copied from previous compilation.
-    16 functions were new in current compilation
-    390 functions had inline decision re-evaluated but remain unchanged
+  248 of 3570 functions ( 6.9%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    269 functions had inline decision re-evaluated but remain unchanged
   코드를 생성했습니다.
   lily.vcxproj -> D:\lily\x64\EXE\lily.exe

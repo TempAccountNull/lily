@@ -61,8 +61,8 @@ void Hack::Loop(Process& process) {
 
 				Vector CameraLocation(0.0f, 0.0f, 0.0f);
 				Rotator CameraRotation(0.0f, 0.0f, 0.0f);
-				float DefaultFOV = 90.0f;
-				float CameraFOV = DefaultFOV;
+				float DefaultFOV = 0.0f;
+				float CameraFOV = 0.0f;
 
 				float InputPitchScale = 1.0f;
 				float InputYawScale = 1.0f;
@@ -98,13 +98,14 @@ void Hack::Loop(Process& process) {
 
 					PlayerContollerPtr = (uintptr_t)LocalPlayer.PlayerController;
 
-					APlayerController PlayerController;
-					if (!LocalPlayer.PlayerController.Read(PlayerController))
+					ATslPlayerController PlayerController;
+					if (!LocalPlayer.PlayerController.ReadOtherType(PlayerController))
 						return;
 
 					InputPitchScale = PlayerController.InputPitchScale;
 					InputYawScale = PlayerController.InputYawScale;
 					InputRollScale = PlayerController.InputRollScale;
+					DefaultFOV = PlayerController.DefaultFOV;
 
 					if (PlayerController.Character)
 						MyPawnPtr = (uintptr_t)PlayerController.Character;
@@ -123,18 +124,13 @@ void Hack::Loop(Process& process) {
 					CameraLocation = PlayerCameraManager.CameraCache_POV_Location;
 					CameraRotation = PlayerCameraManager.CameraCache_POV_Rotation;
 					CameraFOV = PlayerCameraManager.CameraCache_POV_FOV;
-					DefaultFOV = PlayerCameraManager.DefaultFOV;
 				}();
 				////////////////////////////////////////////////////////////////////////////////////////////////////////
 				////////////////////////////////////////////////////////////////////////////////////////////////////////
-				Vector MyLocation = CameraLocation;
-				Matrix CameraRotationMatrix = Rotator(CameraRotation).GetMatrix(Vector(0.0, 0.0, 0.0));
-
-				Vector GunLocation = MyLocation;
-				Rotator GunRotation = CameraRotation;
-
 				if (IsNearlyZero(CameraFOV))
 					return;
+				if (IsNearlyZero(DefaultFOV))
+					DefaultFOV = 90.0f;
 
 				const float CircleFov = ConvertToRadians(CircleFovInDegrees);
 				float AimbotCircleSize = tanf(CircleFov) * Height * (DefaultFOV / CameraFOV);
@@ -145,6 +141,12 @@ void Hack::Loop(Process& process) {
 					AimbotCircleSize = tanf(CircleFov * 1.5f) * Height * (DefaultFOV / CameraFOV);
 
 				float AimbotDistant = AimbotCircleSize;
+
+				Vector MyLocation = CameraLocation;
+				Matrix CameraRotationMatrix = CameraRotation.GetMatrix(Vector(0.0, 0.0, 0.0));
+
+				Vector GunLocation = CameraLocation;
+				Rotator GunRotation = CameraRotation;
 
 				auto DrawRatioBoxWrapper = [&](const Vector& ScreenPos, float CameraDistance, float BarLength3D, float Ratio, ImU32 ColorRemain, ImU32 ColorDamaged, ImU32 ColorEdge) {
 					Vector ZeroLocation = Vector(0.0f, 0.0f, 0.0f);

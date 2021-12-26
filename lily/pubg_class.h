@@ -104,6 +104,10 @@ DefClass(APlayerController, AController,
 	MemberAtOffset(FRotator, RotationInput, 0x628)
 ,)
 
+DefClass(ATslPlayerController, APlayerController,
+	MemberAtOffset(float, DefaultFOV, 0xad4)
+,)
+
 //Engine.PlayerCameraManager.CameraCache +
 //Engine.CameraCacheEntry.POV +
 //Engine.MinimalViewInfo.Fov 
@@ -113,7 +117,6 @@ DefClass(APlayerCameraManager, UObject,
 	MemberAtOffset(float, CameraCache_POV_FOV, 0x430 + 0x10 + 0x5b0)
 	MemberAtOffset(FRotator, CameraCache_POV_Rotation, 0x430 + 0x10 + 0x24)
 	MemberAtOffset(FVector, CameraCache_POV_Location, 0x430 + 0x10 + 0x10)
-	MemberAtOffset(float, DefaultFOV, 0x161c)
 ,)
 
 DefClass(ULevel, UObject,

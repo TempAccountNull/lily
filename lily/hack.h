@@ -58,7 +58,7 @@ private:
 #ifdef LOGPRINT
 	constexpr static unsigned DEBUGLOG_MAXSIZE = 0x4000;
 	constexpr static unsigned DEBUGLOG_REMOVESIZE = 0x1000;
-	std::string debuglog = std::string(DEBUGLOG_MAXSIZE, 0);
+	std::string debuglog;
 	bool bCaptureLog = true;
 	bool bNeedToScroll = false;
 #endif
