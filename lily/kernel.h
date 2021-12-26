@@ -1,11 +1,11 @@
 #pragma once
-
 #include <Windows.h>
 #include <Psapi.h>
 #include <string>
 #include <functional>
 #include <stdio.h>
 #include <intrin.h>
+#pragma intrinsic(_enable)
 
 #include "debug.hpp"
 #include "dbvm.h"
@@ -15,8 +15,24 @@
 #include "exception.hpp"
 #include "patternscan.hpp"
 
-class IntHandler {
+using tCallback = std::function<void(void)>;
+extern "C" void RunWithKernelStack(tCallback* callback);
+
+class Kernel {
 private:
+	INITIALIZER_INCLASS(CommitAndLockPages) {
+		MEMORY_BASIC_INFORMATION MemInfo;
+		VirtualQuery(RunWithKernelStack, &MemInfo, sizeof(MemInfo));
+		const uintptr_t Base = (uintptr_t)MemInfo.AllocationBase & ~0xFFF;
+		const uintptr_t Size = (uintptr_t)MemInfo.BaseAddress - (uintptr_t)MemInfo.AllocationBase + MemInfo.RegionSize;
+		for (size_t i = 0; i < Size; i += 0x1000) {
+			void* Page = (void*)(Base + i);
+			uint8_t byte;
+			ReadProcessMemory((HANDLE)-1, Page, &byte, sizeof(byte), 0);
+			VirtualLock(Page, 0x1000);
+		}
+	};
+
 	//EPROCESS Offset
 	static constexpr unsigned Offset_DirectoryTableBase = 0x28;
 	unsigned Offset_UniqueProcessId = 0;
@@ -30,9 +46,6 @@ private:
 
 	PPDPTE MapPhysicalPDPTE = { 0 };
 	PML4E CustomPML4E = { 0 };
-
-	//ObReferenceObjectByHandleWithTag DesiredAccess bypass
-	uintptr_t ObRegisterCallbacksBypassAddress = 0;
 
 	CR3 mapCR3 = { 0 };
 	DWORD mapPid = 0;
@@ -109,6 +122,17 @@ public:
 	template <typename... Types>
 	__declspec(guard(ignore)) static auto KernelCall(auto pFunc, Types... args) { return pFunc(args...); }
 
+	void KernelExecute(tCallback kernel_callback, bool bSet_EFLAGS_IF = false, bool bSet_EFLAGS_AC = false) const {
+		dbvm.SwitchToKernelMode(0x10);
+		if (bSet_EFLAGS_IF) _enable();
+		if (bSet_EFLAGS_AC) _stac();
+		//__writecr8(2);
+		__writecr3(CustomCR3.Value);
+		RunWithKernelStack(&kernel_callback);
+		//__writecr8(0);
+		dbvm.ReturnToUserMode();
+	}
+
 	void SetCustomCR3() const { dbvm.SetCR3(CustomCR3); }
 	CR3 GetCustomCR3() const { return CustomCR3; }
 	CR3 GetMappedProcessCR3() const { return mapCR3; }
@@ -121,11 +145,10 @@ public:
 
 		for (auto Driver : Drivers) {
 			char szBaseName[MAX_PATH];
-			if (GetDeviceDriverBaseNameA(Driver, szBaseName, sizeof(szBaseName))) {
-				if (_stricmp(szBaseName, szModule) == 0) {
-					return (uintptr_t)Driver;
-				}
-			}
+			if (!GetDeviceDriverBaseNameA(Driver, szBaseName, sizeof(szBaseName)))
+				continue;
+			if (_stricmp(szBaseName, szModule) == 0)
+				return (uintptr_t)Driver;
 		}
 
 		return 0;
@@ -149,15 +172,7 @@ public:
 		return Result;
 	}
 
-	INITIALIZER_INCLASS(LockPages) {
-		//Lock pages not to swap out
-		MEMORY_BASIC_INFORMATION Info;
-		VirtualQuery(GetKernelModuleAddress, &Info, sizeof(Info));
-		size_t AllocationSize = (size_t)Info.BaseAddress - (size_t)Info.AllocationBase + Info.RegionSize;
-		VirtualLock(Info.AllocationBase, AllocationSize);
-	};
-
-	IntHandler(const DBVM& _dbvm) : dbvm(_dbvm) {
+	Kernel(const DBVM& _dbvm) : dbvm(_dbvm) {
 		DirectoryTableBase = (PPML4E)VirtualAlloc(0, 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 		VirtualLock(DirectoryTableBase, 0x1000);
 		
@@ -183,14 +198,6 @@ public:
 		uintptr_t PsGetProcessPeb = (uintptr_t)GetKernelProcAddress("ntoskrnl.exe"e, "PsGetProcessPeb"e);
 		dbvm.RPM(PsGetProcessPeb + 0x3, &Offset_Peb, sizeof(unsigned), CustomCR3);
 		verify(Offset_Peb);
-
-		//Now MapProcess(Pid) function works
-		MapProcess(GetCurrentProcessId());
-
-		//0f 85
-		ObRegisterCallbacksBypassAddress = PatternScan::Module(GetKernelModuleAddress("ntoskrnl.exe"e), "PAGE"e, "0f ? ? ? ? ? 0f ? ? 1a a8 40"e, RPM_dbvm);
-
-		verify(ObRegisterCallbacksBypassAddress);
 	}
 
 	static bool MemcpyWithExceptionHandler(void* Dst, const void* Src, size_t Size) {
@@ -274,43 +281,6 @@ public:
 
 		SetCustomCR3();
 		return RPM_Physical(Address, Buffer, Size, mapCR3);
-	}
-
-	bool TriggerCopyOnWrite(uintptr_t Address) {
-		uint8_t byte;
-		if (!RPM_Mapped(Address, &byte, sizeof(byte)))
-			return false;
-		return WPM_ObRegisterCallbacksBypassed(Address, &byte, sizeof(byte));
-	}
-
-	bool WPM_ObRegisterCallbacksBypassed(uintptr_t Address, const void* lpBuffer, size_t nSize) const {
-		return true;
-
-		/*
-		//The TEST operation sets the CF and OF flags to 0.
-		//0F80 -> jmp if overflow
-		uint8_t patch_code[] = { 0x0F, 0x80 };
-		uint8_t original_code[sizeof(patch_code)];
-
-		if (!RPM_Physical(ObRegisterCallbacksBypassAddress, original_code, sizeof(original_code), mapCR3))
-			errormsg("a");//return false;
-
-		HANDLE hProcess = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_WRITE, FALSE, mapPid);
-		if (!hProcess)
-			errormsg("b"); //return false;
-
-		dbvm.WPMCloak(ObRegisterCallbacksBypassAddress, patch_code, sizeof(patch_code), mapCR3);
-		//WPM_Physical(ObRegisterCallbacksBypassAddress, patch_code, sizeof(patch_code), mapCR3);
-		DWORD dwOldProtect;
-		SIZE_T pWritten;
-		VirtualProtectEx(hProcess, (void*)Address, nSize, PAGE_READWRITE, &dwOldProtect);
-		bool bResult = WriteProcessMemory(hProcess, (void*)Address, lpBuffer, nSize, &pWritten) == TRUE;
-		VirtualProtectEx(hProcess, (void*)Address, nSize, dwOldProtect, &dwOldProtect);
-		//WPM_Physical(ObRegisterCallbacksBypassAddress, original_code, sizeof(original_code), mapCR3);
-		dbvm.RemoveCloak(ObRegisterCallbacksBypassAddress, sizeof(patch_code), mapCR3);
-		CloseHandle(hProcess);
-		return bResult;
-		*/
 	}
 
 	uintptr_t GetEPROCESS(DWORD Pid) const {

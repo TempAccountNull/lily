@@ -11,13 +11,9 @@
 #endif
 
 #ifdef DPRINT
-#define dprintf(...)\
-do {\
-	printf(__VA_ARGS__);\
-	putchar('\n');\
-} while(0)
+#define dprintf(...) [&]{ printf(__VA_ARGS__); putchar('\n'); }()
 #else
-#define dprintf(...) do {} while(0)
+#define dprintf(...) []{}()
 #endif
 
 #define S1(x) #x
@@ -34,7 +30,8 @@ consteval auto ExtractOnlyFileName() {
 	return path.substr<path.find_last_of('\\') + 1>();
 }
 
-#define verify(expression)\
-while(!(expression)) {\
-	error(EncryptedString<ExtractOnlyFileName<LOCATION "\n" #expression>()>(), "Assertion failed!"e);\
-}
+#define verify(expression) \
+[&]{ \
+	if (expression) return; \
+	error(EncryptedString<ExtractOnlyFileName<LOCATION "\n" #expression>()>(), "Assertion failed!"e); \
+}()

@@ -177,10 +177,13 @@
     <ClInclude Include="dbvm.h">
       <Filter>system\kernel</Filter>
     </ClInclude>
-    <ClInclude Include="inthandler.h">
+    <ClInclude Include="kernel.h">
       <Filter>system\kernel</Filter>
     </ClInclude>
     <ClInclude Include="process.h">
+      <Filter>system\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="kernelwin32.h">
       <Filter>system\kernel</Filter>
     </ClInclude>
   </ItemGroup>
@@ -239,15 +242,18 @@
     <ClCompile Include="dllmain.cpp">
       <Filter>system\entrypoint</Filter>
     </ClCompile>
-    <ClCompile Include="inthandler.cpp">
+    <ClCompile Include="kernel.cpp">
       <Filter>system\kernel</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="xenuine.asm">
+    <MASM Include="xenuine_.asm">
       <Filter>pubg</Filter>
     </MASM>
-    <MASM Include="kernelstack.asm">
+    <MASM Include="kernel_.asm">
+      <Filter>system\kernel</Filter>
+    </MASM>
+    <MASM Include="dbvm_.asm">
       <Filter>system\kernel</Filter>
     </MASM>
   </ItemGroup>

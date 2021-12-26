@@ -1,9 +1,8 @@
 #pragma once
-
 #include <windows.h>
 #include <tlhelp32.h>
 
-#include "inthandler.h"
+#include "kernel.h"
 #include "peb.h"
 
 class Process {
@@ -15,9 +14,9 @@ private:
 	DWORD PidSaved;
 
 public:
-	IntHandler& handler;
+	Kernel& handler;
 
-	Process(IntHandler& handler) : handler(handler) {}
+	Process(Kernel& handler) : handler(handler) {}
 
 	uintptr_t GetBaseAddress() const { return BaseAddress; }
 	uintptr_t GetSizeOfImage() const { return SizeOfImage; }

@@ -1,13 +1,12 @@
 #pragma once
-
 #include <Windows.h>
 #include <intrin.h>
 #include "physicalmemory.hpp"
 #include "ida_defs.h"
 #include "exception.hpp"
 
-using tCallback = std::function<void()>;
-extern "C" void RunWithKernelStack(tCallback* callback);
+extern "C" uintptr_t vmcall_intel(uintptr_t password3, uintptr_t passwordr1, void* vmcallinfo);
+extern "C" uintptr_t vmcall_amd(uintptr_t password3, uintptr_t passwordr1, void* vmcallinfo);
 
 #define VMCALL_GETVERSION 0
 #define VMCALL_CHANGEPASSWORD 1
@@ -120,7 +119,6 @@ extern "C" void RunWithKernelStack(tCallback* callback);
 
 #define VMCALL_DEBUG_SETSPINLOCKTIMEOUT 254
 
-
 struct TChangeRegOnBPInfo {
 	union {
 		bool changeRAX : 1;			//0
@@ -223,26 +221,6 @@ struct TChangeRegOnBPInfo {
 	uint64_t XMM15_H;
 };
 
-#ifdef __clang__
-__forceinline uintptr_t dovmcall_intel(void* vmcallinfo, unsigned level1pass) {
-	unsigned __int64 r;
-	__asm__ __volatile__("vmcall" : "=a"(r) : "a"(vmcallinfo), "d"(level1pass));
-	return r;
-}
-
-__forceinline uintptr_t dovmcall_amd(void* vmcallinfo, unsigned level1pass) {
-	unsigned __int64 r;
-	__asm__ __volatile__("vmmcall" : "=a"(r) : "a"(vmcallinfo), "d"(level1pass));
-	return r;
-}
-#else
-extern "C" {
-#pragma comment(lib, "vmcall.lib")
-	uintptr_t dovmcall_intel(uintptr_t password3, uintptr_t passwordr1, void* vmcallinfo);
-	uintptr_t dovmcall_amd(uintptr_t password3, uintptr_t passwordr1, void* vmcallinfo);
-}
-#endif
-
 #pragma pack(push, 1)
 class DBVM {
 private:
@@ -268,8 +246,8 @@ public:
 
 	uintptr_t dovmcall(void* vmcallinfo) const {
 		if (bIntel)
-			return dovmcall_intel(current_password3, current_password1, vmcallinfo);
-		return dovmcall_amd(current_password3, current_password1, vmcallinfo);
+			return vmcall_intel(current_password3, current_password1, vmcallinfo);
+		return vmcall_amd(current_password3, current_password1, vmcallinfo);
 	}
 
 	uintptr_t GetMemory() const {
@@ -380,17 +358,6 @@ public:
 		vmcallinfo.command = VMCALL_USERMODE;
 
 		dovmcall(&vmcallinfo);
-	}
-
-	void KernelExecute(CR3 cr3, tCallback kernel_callback, bool bSet_EFLAGS_IF = false, bool bSet_EFLAGS_AC = false) const {
-		SwitchToKernelMode(0x10);
-		if (bSet_EFLAGS_IF) _enable();
-		if (bSet_EFLAGS_AC) _stac();
-		//__writecr8(2);
-		__writecr3(cr3.Value);
-		RunWithKernelStack(&kernel_callback);
-		//__writecr8(0);
-		ReturnToUserMode();
 	}
 
 	void SetCR3(CR3 cr3) const {

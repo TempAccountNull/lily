@@ -15,7 +15,7 @@
 
 void Hack::Loop(Process& process) {
 	HWND hGameWnd = process.GetHwnd();
-	CR3 mapCR3 = handler.GetMappedProcessCR3();
+	CR3 mapCR3 = kernel.GetMappedProcessCR3();
 	Xenuine xenuine(process);
 	TNameEntryArray NameArr;
 	//FUObjectArray ObjectArr;

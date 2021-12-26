@@ -4,7 +4,7 @@
 
 #include "global.h"
 #include "dbvm.h"
-#include "inthandler.h"
+#include "kernelwin32.h"
 #include "process.h"
 #include "hack.h"
 #include "encrypt_string.hpp"
@@ -34,12 +34,12 @@ int Init() {
 	verify(dbvm.GetVersion());
 
 	dprintf("DBVM OK"e);
-	IntHandler handler(dbvm);
+	KernelWin32 kernel(dbvm);
 	dprintf("IntHandler OK"e);
-	Process process(handler);
+	Process process(kernel);
 
-	RestreamChatRender render(Global::pDirect3DDevice9Ex, process, Global::ScreenWidth, Global::ScreenHeight);
-	//DirectDrawOverlayRender render(Global::pDirect3DDevice9Ex, Global::pBackBufferSurface, Global::pOffscreenPlainSurface, Global::ScreenWidth, Global::ScreenHeight);
+	//RestreamChatRender render(Global::pDirect3DDevice9Ex, process, Global::ScreenWidth, Global::ScreenHeight);
+	DirectDrawOverlayRender render(Global::pDirect3DDevice9Ex, Global::pBackBufferSurface, Global::pOffscreenPlainSurface, Global::ScreenWidth, Global::ScreenHeight);
 
 	Hack hack(process, render, Global::ScreenWidth, Global::ScreenHeight, Global::Buf, sizeof(Global::Buf));
 	dprintf("hack OK"e);

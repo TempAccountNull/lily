@@ -98,20 +98,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <MASM Include="kernelstack.asm">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DLL|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='EXE|x64'">
-      </ExcludedFromBuild>
-      <FileType>Document</FileType>
-    </MASM>
-    <MASM Include="xenuine.asm">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DLL|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='EXE|x64'">
-      </ExcludedFromBuild>
-      <FileType>Document</FileType>
-    </MASM>
+    <MASM Include="dbvm_.asm" />
+    <MASM Include="kernel_.asm" />
+    <MASM Include="xenuine_.asm" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compiletime.hpp" />
@@ -143,7 +132,7 @@
     <ClInclude Include="info_vehicle.h" />
     <ClInclude Include="init.h" />
     <ClInclude Include="initializer.hpp" />
-    <ClInclude Include="inthandler.h" />
+    <ClInclude Include="kernel.h" />
     <ClInclude Include="keystate.h" />
     <ClInclude Include="matrix.h" />
     <ClInclude Include="msrnames.h" />
@@ -163,6 +152,7 @@
     <ClInclude Include="rotator.h" />
     <ClInclude Include="transform.h" />
     <ClInclude Include="vector.h" />
+    <ClInclude Include="kernelwin32.h" />
     <ClInclude Include="xenuine.h" />
   </ItemGroup>
   <ItemGroup>
@@ -180,7 +170,7 @@
     <ClCompile Include="imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="imgui\imgui_tables.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
-    <ClCompile Include="inthandler.cpp" />
+    <ClCompile Include="kernel.cpp" />
     <ClCompile Include="matrix.cpp" />
     <ClCompile Include="pubg_class_pubg.cpp" />
     <ClCompile Include="pubg_class_ue4.cpp" />
