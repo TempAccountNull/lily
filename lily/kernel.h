@@ -7,7 +7,7 @@
 #include <intrin.h>
 #pragma intrinsic(_enable)
 
-#include "debug.hpp"
+#include "lily.hpp"
 #include "dbvm.h"
 #include "encrypt_string.hpp"
 #include "msrnames.h"
@@ -115,9 +115,13 @@ private:
 public:
 	const DBVM& dbvm;
 
-	TypeRPMFunc<uintptr_t> RPM_dbvm = [&](uintptr_t Address, void* Buffer, size_t Size) {
-		return dbvm.RPM(Address, Buffer, Size, CustomCR3);
-	};
+	std::function<bool(uintptr_t Address, void* Buffer, size_t Size)>
+		RPM_dbvm = [&](uintptr_t Address, void* Buffer, size_t Size)
+	{ return dbvm.RPM(Address, Buffer, Size, CustomCR3); };
+
+	std::function<bool(uintptr_t Address, const void* Buffer, size_t Size)>
+		WPM_dbvm = [&](uintptr_t Address, const void* Buffer, size_t Size)
+	{ return dbvm.WPM(Address, Buffer, Size, CustomCR3); };
 
 	template <typename... Types>
 	__declspec(guard(ignore)) static auto KernelCall(auto pFunc, Types... args) { return pFunc(args...); }

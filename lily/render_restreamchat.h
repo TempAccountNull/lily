@@ -6,6 +6,44 @@ class RestreamChatRender : public Render {
 private:
 	int ScreenWidth, ScreenHeight;
 	HWND hESPWnd;
+	DWORD PidSaved = 0;
+	PhysicalAddress PhysicalAddressUser32NotTriggerdCOW;
+
+	bool CheckBypassed() const {
+		auto IsBypassed = [&] {
+			//if (GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) & WS_EX_TRANSPARENT)
+			//	return false;
+
+			DWORD dwNewAffinity = 1;
+			if (!GetWindowDisplayAffinity(hESPWnd, &dwNewAffinity))
+				return false;
+			if (dwNewAffinity != 0)
+				return false;
+
+			return true;
+		}();
+
+		if (IsBypassed)
+			return true;
+
+		TerminateOverlayProcess();
+		return false;
+	}
+
+	void TerminateOverlayProcess() const {
+		DWORD Pid = 0;
+		DWORD Tid = GetWindowThreadProcessId(hESPWnd, &Pid);
+
+		HANDLE hThread = OpenThread(THREAD_TERMINATE, FALSE, Tid);
+		if (hThread)
+			TerminateThread(hThread, 0);
+
+		HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, Pid);
+		if (hProcess)
+			TerminateProcess(hProcess, 0);
+
+		PostMessageA(hESPWnd, WM_CLOSE, 0, 0);
+	}
 
 	static bool RemoteSetWindowDisplayAffinity(HWND hWnd, DWORD dwAffinity) {
 		DWORD Pid;
@@ -44,47 +82,14 @@ private:
 		return dwExitCode == 1;
 	}
 
-	static uintptr_t GetInternalSetProp(Process& process) {
-		uintptr_t ScanResult = PatternScan::Module(
-			process.handler.GetKernelModuleAddress("win32kfull.sys"e), ".text"e,
-			"75 ? 44 ? ? ? ? 44 ? ? 05 0f ? ? ? ? ? ? 48 ? ? e8"e,
-			process.handler.RPM_dbvm);
-
-		return PatternScan::GetJumpAddress(ScanResult + 0x15, process.handler.RPM_dbvm);
-	}
-
-	static bool RemoteSetWindowDisplayAffinityBypassed(Process& process, HWND hWnd) {
+	static bool RemoteSetWindowDisplayAffinityBypassed(const KernelLily& kernel, HWND hWnd) {
 		if (!IsWindowVisible(hWnd))
 			return false;
 
-		uintptr_t InternalSetProp = GetInternalSetProp(process);
-		if (!InternalSetProp)
+		if (!RemoteSetWindowDisplayAffinity(hWnd, WDA_EXCLUDEFROMCAPTURE))
 			return false;
 
-		//Block InternalSetProp
-		uint8_t CodePatch[] = { 0x48, 0x31, 0xC0, 0xFF, 0xC0, 0xC3 };
-		uint8_t CodeOriginal[sizeof(CodePatch)];
-
-		process.OpenProcessWithPid(GetCurrentProcessId());
-		if (!process.handler.RPM_Physical(InternalSetProp, CodeOriginal, sizeof(CodePatch)))
-			return false;
-
-		if (!process.handler.WPM_Physical(InternalSetProp, CodePatch, sizeof(CodePatch)))
-			return false;
-
-		bool bResult = RemoteSetWindowDisplayAffinity(hWnd, WDA_EXCLUDEFROMCAPTURE);
-
-		//Restore InternalSetProp
-		while (!process.handler.WPM_Physical(InternalSetProp, CodeOriginal, sizeof(CodePatch)));
-
-		if (!bResult)
-			return false;
-
-		//Check if bypassed
-		DWORD dwNewAffinity = 1;
-		if (!GetWindowDisplayAffinity(hWnd, &dwNewAffinity))
-			return false;
-		if (dwNewAffinity != 0)
+		if (!kernel.UserSetProp(hWnd, kernel.atomDispAffinity, HANDLE(WDA_NONE)))
 			return false;
 
 		return true;
@@ -101,9 +106,7 @@ private:
 
 		strcat(szPath, "\\Programs\\restream-chat\\Restream Chat.exe"e);
 
-		char szCommand[MAX_PATH];
-		sprintf(szCommand, "if exist \"%s\" start \"\" \"%s\""e, szPath, szPath);
-		system(szCommand);
+		CreateProcessCMD(szPath);
 		Sleep(2000);
 
 		hESPWnd = FindWindowA("Chrome_WidgetWin_1"e, "Restream Chat"e);
@@ -114,6 +117,7 @@ private:
 		return true;
 	}
 
+	/*
 	bool HookGetWindowData(Process& process) {
 		HMODULE hUser32 = GetModuleHandleA("user32.dll"e);
 
@@ -125,7 +129,7 @@ private:
 
 		if (ScanResult) {
 			uint32_t Value = 0x0A7777DF;
-			return process.handler.dbvm.WPM(ScanResult, &Value, sizeof(Value), process.handler.GetCustomCR3());
+			return process.kernel.dbvm.WPM(ScanResult, &Value, sizeof(Value), process.kernel.GetCustomCR3());
 		}
 		
 		return PatternScan::Module((uintptr_t)hUser32,
@@ -134,13 +138,36 @@ private:
 				return ReadProcessMemory((HANDLE)-1, LPCVOID(Address), Buffer, Size, 0);
 			}) != 0;
 	}
+	*/
 
 	bool InitOverlay(Process& process) {
-		if (!HookGetWindowData(process))
-			return false;
+		//if (!HookGetWindowData(process))
+		//	return false;
 
 		if (!OpenRestreamChat())
 			return false;
+
+		/*
+		tagWND* p = process.kernel.ValidateHwnd(hESPWnd);
+
+		LONG_PTR sss = GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE);
+
+		COLORREF kk;
+		BYTE alpha;
+		DWORD kkk;
+		BOOL bbb = GetLayeredWindowAttributes(hESPWnd, &kk, &alpha, &kkk);
+
+		SetWindowLongPtrA(hESPWnd, GWL_EXSTYLE, GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) & ~WS_EX_LAYERED & ~WS_EX_TRANSPARENT);
+		process.kernel.BlockInternalSetProp([&] {
+			SetWindowLongPtrA(hESPWnd, GWL_EXSTYLE, GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) | WS_EX_LAYERED | WS_EX_TRANSPARENT);
+			});
+		
+
+		//DWORD dwExStyle = p->dwExStyle & ~WS_EX_LAYERED;
+		//process.kernel.WPM_dbvm((uintptr_t)(&p->dwExStyle), &dwExStyle, sizeof(dwExStyle));
+		bbb = GetLayeredWindowAttributes(hESPWnd, &kk, &alpha, &kkk);
+		sss = GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE);
+		*/
 
 		//SetWindowDisplayAffinity fail when parent & child windows has WS_EX_LAYERED and WS_EX_NOREDIRECTIONBITMAP
 		//Close "Intermediate D3D Window" for use SetWindowDisplayAffinity (WS_EX_NOREDIRECTIONBITMAP cannot be removed)
@@ -149,13 +176,13 @@ private:
 			SendMessageA(hChild, WM_CLOSE, 0, 0);
 
 		SetWindowLongPtrA(hESPWnd, GWL_EXSTYLE, GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) & ~WS_EX_LAYERED & ~WS_EX_TRANSPARENT);
-		if (!RemoteSetWindowDisplayAffinityBypassed(process, hESPWnd))
+		if (!RemoteSetWindowDisplayAffinityBypassed(process.kernel, hESPWnd))
 			return false;
 		SetWindowLongPtrA(hESPWnd, GWL_EXSTYLE, GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) | WS_EX_LAYERED | WS_EX_TRANSPARENT);
 		SetLayeredWindowAttributes(hESPWnd, 0, 255, LWA_ALPHA);
 
-		if (GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) & WS_EX_TRANSPARENT)
-			return false;
+		//if (GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) & WS_EX_TRANSPARENT)
+		//	return false;
 
 		//Move window to re-create "Intermediate D3D Window"
 		ShowWindow(hESPWnd, SW_NORMAL);
@@ -167,7 +194,7 @@ private:
 		BLENDFUNCTION blendPixelFunction = { AC_SRC_OVER, 0, 0, AC_SRC_ALPHA };
 		UpdateLayeredWindow(hChild, 0, 0, 0, 0, 0, 0, &blendPixelFunction, ULW_ALPHA);
 
-		return true;
+		return CheckBypassed();
 	}
 
 	void UpdateWindowPos(HWND hWndOver) const {
@@ -192,79 +219,74 @@ private:
 		}
 	}
 
-	bool CheckBypassed() const {
-		auto IsBypassed = [&] {
-			if (GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) & WS_EX_TRANSPARENT)
-				return false;
-
-			DWORD dwNewAffinity = 1;
-			if (!GetWindowDisplayAffinity(hESPWnd, &dwNewAffinity))
-				return false;
-			if (dwNewAffinity != 0)
-				return false;
-
-			return true;
-		}();
-
-		if (IsBypassed)
+	/*
+	bool MakeSureCOWTriggered(const Hack& hack) {
+		DWORD GamePid = hack.process.GetPid();
+		if (PidSaved == GamePid)
 			return true;
 
-		TerminateOverlayProcess();
-		return false;
+		PidSaved = GamePid;
+
+		//Process is not PUBG, return true
+		if (!hack.process.SetBaseDLL("TslGame.exe"e))
+			return true;
+
+		if (!hack.process.SetBaseDLL("user32.dll"e))
+			return false;
+
+		void* pTriggerAddress = (void*)(hack.process.GetBaseAddress() + 0x1000);
+
+		if (!hack.process.SetBaseDLL("TslGame.exe"e))
+			return false;
+
+		//if (!hack.process.kernel.BlockCallback(ALTITUDE_BE, [&]() {
+		//	uint8_t OriginalByte;
+		//	if (!hack.process.GetValue((uintptr_t)pTriggerAddress, &OriginalByte))
+		//		return false;
+
+		//	DWORD Pid = hack.process.GetPid();
+		//	HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, Pid);
+		//	if (!hProcess)
+		//		return false;
+
+		//	DWORD dwOldProtect;
+		//	if (!VirtualProtectEx(hProcess, pTriggerAddress, sizeof(uint8_t), PAGE_READWRITE, &dwOldProtect)) {
+		//		CloseHandle(hProcess);
+		//		return false;
+		//	}
+
+		//	bool bResult = WriteProcessMemory(hProcess, pTriggerAddress, &OriginalByte, sizeof(uint8_t), 0);
+		//	VirtualProtectEx(hProcess, pTriggerAddress, sizeof(uint8_t), dwOldProtect, &dwOldProtect);
+		//	CloseHandle(hProcess);
+
+		//	return bResult;
+		//	})) return false;
+
+		PhysicalAddress PhysicalAddressUser32GameProcess
+			= hack.process.kernel.GetPhysicalAddress((uintptr_t)pTriggerAddress, hack.process.kernel.GetMappedProcessCR3());
+
+		if (PhysicalAddressUser32GameProcess == PhysicalAddressUser32NotTriggerdCOW)
+			return false;
+
+		return true;
 	}
-
-	void TerminateOverlayProcess() const {
-		DWORD Pid = 0;
-		DWORD Tid = GetWindowThreadProcessId(hESPWnd, &Pid);
-
-		HANDLE hThread = OpenThread(THREAD_TERMINATE, FALSE, Tid);
-		if (hThread)
-			TerminateThread(hThread, 0);
-
-		HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, Pid);
-		if (hProcess)
-			TerminateProcess(hProcess, 0);
-
-		PostMessageA(hESPWnd, WM_CLOSE, 0, 0);
-	}
-
-	//void Hack::UpdateWindowPos(HWND hWndOver) const {
-	//	MoveWindow(hESPWnd, 0, 0, (int)ScreenWidth, (int)ScreenHeight, false);
-	//	ShowWindow(hESPWnd, SW_NORMAL);
-	//
-	//	static HWND hAttachWnd = 0;
-	//
-	//	HWND hForeWnd = GetForegroundWindow();
-	//	if (hForeWnd != hWndOver)
-	//		return;
-	//
-	//	HWND hWndNext = hESPWnd;
-	//	while (hWndNext = GetWindow(hWndNext, GW_HWNDNEXT))
-	//		if (hWndNext == hWndOver)
-	//			return;
-	//
-	//	if (hAttachWnd == hForeWnd) {
-	//		BringWindowToTop(hESPWnd);
-	//		return;
-	//	}
-	//
-	//	hAttachWnd = hForeWnd;
-	//
-	//	DWORD idAttachTo = GetWindowThreadProcessId(hAttachWnd, 0);
-	//	DWORD idAttach = GetWindowThreadProcessId(hESPWnd, 0);
-	//	AttachThreadInput(idAttach, idAttachTo, TRUE);
-	//	BringWindowToTop(hESPWnd);
-	//}
+	*/
 
 public:
 	RestreamChatRender(IDirect3DDevice9Ex* pDirect3DDevice9Ex, Process& process, int ScreenWidth, int ScreenHeight) :
 		Render(pDirect3DDevice9Ex), ScreenWidth(ScreenWidth), ScreenHeight(ScreenHeight) {
 		verify(InitOverlay(process));
+
+		/*
+		PhysicalAddressUser32NotTriggerdCOW = process.kernel.GetPhysicalAddress(
+			uintptr_t(GetModuleHandleA("user32.dll"e)) + 0x1000, process.kernel.GetCustomCR3());
+		verify(PhysicalAddressUser32NotTriggerdCOW);
+		*/
 	}
 	~RestreamChatRender() { TerminateOverlayProcess(); }
 
 	virtual void Present(const Hack& hack) {
-		ImGuiRenderDrawData();
+		//verify(MakeSureCOWTriggered(hack));
 
 		if (!IsWindow(hESPWnd))
 			verify(InitOverlay(hack.process));
@@ -276,6 +298,8 @@ public:
 			hWndOver = GetForegroundWindow();
 
 		UpdateWindowPos(hWndOver);
+
+		ImGuiRenderDrawData();
 		pDirect3DDevice9Ex->Present(0, 0, hESPWnd, 0);
 	}
 };

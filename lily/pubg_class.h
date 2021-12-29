@@ -5,6 +5,7 @@
 #include "GObjects.h"
 #include "transform.h"
 #include "vector.h"
+#include "defclass.hpp"
 
 class UWorld;
 class ULevel;

@@ -6,7 +6,7 @@
 #include <atlconv.h>
 #include <functional>
 
-#include "keystate.h"
+#include "lily.hpp"
 #include "process.h"
 #include "vector.h"
 
@@ -195,7 +195,7 @@ public:
 	}
 
 	Hack(Process& process, Render& render, int ScreenWidth, int ScreenHeight, char* szBuf, size_t nBufSize)
-		: process(process), kernel(process.handler), dbvm(kernel.dbvm), render(render), szBuf(szBuf), nBufSize(nBufSize) {
+		: process(process), kernel(process.kernel), dbvm(kernel.dbvm), render(render), szBuf(szBuf), nBufSize(nBufSize) {
 		Clear();
 		Resize(0.0f, 0.0f, (float)ScreenWidth, (float)ScreenHeight);
 	}

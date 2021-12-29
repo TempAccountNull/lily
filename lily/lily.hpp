@@ -35,3 +35,12 @@ consteval auto ExtractOnlyFileName() {
 	if (expression) return; \
 	error(EncryptedString<ExtractOnlyFileName<LOCATION "\n" #expression>()>(), "Assertion failed!"e); \
 }()
+
+static int CreateProcessCMD(const char* szPath) {
+	char szCommand[0x100];
+	sprintf(szCommand, "if exist \"%s\" start \"\" \"%s\""e, szPath, szPath);
+	return system(szCommand);
+}
+
+static bool IsKeyPushing(int vKey) { return (GetAsyncKeyState(vKey) & 0x8000) != 0; }
+static bool IsKeyPushed(int vKey) { return (GetAsyncKeyState(vKey) & 0x1) != 0; }

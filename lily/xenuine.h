@@ -32,7 +32,7 @@ private:
 			return false;
 
 		xenuine_start_rax_encrypt = Offset + P + 0x7;
-		pXenuineEncryptMapped = process.handler.GetMappedAddress(P + 0x7);
+		pXenuineEncryptMapped = process.kernel.GetMappedAddress(P + 0x7);
 		return true;
 	}
 
@@ -50,7 +50,7 @@ private:
 			return false;
 
 		xenuine_start_rax_decrypt = Offset + P + 0x7;
-		pXenuineDecryptMapped = process.handler.GetMappedAddress(P + 0x7);
+		pXenuineDecryptMapped = process.kernel.GetMappedAddress(P + 0x7);
 		return true;
 	}
 
@@ -69,7 +69,7 @@ public:
 		while (!ExceptionHandler::TryExcept([&]() {
 			Result = XenuineCall(Seed, Value, xenuine_start_rax_encrypt, pXenuineEncryptMapped);
 			})) {
-			process.handler.SetCustomCR3();
+			process.kernel.SetCustomCR3();
 		}
 
 		return Result;
@@ -81,7 +81,7 @@ public:
 		while (!ExceptionHandler::TryExcept([&]() {
 			Result = XenuineCall(Seed, Value, xenuine_start_rax_decrypt, pXenuineDecryptMapped);
 			})) {
-			process.handler.SetCustomCR3();
+			process.kernel.SetCustomCR3();
 		}
 
 		return Result;

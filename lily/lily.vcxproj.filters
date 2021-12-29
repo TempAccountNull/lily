@@ -138,7 +138,7 @@
     <ClInclude Include="compiletime.hpp">
       <Filter>system\basic</Filter>
     </ClInclude>
-    <ClInclude Include="debug.hpp">
+    <ClInclude Include="lily.hpp">
       <Filter>system\basic</Filter>
     </ClInclude>
     <ClInclude Include="encrypt_string.hpp">
@@ -157,9 +157,6 @@
       <Filter>system\basic</Filter>
     </ClInclude>
     <ClInclude Include="initializer.hpp">
-      <Filter>system\basic</Filter>
-    </ClInclude>
-    <ClInclude Include="keystate.h">
       <Filter>system\basic</Filter>
     </ClInclude>
     <ClInclude Include="msrnames.h">
@@ -183,7 +180,13 @@
     <ClInclude Include="process.h">
       <Filter>system\kernel</Filter>
     </ClInclude>
-    <ClInclude Include="kernelwin32.h">
+    <ClInclude Include="obcallback.h">
+      <Filter>system\kernel</Filter>
+    </ClInclude>
+    <ClInclude Include="defclass.hpp">
+      <Filter>system\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel_lily.h">
       <Filter>system\kernel</Filter>
     </ClInclude>
   </ItemGroup>

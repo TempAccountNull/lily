@@ -21,16 +21,18 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='EXE|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <SpectreMitigation>Spectre</SpectreMitigation>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DLL|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
+    <SpectreMitigation>Spectre</SpectreMitigation>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -62,7 +64,7 @@
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <MinimalRebuild>
       </MinimalRebuild>
-      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <ControlFlowGuard>false</ControlFlowGuard>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
@@ -95,6 +97,7 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <AdditionalDependencies>ucrt64.lib;vcruntime64.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libucrt.lib;libvcruntime.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <GenerateMapFile>true</GenerateMapFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -105,7 +108,8 @@
   <ItemGroup>
     <ClInclude Include="compiletime.hpp" />
     <ClInclude Include="dbvm.h" />
-    <ClInclude Include="debug.hpp" />
+    <ClInclude Include="lily.hpp" />
+    <ClInclude Include="defclass.hpp" />
     <ClInclude Include="dump.h" />
     <ClInclude Include="encrypt_string.hpp" />
     <ClInclude Include="exception.hpp" />
@@ -133,10 +137,10 @@
     <ClInclude Include="init.h" />
     <ClInclude Include="initializer.hpp" />
     <ClInclude Include="kernel.h" />
-    <ClInclude Include="keystate.h" />
     <ClInclude Include="matrix.h" />
     <ClInclude Include="msrnames.h" />
     <ClInclude Include="mymath.h" />
+    <ClInclude Include="obcallback.h" />
     <ClInclude Include="patternscan.hpp" />
     <ClInclude Include="peb.h" />
     <ClInclude Include="physicalmemory.hpp" />
@@ -152,7 +156,7 @@
     <ClInclude Include="rotator.h" />
     <ClInclude Include="transform.h" />
     <ClInclude Include="vector.h" />
-    <ClInclude Include="kernelwin32.h" />
+    <ClInclude Include="kernel_lily.h" />
     <ClInclude Include="xenuine.h" />
   </ItemGroup>
   <ItemGroup>

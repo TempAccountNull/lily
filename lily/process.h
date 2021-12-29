@@ -2,21 +2,21 @@
 #include <windows.h>
 #include <tlhelp32.h>
 
-#include "kernel.h"
+#include "kernel_lily.h"
 #include "peb.h"
 
 class Process {
 private:
-	uintptr_t BaseAddress;
-	uintptr_t SizeOfImage;
-	PEB64 PebSaved;
-	HWND hWndSaved;
-	DWORD PidSaved;
+	uintptr_t BaseAddress = 0;
+	uintptr_t SizeOfImage = 0;
+	PEB64 PebSaved = {0};
+	HWND hWndSaved = 0;
+	DWORD PidSaved = 0;
 
 public:
-	Kernel& handler;
+	KernelLily& kernel;
 
-	Process(Kernel& handler) : handler(handler) {}
+	Process(KernelLily& kernel) : kernel(kernel) {}
 
 	uintptr_t GetBaseAddress() const { return BaseAddress; }
 	uintptr_t GetSizeOfImage() const { return SizeOfImage; }
@@ -78,30 +78,30 @@ public:
 			});
 	}
 
-	bool GetValueWithSize(uintptr_t Address, void* Buffer, uintptr_t Size) const { return handler.RPM_Mapped(Address, Buffer, Size); }
-	bool SetValueWithSize(uintptr_t Address, const void* Buffer, uintptr_t Size) const { return handler.WPM_Mapped(Address, Buffer, Size); }
+	bool GetValueWithSize(uintptr_t Address, void* Buffer, uintptr_t Size) const { return kernel.RPM_Mapped(Address, Buffer, Size); }
+	bool SetValueWithSize(uintptr_t Address, const void* Buffer, uintptr_t Size) const { return kernel.WPM_Mapped(Address, Buffer, Size); }
 
 	template <class T>
-	bool GetValue(uintptr_t Address, T* Buffer) const { return handler.RPM_Mapped(Address, Buffer, sizeof(T)); }
+	bool GetValue(uintptr_t Address, T* Buffer) const { return kernel.RPM_Mapped(Address, Buffer, sizeof(T)); }
 	template <class T>
-	bool SetValue(uintptr_t Address, const T* Buffer) const { return handler.WPM_Mapped(Address, Buffer, sizeof(T)); }
+	bool SetValue(uintptr_t Address, const T* Buffer) const { return kernel.WPM_Mapped(Address, Buffer, sizeof(T)); }
 
-	bool GetBaseValueWithSize(uintptr_t Address, void* Buffer, uintptr_t Size) const { return handler.RPM_Mapped(BaseAddress + Address, Buffer, Size); }
-	bool SetBaseValueWithSize(uintptr_t Address, const void* Buffer, uintptr_t Size) const { return handler.WPM_Mapped(BaseAddress + Address, Buffer, Size); }
+	bool GetBaseValueWithSize(uintptr_t Address, void* Buffer, uintptr_t Size) const { return kernel.RPM_Mapped(BaseAddress + Address, Buffer, Size); }
+	bool SetBaseValueWithSize(uintptr_t Address, const void* Buffer, uintptr_t Size) const { return kernel.WPM_Mapped(BaseAddress + Address, Buffer, Size); }
 
 	template <class T>
-	bool GetBaseValue(uintptr_t Address, T* Buffer) const { return handler.RPM_Mapped(BaseAddress + Address, Buffer, sizeof(T)); }
+	bool GetBaseValue(uintptr_t Address, T* Buffer) const { return kernel.RPM_Mapped(BaseAddress + Address, Buffer, sizeof(T)); }
 	template <class T>
-	bool SetBaseValue(uintptr_t Address, const T* Buffer) const { return handler.WPM_Mapped(BaseAddress + Address, Buffer, sizeof(T)); }
+	bool SetBaseValue(uintptr_t Address, const T* Buffer) const { return kernel.WPM_Mapped(BaseAddress + Address, Buffer, sizeof(T)); }
 
 	bool OpenProcessWithPid(DWORD Pid, const char* szDLLName = 0) {
 		PidSaved = Pid;
 
-		uintptr_t PebBaseAddress = handler.GetPebAddress(PidSaved);
+		uintptr_t PebBaseAddress = kernel.GetPebAddress(PidSaved);
 		if (!PebBaseAddress)
 			return false;
 
-		if (!handler.MapProcess(PidSaved))
+		if (!kernel.MapProcess(PidSaved))
 			return false;
 
 		if (!GetValue(PebBaseAddress, &PebSaved))
