@@ -1,9 +1,26 @@
 ﻿  Assembling dbvm_.asm...
   Assembling kernel_.asm...
   Assembling xenuine_.asm...
+  dllmain.cpp
+  hack_main.cpp
+  hack_render.cpp
+  imgui.cpp
+  imgui_draw.cpp
+  imgui_impl_dx9_custom.cpp
+  imgui_impl_win32.cpp
+  imgui_tables.cpp
+  imgui_widgets.cpp
+  kernel.cpp
+  matrix.cpp
+  pubg_class_pubg.cpp
+  pubg_class_ue4.cpp
+  pubg_struct.cpp
+  quat.cpp
+  rotator.cpp
+  transform.cpp
+  vector.cpp
   코드를 생성하고 있습니다.
-  0 of 3485 functions ( 0.0%) were compiled, the rest were copied from previous compilation.
-    0 functions were new in current compilation
-    0 functions had inline decision re-evaluated but remain unchanged
+  Previous IPDB not found, fall back to full compilation.
+  All 3817 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
   코드를 생성했습니다.
   lily.vcxproj -> D:\lily\x64\DLL\lily.dll

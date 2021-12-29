@@ -124,7 +124,7 @@ public:
 	{ return dbvm.WPM(Address, Buffer, Size, CustomCR3); };
 
 	template <typename... Types>
-	__declspec(guard(ignore)) static auto KernelCall(auto pFunc, Types... args) { return pFunc(args...); }
+	__declspec(guard(ignore)) static auto SafeCall(auto pFunc, Types... args) { return pFunc(args...); }
 
 	void KernelExecute(tCallback kernel_callback, bool bSet_EFLAGS_IF = false, bool bSet_EFLAGS_AC = false) const {
 		dbvm.SwitchToKernelMode(0x10);

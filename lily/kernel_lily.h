@@ -14,7 +14,7 @@ typedef struct {}*PPPROP;
 typedef struct {}*PPROP;
 typedef struct {}*PWND;
 
-using tUserValidateHwnd = tagWND(*)(HWND hWnd);
+using tUserValidateHwnd = tagWND*(*)(HWND hWnd);
 
 using tValidateHwnd = PWND(*)(HWND hWnd);
 using tUserFindAtom = ATOM(*)(PCWSTR AtomName);
@@ -25,6 +25,13 @@ class KernelLily : public Kernel {
 private:
 	uintptr_t pKernelFuncRet0 = 0;
 	uintptr_t pPsProcessType = 0;
+
+	tUserValidateHwnd pUserValidateHwnd = 0;
+	tValidateHwnd pValidateHwnd = 0;
+	tUserFindAtom pUserFindAtom = 0;
+	tRealGetProp pRealGetProp = 0;
+	tRealInternalSetProp pRealInternalSetProp = 0;
+	uint32_t OffsetProp = 0;
 
 	uintptr_t GetCallbackEntryItemWithAltitude(const wchar_t* wAltitude) const {
 		OBJECT_TYPE PsProcessType;
@@ -56,12 +63,6 @@ private:
 		return 0;
 	}
 
-	tValidateHwnd pValidateHwnd = 0;
-	tUserFindAtom pUserFindAtom = 0;
-	tRealGetProp pRealGetProp = 0;
-	tRealInternalSetProp pRealInternalSetProp = 0;
-	uint32_t OffsetProp = 0;
-
 	PPPROP GetPPProp(PWND pWnd) const {
 		return (PPPROP)(pWnd + OffsetProp);
 	}
@@ -74,13 +75,13 @@ private:
 
 	PWND ValidateHwnd(HWND hWnd) const {
 		PWND Result;
-		KernelExecute([&] { Result = KernelCall(pValidateHwnd, hWnd); });
+		KernelExecute([&] { Result = SafeCall(pValidateHwnd, hWnd); });
 		return Result;
 	}
 
 	ATOM UserFindAtom(PCWSTR AtomName) const {
 		ATOM Result;
-		KernelExecute([&] { Result = KernelCall(pUserFindAtom, AtomName); });
+		KernelExecute([&] { Result = SafeCall(pUserFindAtom, AtomName); });
 		return Result;
 	}
 
@@ -88,7 +89,7 @@ private:
 		if (!pProp)
 			return 0;
 		HANDLE Result;
-		KernelExecute([&] { Result = KernelCall(pRealGetProp, pProp, nAtom, dwFlag); });
+		KernelExecute([&] { Result = SafeCall(pRealGetProp, pProp, nAtom, dwFlag); });
 		return Result;
 	}
 
@@ -96,13 +97,13 @@ private:
 		if (!pProp)
 			return false;
 		bool Result;
-		KernelExecute([&] { Result = KernelCall(pRealInternalSetProp, pProp, nAtom, hValue, dwFlag); });
+		KernelExecute([&] { Result = SafeCall(pRealInternalSetProp, pProp, nAtom, hValue, dwFlag); });
 		return Result;
 	}
 
-public:
-	tUserValidateHwnd UserValidateHwnd = 0;
+	tagWND* UserValidateHwnd(HWND hWnd) const { return SafeCall(pUserValidateHwnd, hWnd); }
 
+public:
 	ATOM atomDispAffinity;
 	ATOM atomLayer;
 
@@ -165,27 +166,11 @@ public:
 		ScanResult = PatternScan::Range((uintptr_t)IsChild, 0x30, "48 8B CA E8", RPM_dbvm);
 		verify(ScanResult);
 
-		UserValidateHwnd = (tUserValidateHwnd)PatternScan::GetJumpAddress(ScanResult + 0x3, RPM_dbvm);
-		verify(UserValidateHwnd);
+		pUserValidateHwnd = (tUserValidateHwnd)PatternScan::GetJumpAddress(ScanResult + 0x3, RPM_dbvm);
+		verify(pUserValidateHwnd);
 	}
 
 	/*
-	bool BlockSetProp(auto f) const {
-		uint8_t CodePatch[] = { 0x48, 0x31, 0xC0, 0xFF, 0xC0, 0xC3 };
-		uint8_t CodeOriginal[sizeof(CodePatch)];
-
-		if (!RPM_dbvm((uintptr_t)pRealInternalSetProp, CodeOriginal, sizeof(CodePatch)))
-			return false;
-
-		if (!WPM_dbvm((uintptr_t)pRealInternalSetProp, CodePatch, sizeof(CodePatch)))
-			return false;
-
-		f();
-
-		while (!WPM_dbvm((uintptr_t)pRealInternalSetProp, CodeOriginal, sizeof(CodePatch)));
-		return true;
-	}
-
 	bool BlockCallback(const wchar_t* wAltitude, auto f) const {
 		uintptr_t BePreCallback = GetCallbackEntryItemWithAltitude(wAltitude);
 		if (!BePreCallback)
