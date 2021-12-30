@@ -6,6 +6,11 @@
 #define DISPAFFINITY_PROP_NAME L"SysDispAffinity"e
 #define LAYER_PROP_NAME L"SysLayer"e
 
+DefBaseClass(tagREDIRECT,
+	MemberAtOffsetZero(HBITMAP, hbm, 0x0)
+	MemberAtOffset(UINT, uFlags, 0x20)
+,)
+
 DefBaseClass(tagWND,
 	MemberAtOffset(DWORD, dwExStyle, 0x18)
 ,)
@@ -101,11 +106,11 @@ private:
 		return Result;
 	}
 
-	tagWND* UserValidateHwnd(HWND hWnd) const { return SafeCall(pUserValidateHwnd, hWnd); }
-
 public:
 	ATOM atomDispAffinity;
 	ATOM atomLayer;
+
+	tagWND* UserValidateHwnd(HWND hWnd) const { return SafeCall(pUserValidateHwnd, hWnd); }
 
 	HANDLE UserGetProp(HWND hWnd, ATOM nAtom, DWORD dwFlag = 1) const {
 		PWND pWnd = ValidateHwnd(hWnd);

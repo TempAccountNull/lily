@@ -126,10 +126,10 @@ public:
 	template <typename... Types>
 	__declspec(guard(ignore)) static auto SafeCall(auto pFunc, Types... args) { return pFunc(args...); }
 
-	void KernelExecute(tCallback kernel_callback, bool bSet_EFLAGS_IF = false, bool bSet_EFLAGS_AC = false) const {
+	void KernelExecute(tCallback kernel_callback, bool bSet_EFLAGS_IF = false) const {
 		dbvm.SwitchToKernelMode(0x10);
+		_stac();
 		if (bSet_EFLAGS_IF) _enable();
-		if (bSet_EFLAGS_AC) _stac();
 		//__writecr8(2);
 		__writecr3(CustomCR3.Value);
 		RunWithKernelStack(&kernel_callback);

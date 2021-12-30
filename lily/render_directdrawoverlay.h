@@ -9,7 +9,6 @@
 class DirectDrawOverlayRender : public Render {
 private:
 	int ScreenWidth, ScreenHeight;
-	HWND hESPWnd;
 
 	LPDIRECTDRAWSURFACE7 pPrimarySurface;
 	LPDIRECTDRAWSURFACE7 pOverlaySurface;
@@ -55,7 +54,7 @@ private:
 
 		DDOVERLAYFX OverlayFX = { 0 };
 		OverlayFX.dwSize = sizeof(OverlayFX);
-		OverlayFX.dckSrcColorkey = DDCOLORKEY{ RGB(0, 0, 0), RGB(0, 0, 0) };
+		OverlayFX.dckSrcColorkey = DDCOLORKEY{ COLOR_CLEAR, COLOR_CLEAR };
 		RECT Rect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
 		DWORD dwUpdateFlags = DDOVER_SHOW | DDOVER_DDFX | DDOVER_KEYSRCOVERRIDE;
 
@@ -79,7 +78,7 @@ public:
 		verify(InitDirectDraw(ScreenWidth, ScreenHeight));
 	}
 
-	virtual void Present(const Hack& hack) {
+	virtual void Present(HWND hGameWnd) {
 		ImGuiRenderDrawData();
 
 		pDirect3DDevice9Ex->GetRenderTargetData(pBackBufferSurface, pOffscreenPlainSurface);
@@ -92,5 +91,12 @@ public:
 		pOffscreenPlainSurface->ReleaseDC(hOffscreenPlainSurfaceDC);
 
 		pOverlaySurface->Flip(0, DDFLIP_DONOTWAIT | DDFLIP_NOVSYNC);
+	}
+
+	virtual bool IsFocused(HWND hGameWnd) const {
+		if (GetForegroundWindow() == hGameWnd)
+			return true;
+
+		return false;
 	}
 };

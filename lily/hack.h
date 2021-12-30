@@ -140,7 +140,7 @@ public:
 	static constexpr ImU32 COLOR_RED = IM_COL32(255, 0, 0, 255);
 	static constexpr ImU32 COLOR_GREEN = IM_COL32(0, 255, 0, 255);
 	static constexpr ImU32 COLOR_BLUE = IM_COL32(0, 0, 255, 255);
-	static constexpr ImU32 COLOR_BLACK = IM_COL32(1, 1, 1, 255);
+	static constexpr ImU32 COLOR_BLACK = IM_COL32(0, 0, 0, 255);
 	static constexpr ImU32 COLOR_WHITE = IM_COL32(255, 255, 255, 255);
 	static constexpr ImU32 COLOR_ORANGE = IM_COL32(255, 128, 0, 255);
 	static constexpr ImU32 COLOR_YELLOW = IM_COL32(255, 255, 0, 255);

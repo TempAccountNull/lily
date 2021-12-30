@@ -1,4 +1,4 @@
-d:\lily\lily\x64\dll\vc143.pdb
+d:\lily\lily\x64\dll\vc142.pdb
 d:\lily\lily\x64\dll\vector.obj
 d:\lily\lily\x64\dll\transform.obj
 d:\lily\lily\x64\dll\rotator.obj
@@ -18,12 +18,12 @@ d:\lily\lily\x64\dll\hack_render.obj
 d:\lily\lily\x64\dll\hack_main.obj
 d:\lily\lily\x64\dll\dllmain.obj
 d:\lily\x64\dll\lily.dll
+d:\lily\lily\x64\dll\lily.ipdb
 d:\lily\lily\x64\dll\lily.iobj
 d:\lily\x64\dll\lily.map
 d:\lily\lily\x64\dll\dbvm_.obj
 d:\lily\lily\x64\dll\kernel_.obj
 d:\lily\lily\x64\dll\xenuine_.obj
-d:\lily\lily\x64\dll\lily.ipdb
 d:\lily\lily\x64\dll\lily.tlog\cl.command.1.tlog
 d:\lily\lily\x64\dll\lily.tlog\cl.read.1.tlog
 d:\lily\lily\x64\dll\lily.tlog\cl.write.1.tlog

@@ -4,20 +4,30 @@
 
 class RestreamChatRender : public Render {
 private:
+	const KernelLily& kernel;
 	int ScreenWidth, ScreenHeight;
 	HWND hESPWnd;
 	DWORD PidSaved = 0;
 	PhysicalAddress PhysicalAddressUser32NotTriggerdCOW;
 
+	tagREDIRECT* pRedirectInfo = 0;
+	HBITMAP hBitmapSaved = 0;
+
 	bool CheckBypassed() const {
 		auto IsBypassed = [&] {
-			//if (GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) & WS_EX_TRANSPARENT)
-			//	return false;
+			if (GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) & WS_EX_TRANSPARENT)
+				return false;
 
 			DWORD dwNewAffinity = 1;
 			if (!GetWindowDisplayAffinity(hESPWnd, &dwNewAffinity))
 				return false;
 			if (dwNewAffinity != 0)
+				return false;
+
+			COLORREF crKey;
+			BYTE bAlpha;
+			DWORD dwFlags;
+			if (GetLayeredWindowAttributes(hESPWnd, &crKey, &bAlpha, &dwFlags))
 				return false;
 
 			return true;
@@ -82,7 +92,7 @@ private:
 		return dwExitCode == 1;
 	}
 
-	static bool RemoteSetWindowDisplayAffinityBypassed(const KernelLily& kernel, HWND hWnd) {
+	bool RemoteSetWindowDisplayAffinityBypassed(HWND hWnd) {
 		if (!IsWindowVisible(hWnd))
 			return false;
 
@@ -117,57 +127,13 @@ private:
 		return true;
 	}
 
-	/*
-	bool HookGetWindowData(Process& process) {
-		HMODULE hUser32 = GetModuleHandleA("user32.dll"e);
-
-		uintptr_t ScanResult = PatternScan::Module((uintptr_t)hUser32,
-			".text"e, "FF 77 77 0A"e,
-			[&](uintptr_t Address, void* Buffer, size_t Size) {
-				return ReadProcessMemory((HANDLE)-1, LPCVOID(Address), Buffer, Size, 0);
-			});
-
-		if (ScanResult) {
-			uint32_t Value = 0x0A7777DF;
-			return process.kernel.dbvm.WPM(ScanResult, &Value, sizeof(Value), process.kernel.GetCustomCR3());
-		}
-		
-		return PatternScan::Module((uintptr_t)hUser32,
-			".text"e, "DF 77 77 0A"e,
-			[&](uintptr_t Address, void* Buffer, size_t Size) {
-				return ReadProcessMemory((HANDLE)-1, LPCVOID(Address), Buffer, Size, 0);
-			}) != 0;
-	}
-	*/
-
-	bool InitOverlay(Process& process) {
-		//if (!HookGetWindowData(process))
-		//	return false;
-
+	bool InitOverlay() {
 		if (!OpenRestreamChat())
 			return false;
 
-		/*
-		tagWND* p = process.kernel.ValidateHwnd(hESPWnd);
-
-		LONG_PTR sss = GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE);
-
-		COLORREF kk;
-		BYTE alpha;
-		DWORD kkk;
-		BOOL bbb = GetLayeredWindowAttributes(hESPWnd, &kk, &alpha, &kkk);
-
-		SetWindowLongPtrA(hESPWnd, GWL_EXSTYLE, GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) & ~WS_EX_LAYERED & ~WS_EX_TRANSPARENT);
-		process.kernel.BlockInternalSetProp([&] {
-			SetWindowLongPtrA(hESPWnd, GWL_EXSTYLE, GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) | WS_EX_LAYERED | WS_EX_TRANSPARENT);
-			});
-		
-
-		//DWORD dwExStyle = p->dwExStyle & ~WS_EX_LAYERED;
-		//process.kernel.WPM_dbvm((uintptr_t)(&p->dwExStyle), &dwExStyle, sizeof(dwExStyle));
-		bbb = GetLayeredWindowAttributes(hESPWnd, &kk, &alpha, &kkk);
-		sss = GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE);
-		*/
+		pRedirectInfo = (tagREDIRECT*)kernel.UserGetProp(hESPWnd, kernel.atomLayer);
+		if (!pRedirectInfo)
+			return false;
 
 		//SetWindowDisplayAffinity fail when parent & child windows has WS_EX_LAYERED and WS_EX_NOREDIRECTIONBITMAP
 		//Close "Intermediate D3D Window" for use SetWindowDisplayAffinity (WS_EX_NOREDIRECTIONBITMAP cannot be removed)
@@ -176,13 +142,9 @@ private:
 			SendMessageA(hChild, WM_CLOSE, 0, 0);
 
 		SetWindowLongPtrA(hESPWnd, GWL_EXSTYLE, GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) & ~WS_EX_LAYERED & ~WS_EX_TRANSPARENT);
-		if (!RemoteSetWindowDisplayAffinityBypassed(process.kernel, hESPWnd))
+		if (!RemoteSetWindowDisplayAffinityBypassed(hESPWnd))
 			return false;
-		SetWindowLongPtrA(hESPWnd, GWL_EXSTYLE, GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) | WS_EX_LAYERED | WS_EX_TRANSPARENT);
-		SetLayeredWindowAttributes(hESPWnd, 0, 255, LWA_ALPHA);
-
-		//if (GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) & WS_EX_TRANSPARENT)
-		//	return false;
+		SetWindowLongPtrA(hESPWnd, GWL_EXSTYLE, GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
 
 		//Move window to re-create "Intermediate D3D Window"
 		ShowWindow(hESPWnd, SW_NORMAL);
@@ -193,8 +155,25 @@ private:
 
 		BLENDFUNCTION blendPixelFunction = { AC_SRC_OVER, 0, 0, AC_SRC_ALPHA };
 		UpdateLayeredWindow(hChild, 0, 0, 0, 0, 0, 0, &blendPixelFunction, ULW_ALPHA);
+		return true;
+	}
 
-		return CheckBypassed();
+	bool UpdateLayeredWindowAttributes() {
+		tagREDIRECT RedirectInfo;
+		if (!kernel.RPM_dbvm((uintptr_t)pRedirectInfo, &RedirectInfo, sizeof(RedirectInfo)))
+			return false;
+
+		if (RedirectInfo.hbm == hBitmapSaved)
+			return true;
+		
+		SetLayeredWindowAttributes(hESPWnd, COLOR_CLEAR, 0, LWA_COLORKEY);
+
+		UINT uFlags = 0;
+		if (!kernel.WPM_dbvm((uintptr_t)pRedirectInfo + offsetof(tagREDIRECT, uFlags), &uFlags, sizeof(uFlags)))
+			return false;
+
+		hBitmapSaved = RedirectInfo.hbm;
+		return true;
 	}
 
 	void UpdateWindowPos(HWND hWndOver) const {
@@ -219,87 +198,35 @@ private:
 		}
 	}
 
-	/*
-	bool MakeSureCOWTriggered(const Hack& hack) {
-		DWORD GamePid = hack.process.GetPid();
-		if (PidSaved == GamePid)
-			return true;
-
-		PidSaved = GamePid;
-
-		//Process is not PUBG, return true
-		if (!hack.process.SetBaseDLL("TslGame.exe"e))
-			return true;
-
-		if (!hack.process.SetBaseDLL("user32.dll"e))
-			return false;
-
-		void* pTriggerAddress = (void*)(hack.process.GetBaseAddress() + 0x1000);
-
-		if (!hack.process.SetBaseDLL("TslGame.exe"e))
-			return false;
-
-		//if (!hack.process.kernel.BlockCallback(ALTITUDE_BE, [&]() {
-		//	uint8_t OriginalByte;
-		//	if (!hack.process.GetValue((uintptr_t)pTriggerAddress, &OriginalByte))
-		//		return false;
-
-		//	DWORD Pid = hack.process.GetPid();
-		//	HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, Pid);
-		//	if (!hProcess)
-		//		return false;
-
-		//	DWORD dwOldProtect;
-		//	if (!VirtualProtectEx(hProcess, pTriggerAddress, sizeof(uint8_t), PAGE_READWRITE, &dwOldProtect)) {
-		//		CloseHandle(hProcess);
-		//		return false;
-		//	}
-
-		//	bool bResult = WriteProcessMemory(hProcess, pTriggerAddress, &OriginalByte, sizeof(uint8_t), 0);
-		//	VirtualProtectEx(hProcess, pTriggerAddress, sizeof(uint8_t), dwOldProtect, &dwOldProtect);
-		//	CloseHandle(hProcess);
-
-		//	return bResult;
-		//	})) return false;
-
-		PhysicalAddress PhysicalAddressUser32GameProcess
-			= hack.process.kernel.GetPhysicalAddress((uintptr_t)pTriggerAddress, hack.process.kernel.GetMappedProcessCR3());
-
-		if (PhysicalAddressUser32GameProcess == PhysicalAddressUser32NotTriggerdCOW)
-			return false;
-
-		return true;
-	}
-	*/
-
 public:
-	RestreamChatRender(IDirect3DDevice9Ex* pDirect3DDevice9Ex, Process& process, int ScreenWidth, int ScreenHeight) :
-		Render(pDirect3DDevice9Ex), ScreenWidth(ScreenWidth), ScreenHeight(ScreenHeight) {
-		verify(InitOverlay(process));
-
-		/*
-		PhysicalAddressUser32NotTriggerdCOW = process.kernel.GetPhysicalAddress(
-			uintptr_t(GetModuleHandleA("user32.dll"e)) + 0x1000, process.kernel.GetCustomCR3());
-		verify(PhysicalAddressUser32NotTriggerdCOW);
-		*/
+	RestreamChatRender(IDirect3DDevice9Ex* pDirect3DDevice9Ex, const KernelLily& kernel, int ScreenWidth, int ScreenHeight) :
+		Render(pDirect3DDevice9Ex), kernel(kernel), ScreenWidth(ScreenWidth), ScreenHeight(ScreenHeight) {
+		verify(InitOverlay());
+		verify(UpdateLayeredWindowAttributes());
+		verify(CheckBypassed());
 	}
 	~RestreamChatRender() { TerminateOverlayProcess(); }
 
-	virtual void Present(const Hack& hack) {
-		//verify(MakeSureCOWTriggered(hack));
-
+	virtual void Present(HWND hGameWnd) {
 		if (!IsWindow(hESPWnd))
-			verify(InitOverlay(hack.process));
+			verify(InitOverlay());
 
+		verify(UpdateLayeredWindowAttributes());
 		verify(CheckBypassed());
 
-		HWND hWndOver = hack.process.GetHwnd();
-		if (!IsWindow(hWndOver))
-			hWndOver = GetForegroundWindow();
-
-		UpdateWindowPos(hWndOver);
+		UpdateWindowPos(IsWindow(hGameWnd) ? hGameWnd : GetForegroundWindow());
 
 		ImGuiRenderDrawData();
 		pDirect3DDevice9Ex->Present(0, 0, hESPWnd, 0);
+	}
+
+	virtual bool IsFocused(HWND hGameWnd) const {
+		const HWND hForegroundWnd = GetForegroundWindow();
+		if (hForegroundWnd == hGameWnd)
+			return true;
+		if (hForegroundWnd == hESPWnd)
+			return true;
+
+		return false;
 	}
 };

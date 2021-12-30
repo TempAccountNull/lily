@@ -33,7 +33,7 @@ void Hack::RenderArea(std::function<void(void)> func) const {
 
 	ImGui::End();
 	ImGui::EndFrame();
-	render.Present(*this);
+	render.Present(process.GetHwnd());
 }
 
 void Hack::InsertMouseInfo() const {

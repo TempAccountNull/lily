@@ -13,6 +13,8 @@
 #include "info_package.h"
 #include "info_character.h"
 
+#include "render.h"
+
 void Hack::Loop(Process& process) {
 	HWND hGameWnd = process.GetHwnd();
 	CR3 mapCR3 = kernel.GetMappedProcessCR3();
@@ -42,7 +44,7 @@ void Hack::Loop(Process& process) {
 		UpdateClientRect();
 		float TimeDelta = ProcessTimeDelta();
 
-		if (GetForegroundWindow() == hGameWnd) {
+		if (render.IsFocused(hGameWnd)) {
 			InsertMouseInfo();
 			ProcessHotkey();
 		}
