@@ -7,27 +7,25 @@ private:
 	const KernelLily& kernel;
 	int ScreenWidth, ScreenHeight;
 	HWND hESPWnd;
-	DWORD PidSaved = 0;
-	PhysicalAddress PhysicalAddressUser32NotTriggerdCOW;
-
-	tagREDIRECT* pRedirectInfo = 0;
-	HBITMAP hBitmapSaved = 0;
 
 	bool CheckBypassed() const {
 		auto IsBypassed = [&] {
-			if (GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) & WS_EX_TRANSPARENT)
+			DWORD dwExStyle = GetWindowLongA(hESPWnd, GWL_EXSTYLE);
+			if (dwExStyle & WS_EX_TRANSPARENT)
 				return false;
-
-			DWORD dwNewAffinity = 1;
-			if (!GetWindowDisplayAffinity(hESPWnd, &dwNewAffinity))
-				return false;
-			if (dwNewAffinity != 0)
+			if (dwExStyle & WS_EX_LAYERED)
 				return false;
 
 			COLORREF crKey;
 			BYTE bAlpha;
 			DWORD dwFlags;
 			if (GetLayeredWindowAttributes(hESPWnd, &crKey, &bAlpha, &dwFlags))
+				return false;
+
+			DWORD dwNewAffinity = 1;
+			if (!GetWindowDisplayAffinity(hESPWnd, &dwNewAffinity))
+				return false;
+			if (dwNewAffinity != 0)
 				return false;
 
 			return true;
@@ -38,6 +36,22 @@ private:
 
 		TerminateOverlayProcess();
 		return false;
+	}
+
+	bool MakeWindowIgnoreHitTest(HWND hWnd) const {
+		//xxxDCEWindowHitTest2Internal
+		uintptr_t pDWMProp = (uintptr_t)kernel.UserGetProp(hESPWnd, kernel.atomDWMProp);
+		if (!pDWMProp)
+			return false;
+
+		WORD Flags;
+		if (!kernel.RPM_dbvm(pDWMProp, &Flags, sizeof(Flags)))
+			return false;
+		Flags |= 0x400;
+		if (!kernel.WPM_dbvm(pDWMProp, &Flags, sizeof(Flags)))
+			return false;
+
+		return true;
 	}
 
 	void TerminateOverlayProcess() const {
@@ -127,55 +141,6 @@ private:
 		return true;
 	}
 
-	bool InitOverlay() {
-		if (!OpenRestreamChat())
-			return false;
-
-		pRedirectInfo = (tagREDIRECT*)kernel.UserGetProp(hESPWnd, kernel.atomLayer);
-		if (!pRedirectInfo)
-			return false;
-
-		//SetWindowDisplayAffinity fail when parent & child windows has WS_EX_LAYERED and WS_EX_NOREDIRECTIONBITMAP
-		//Close "Intermediate D3D Window" for use SetWindowDisplayAffinity (WS_EX_NOREDIRECTIONBITMAP cannot be removed)
-		HWND hChild = FindWindowExA(hESPWnd, 0, "Intermediate D3D Window"e, 0);
-		if (hChild)
-			SendMessageA(hChild, WM_CLOSE, 0, 0);
-
-		SetWindowLongPtrA(hESPWnd, GWL_EXSTYLE, GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) & ~WS_EX_LAYERED & ~WS_EX_TRANSPARENT);
-		if (!RemoteSetWindowDisplayAffinityBypassed(hESPWnd))
-			return false;
-		SetWindowLongPtrA(hESPWnd, GWL_EXSTYLE, GetWindowLongPtrA(hESPWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-
-		//Move window to re-create "Intermediate D3D Window"
-		ShowWindow(hESPWnd, SW_NORMAL);
-		MoveWindow(hESPWnd, 0, 0, 0, 0, false);
-		//Wait until "Intermediate D3D Window" created
-		while (!(hChild = FindWindowExA(hESPWnd, 0, "Intermediate D3D Window"e, 0)));
-		MoveWindow(hESPWnd, 0, 0, ScreenWidth, ScreenHeight, false);
-
-		BLENDFUNCTION blendPixelFunction = { AC_SRC_OVER, 0, 0, AC_SRC_ALPHA };
-		UpdateLayeredWindow(hChild, 0, 0, 0, 0, 0, 0, &blendPixelFunction, ULW_ALPHA);
-		return true;
-	}
-
-	bool UpdateLayeredWindowAttributes() {
-		tagREDIRECT RedirectInfo;
-		if (!kernel.RPM_dbvm((uintptr_t)pRedirectInfo, &RedirectInfo, sizeof(RedirectInfo)))
-			return false;
-
-		if (RedirectInfo.hbm == hBitmapSaved)
-			return true;
-		
-		SetLayeredWindowAttributes(hESPWnd, COLOR_CLEAR, 0, LWA_COLORKEY);
-
-		UINT uFlags = 0;
-		if (!kernel.WPM_dbvm((uintptr_t)pRedirectInfo + offsetof(tagREDIRECT, uFlags), &uFlags, sizeof(uFlags)))
-			return false;
-
-		hBitmapSaved = RedirectInfo.hbm;
-		return true;
-	}
-
 	void UpdateWindowPos(HWND hWndOver) const {
 		MoveWindow(hESPWnd, 0, 0, ScreenWidth, ScreenHeight, false);
 		ShowWindow(hESPWnd, SW_NORMAL);
@@ -198,11 +163,40 @@ private:
 		}
 	}
 
+	bool InitOverlay() {
+		if (!OpenRestreamChat())
+			return false;
+
+		SetWindowLongA(hESPWnd, GWL_EXSTYLE, GetWindowLongA(hESPWnd, GWL_EXSTYLE) & ~WS_EX_LAYERED & ~WS_EX_TRANSPARENT);
+
+		if (!MakeWindowIgnoreHitTest(hESPWnd))
+			return false;
+
+		if (!RemoteSetWindowDisplayAffinityBypassed(hESPWnd))
+			return false;
+
+		//SetWindowDisplayAffinity fail when parent & child windows has WS_EX_LAYERED and WS_EX_NOREDIRECTIONBITMAP
+		//Close "Intermediate D3D Window" for use SetWindowDisplayAffinity (WS_EX_NOREDIRECTIONBITMAP cannot be removed)
+		HWND hChild = FindWindowExA(hESPWnd, 0, "Intermediate D3D Window"e, 0);
+		if (hChild)
+			SendMessageA(hChild, WM_CLOSE, 0, 0);
+
+		//Move window to re-create "Intermediate D3D Window"
+		ShowWindow(hESPWnd, SW_NORMAL);
+		MoveWindow(hESPWnd, 0, 0, 0, 0, false);
+		//Wait until "Intermediate D3D Window" created
+		while (!(hChild = FindWindowExA(hESPWnd, 0, "Intermediate D3D Window"e, 0)));
+		MoveWindow(hESPWnd, 0, 0, ScreenWidth, ScreenHeight, false);
+
+		BLENDFUNCTION blendPixelFunction = { AC_SRC_OVER, 0, 0, AC_SRC_ALPHA };
+		UpdateLayeredWindow(hChild, 0, 0, 0, 0, 0, 0, &blendPixelFunction, ULW_ALPHA);
+		return true;
+	}
+
 public:
 	RestreamChatRender(IDirect3DDevice9Ex* pDirect3DDevice9Ex, const KernelLily& kernel, int ScreenWidth, int ScreenHeight) :
 		Render(pDirect3DDevice9Ex), kernel(kernel), ScreenWidth(ScreenWidth), ScreenHeight(ScreenHeight) {
 		verify(InitOverlay());
-		verify(UpdateLayeredWindowAttributes());
 		verify(CheckBypassed());
 	}
 	~RestreamChatRender() { TerminateOverlayProcess(); }
@@ -211,7 +205,6 @@ public:
 		if (!IsWindow(hESPWnd))
 			verify(InitOverlay());
 
-		verify(UpdateLayeredWindowAttributes());
 		verify(CheckBypassed());
 
 		UpdateWindowPos(IsWindow(hGameWnd) ? hGameWnd : GetForegroundWindow());

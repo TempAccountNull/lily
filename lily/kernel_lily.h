@@ -3,40 +3,33 @@
 #include "obcallback.h"
 
 #define ALTITUDE_BE L"363220"e
+
 #define DISPAFFINITY_PROP_NAME L"SysDispAffinity"e
 #define LAYER_PROP_NAME L"SysLayer"e
-
-DefBaseClass(tagREDIRECT,
-	MemberAtOffsetZero(HBITMAP, hbm, 0x0)
-	MemberAtOffset(UINT, uFlags, 0x20)
-,)
-
-DefBaseClass(tagWND,
-	MemberAtOffset(DWORD, dwExStyle, 0x18)
-,)
+#define COMPOSITIONINPUTQUEUE_PROP_NAME L"SysCompositionInputQueue"e
+#define DWM_PROP_NAME L"SysDWM"e
 
 typedef struct {}*PPPROP;
 typedef struct {}*PPROP;
 typedef struct {}*PWND;
 
-using tUserValidateHwnd = tagWND*(*)(HWND hWnd);
-
 using tValidateHwnd = PWND(*)(HWND hWnd);
 using tUserFindAtom = ATOM(*)(PCWSTR AtomName);
 using tRealGetProp = HANDLE(*)(PPROP pProp, ATOM nAtom, DWORD dwFlag);
 using tRealInternalSetProp = BOOL(*)(PPPROP pProp, ATOM nAtom, HANDLE hValue, DWORD dwFlag);
+using tExAllocatePool = PVOID (*)(DWORD PoolType, SIZE_T NumberOfBytes);
 
 class KernelLily : public Kernel {
 private:
-	uintptr_t pKernelFuncRet0 = 0;
 	uintptr_t pPsProcessType = 0;
 
-	tUserValidateHwnd pUserValidateHwnd = 0;
 	tValidateHwnd pValidateHwnd = 0;
 	tUserFindAtom pUserFindAtom = 0;
 	tRealGetProp pRealGetProp = 0;
 	tRealInternalSetProp pRealInternalSetProp = 0;
 	uint32_t OffsetProp = 0;
+
+	tExAllocatePool pExAllocatePool = 0;
 
 	uintptr_t GetCallbackEntryItemWithAltitude(const wchar_t* wAltitude) const {
 		OBJECT_TYPE PsProcessType;
@@ -109,8 +102,8 @@ private:
 public:
 	ATOM atomDispAffinity;
 	ATOM atomLayer;
-
-	tagWND* UserValidateHwnd(HWND hWnd) const { return SafeCall(pUserValidateHwnd, hWnd); }
+	ATOM atomInputQueue;
+	ATOM atomDWMProp;
 
 	HANDLE UserGetProp(HWND hWnd, ATOM nAtom, DWORD dwFlag = 1) const {
 		PWND pWnd = ValidateHwnd(hWnd);
@@ -132,8 +125,17 @@ public:
 		return RealInternalSetProp(GetPPProp(pWnd), nAtom, hValue, dwFlag);
 	}
 
+	void* ExAllocatePool(size_t NumberOfBytes) const {
+		void* Result;
+		KernelExecute([&] { Result = SafeCall(pExAllocatePool, 0, NumberOfBytes); });
+		return Result;
+	}
+
 	KernelLily(const DBVM& dbvm) : Kernel(dbvm) {
 		uintptr_t ScanResult = 0;
+
+		pExAllocatePool = (tExAllocatePool)GetKernelProcAddress("ntoskrnl.exe"e, "ExAllocatePool"e);
+		verify(pExAllocatePool);
 
 		pValidateHwnd = (tValidateHwnd)GetKernelProcAddress("win32kbase.sys"e, "ValidateHwnd"e);
 		verify(pValidateHwnd);
@@ -157,38 +159,14 @@ public:
 		verify(atomLayer);
 		atomDispAffinity = UserFindAtom(DISPAFFINITY_PROP_NAME);
 		verify(atomDispAffinity);
-
-		uintptr_t hNtoskrnl = GetKernelModuleAddress("ntoskrnl.exe"e);
-		pKernelFuncRet0 = PatternScan::Module(hNtoskrnl, ".text", "33 C0 C3", RPM_dbvm);
-		verify(pKernelFuncRet0);
+		atomInputQueue = UserFindAtom(COMPOSITIONINPUTQUEUE_PROP_NAME);
+		verify(atomInputQueue);
+		atomDWMProp = UserFindAtom(DWM_PROP_NAME);
 
 		uintptr_t ppPsProcessType = GetKernelProcAddress("ntoskrnl.exe"e, "PsProcessType");
 		verify(ppPsProcessType);
 
 		RPM_dbvm(ppPsProcessType, &pPsProcessType, sizeof(pPsProcessType));
 		verify(pPsProcessType);
-
-		ScanResult = PatternScan::Range((uintptr_t)IsChild, 0x30, "48 8B CA E8", RPM_dbvm);
-		verify(ScanResult);
-
-		pUserValidateHwnd = (tUserValidateHwnd)PatternScan::GetJumpAddress(ScanResult + 0x3, RPM_dbvm);
-		verify(pUserValidateHwnd);
 	}
-
-	/*
-	bool BlockCallback(const wchar_t* wAltitude, auto f) const {
-		uintptr_t BePreCallback = GetCallbackEntryItemWithAltitude(wAltitude);
-		if (!BePreCallback)
-			return false;
-
-		CALLBACK_ENTRY_ITEM CallbackEntryItem;
-		if (!RPM_dbvm(BePreCallback, &CallbackEntryItem, sizeof(CallbackEntryItem)))
-			return false;
-
-		WPM_dbvm(BePreCallback + offsetof(CALLBACK_ENTRY_ITEM, PreOperation), &pKernelFuncRet0, sizeof(pKernelFuncRet0));
-		f();
-		WPM_dbvm(BePreCallback + offsetof(CALLBACK_ENTRY_ITEM, PreOperation), &CallbackEntryItem.PreOperation, sizeof(pKernelFuncRet0));
-		return true;
-	}
-	*/
 };

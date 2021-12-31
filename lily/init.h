@@ -38,11 +38,11 @@ int Init() {
 	dprintf("Kernel OK"e);
 	Process process(kernel);
 
-#ifdef _WINDLL
+//#ifdef _WINDLL
 	RestreamChatRender render(Global::pDirect3DDevice9Ex, process.kernel, Global::ScreenWidth, Global::ScreenHeight);
-#else
-	DirectDrawOverlayRender render(Global::pDirect3DDevice9Ex, Global::pBackBufferSurface, Global::pOffscreenPlainSurface, Global::ScreenWidth, Global::ScreenHeight);
-#endif
+//#else
+	//DirectDrawOverlayRender render(Global::pDirect3DDevice9Ex, Global::pBackBufferSurface, Global::pOffscreenPlainSurface, Global::ScreenWidth, Global::ScreenHeight);
+//#endif
 
 	Hack hack(process, render, Global::ScreenWidth, Global::ScreenHeight, Global::Buf, sizeof(Global::Buf));
 	dprintf("hack OK"e);
