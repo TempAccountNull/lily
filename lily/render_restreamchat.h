@@ -1,6 +1,7 @@
 #pragma once
 #include "render.h"
 #include <Shlobj.h>
+#include <dwmapi.h>
 
 class RestreamChatRender : public Render {
 private:
@@ -28,6 +29,11 @@ private:
 			if (dwNewAffinity != 0)
 				return false;
 
+			DWORD dwAttribute = 0;
+			DwmGetWindowAttribute(hESPWnd, DWMWA_CLOAKED, &dwAttribute, sizeof(dwAttribute));
+			if (dwAttribute)
+				return false;
+
 			return true;
 		}();
 
@@ -39,19 +45,12 @@ private:
 	}
 
 	bool MakeWindowIgnoreHitTest(HWND hWnd) const {
-		//xxxDCEWindowHitTest2Internal
-		uintptr_t pDWMProp = (uintptr_t)kernel.UserGetProp(hESPWnd, kernel.atomDWMProp);
-		if (!pDWMProp)
+		tagWND* pWnd = kernel.UserValidateHwnd(hWnd);
+		if (!pWnd)
 			return false;
 
-		WORD Flags;
-		if (!kernel.RPM_dbvm(pDWMProp, &Flags, sizeof(Flags)))
-			return false;
-		Flags |= 0x400;
-		if (!kernel.WPM_dbvm(pDWMProp, &Flags, sizeof(Flags)))
-			return false;
-
-		return true;
+		RECT rcWindow = { 0, 0, 1, 1 };
+		return kernel.WPM_dbvm((uintptr_t)&pWnd->rcWindow, &rcWindow, sizeof(rcWindow));
 	}
 
 	void TerminateOverlayProcess() const {
@@ -107,13 +106,14 @@ private:
 	}
 
 	bool RemoteSetWindowDisplayAffinityBypassed(HWND hWnd) {
-		if (!IsWindowVisible(hWnd))
+		ATOM atomDispAffinity = kernel.UserFindAtom(L"SysDispAffinity"e);
+		if (!atomDispAffinity)
 			return false;
 
 		if (!RemoteSetWindowDisplayAffinity(hWnd, WDA_EXCLUDEFROMCAPTURE))
 			return false;
 
-		if (!kernel.UserSetProp(hWnd, kernel.atomDispAffinity, HANDLE(WDA_NONE)))
+		if (!kernel.UserSetProp(hWnd, atomDispAffinity, HANDLE(WDA_NONE)))
 			return false;
 
 		return true;
@@ -142,7 +142,7 @@ private:
 	}
 
 	void UpdateWindowPos(HWND hWndOver) const {
-		MoveWindow(hESPWnd, 0, 0, ScreenWidth, ScreenHeight, false);
+		MoveWindow(hESPWnd, 0, 0, ScreenWidth, ScreenHeight, true);
 		ShowWindow(hESPWnd, SW_NORMAL);
 
 		if (hWndOver == 0 || hWndOver == hESPWnd)
@@ -163,16 +163,21 @@ private:
 		}
 	}
 
+	void UpdateWindow(HWND hWndOver) const {
+		HDC hDC = GetDC(hESPWnd);
+		if (!hDC)
+			return;
+		bool IsVisible = PtVisible(hDC, 5, 5);
+		ReleaseDC(hESPWnd, hDC);
+		if (IsVisible)
+			return;
+
+		UpdateWindowPos(hWndOver);
+		MakeWindowIgnoreHitTest(hESPWnd);
+	}
+
 	bool InitOverlay() {
 		if (!OpenRestreamChat())
-			return false;
-
-		SetWindowLongA(hESPWnd, GWL_EXSTYLE, GetWindowLongA(hESPWnd, GWL_EXSTYLE) & ~WS_EX_LAYERED & ~WS_EX_TRANSPARENT);
-
-		if (!MakeWindowIgnoreHitTest(hESPWnd))
-			return false;
-
-		if (!RemoteSetWindowDisplayAffinityBypassed(hESPWnd))
 			return false;
 
 		//SetWindowDisplayAffinity fail when parent & child windows has WS_EX_LAYERED and WS_EX_NOREDIRECTIONBITMAP
@@ -181,15 +186,23 @@ private:
 		if (hChild)
 			SendMessageA(hChild, WM_CLOSE, 0, 0);
 
+		SetWindowLongA(hESPWnd, GWL_EXSTYLE, GetWindowLongA(hESPWnd, GWL_EXSTYLE) & ~WS_EX_LAYERED & ~WS_EX_TRANSPARENT);
+		if (!RemoteSetWindowDisplayAffinityBypassed(hESPWnd))
+			return false;
+
 		//Move window to re-create "Intermediate D3D Window"
 		ShowWindow(hESPWnd, SW_NORMAL);
-		MoveWindow(hESPWnd, 0, 0, 0, 0, false);
+		MoveWindow(hESPWnd, 1, 1, ScreenWidth - 1, ScreenHeight - 1, false);
 		//Wait until "Intermediate D3D Window" created
 		while (!(hChild = FindWindowExA(hESPWnd, 0, "Intermediate D3D Window"e, 0)));
 		MoveWindow(hESPWnd, 0, 0, ScreenWidth, ScreenHeight, false);
 
 		BLENDFUNCTION blendPixelFunction = { AC_SRC_OVER, 0, 0, AC_SRC_ALPHA };
 		UpdateLayeredWindow(hChild, 0, 0, 0, 0, 0, 0, &blendPixelFunction, ULW_ALPHA);
+
+		if (!MakeWindowIgnoreHitTest(hESPWnd))
+			return false;
+
 		return true;
 	}
 
@@ -207,8 +220,7 @@ public:
 
 		verify(CheckBypassed());
 
-		UpdateWindowPos(IsWindow(hGameWnd) ? hGameWnd : GetForegroundWindow());
-
+		UpdateWindow(IsWindow(hGameWnd) ? hGameWnd : GetForegroundWindow());
 		ImGuiRenderDrawData();
 		pDirect3DDevice9Ex->Present(0, 0, hESPWnd, 0);
 	}

@@ -4,15 +4,16 @@
 
 #define ALTITUDE_BE L"363220"e
 
-#define DISPAFFINITY_PROP_NAME L"SysDispAffinity"e
-#define LAYER_PROP_NAME L"SysLayer"e
-#define COMPOSITIONINPUTQUEUE_PROP_NAME L"SysCompositionInputQueue"e
-#define DWM_PROP_NAME L"SysDWM"e
+DefBaseClass(tagWND,
+	MemberAtOffset(DWORD, dwExStyle, 0x18)
+	MemberAtOffset(RECT, rcWindow, 0x58)
+,)
 
 typedef struct {}*PPPROP;
 typedef struct {}*PPROP;
 typedef struct {}*PWND;
 
+using tUserValidateHwnd = tagWND*(*)(HWND hWnd);
 using tValidateHwnd = PWND(*)(HWND hWnd);
 using tUserFindAtom = ATOM(*)(PCWSTR AtomName);
 using tRealGetProp = HANDLE(*)(PPROP pProp, ATOM nAtom, DWORD dwFlag);
@@ -30,6 +31,8 @@ private:
 	uint32_t OffsetProp = 0;
 
 	tExAllocatePool pExAllocatePool = 0;
+
+	tUserValidateHwnd pUserValidateHwnd = 0;
 
 	uintptr_t GetCallbackEntryItemWithAltitude(const wchar_t* wAltitude) const {
 		OBJECT_TYPE PsProcessType;
@@ -77,12 +80,6 @@ private:
 		return Result;
 	}
 
-	ATOM UserFindAtom(PCWSTR AtomName) const {
-		ATOM Result;
-		KernelExecute([&] { Result = SafeCall(pUserFindAtom, AtomName); });
-		return Result;
-	}
-
 	HANDLE RealGetProp(PPROP pProp, ATOM nAtom, DWORD dwFlag) const {
 		if (!pProp)
 			return 0;
@@ -100,10 +97,13 @@ private:
 	}
 
 public:
-	ATOM atomDispAffinity;
-	ATOM atomLayer;
-	ATOM atomInputQueue;
-	ATOM atomDWMProp;
+	tagWND* UserValidateHwnd(HWND hWnd) const { return SafeCall(pUserValidateHwnd, hWnd); }
+
+	ATOM UserFindAtom(PCWSTR AtomName) const {
+		ATOM Result;
+		KernelExecute([&] { Result = SafeCall(pUserFindAtom, AtomName); });
+		return Result;
+	}
 
 	HANDLE UserGetProp(HWND hWnd, ATOM nAtom, DWORD dwFlag = 1) const {
 		PWND pWnd = ValidateHwnd(hWnd);
@@ -155,18 +155,16 @@ public:
 		RPM_dbvm(ScanResult + 0x3, &OffsetProp, sizeof(OffsetProp));
 		verify(OffsetProp);
 
-		atomLayer = UserFindAtom(LAYER_PROP_NAME);
-		verify(atomLayer);
-		atomDispAffinity = UserFindAtom(DISPAFFINITY_PROP_NAME);
-		verify(atomDispAffinity);
-		atomInputQueue = UserFindAtom(COMPOSITIONINPUTQUEUE_PROP_NAME);
-		verify(atomInputQueue);
-		atomDWMProp = UserFindAtom(DWM_PROP_NAME);
-
 		uintptr_t ppPsProcessType = GetKernelProcAddress("ntoskrnl.exe"e, "PsProcessType");
 		verify(ppPsProcessType);
 
 		RPM_dbvm(ppPsProcessType, &pPsProcessType, sizeof(pPsProcessType));
 		verify(pPsProcessType);
+
+		ScanResult = PatternScan::Range((uintptr_t)IsChild, 0x30, "48 8B CA E8", RPM_dbvm);
+		verify(ScanResult);
+
+		pUserValidateHwnd = (tUserValidateHwnd)PatternScan::GetJumpAddress(ScanResult + 0x3, RPM_dbvm);
+		verify(pUserValidateHwnd);
 	}
 };
