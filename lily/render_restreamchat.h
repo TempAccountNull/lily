@@ -16,6 +16,8 @@ private:
 				return false;
 			if (dwExStyle & WS_EX_LAYERED)
 				return false;
+			if (dwExStyle & WS_EX_TOPMOST)
+				return false;
 
 			COLORREF crKey;
 			BYTE bAlpha;

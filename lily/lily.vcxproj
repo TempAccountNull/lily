@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="EXE|x64">
-      <Configuration>EXE</Configuration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="DLL|x64">
-      <Configuration>DLL</Configuration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -18,7 +18,7 @@
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='EXE|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
@@ -26,7 +26,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <SpectreMitigation>Spectre</SpectreMitigation>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DLL|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
@@ -40,24 +40,30 @@
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='EXE|x64'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DLL|x64'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='EXE|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>../imgui;../common;$(IncludePath)</IncludePath>
+    <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
+    <OutDir>$(MSBuildProjectDirectory)\bin\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DLL|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>../imgui;../common;$(IncludePath)</IncludePath>
+    <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
+    <OutDir>$(MSBuildProjectDirectory)\bin\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='EXE|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NOMINMAX;DEBUG;_CRT_SECURE_NO_WARNINGS;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMINMAX;_CRT_SECURE_NO_WARNINGS;DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -76,7 +82,7 @@
       <IgnoreSpecificDefaultLibraries>libucrt.lib;libvcruntime.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DLL|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -101,33 +107,41 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <MASM Include="dbvm_.asm" />
-    <MASM Include="kernel_.asm" />
+    <MASM Include="..\common\dbvm_.asm" />
+    <MASM Include="..\common\kernel_.asm" />
     <MASM Include="xenuine_.asm" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="compiletime.hpp" />
-    <ClInclude Include="dbvm.h" />
-    <ClInclude Include="lily.hpp" />
-    <ClInclude Include="defclass.hpp" />
+    <ClInclude Include="..\common\compiletime.hpp" />
+    <ClInclude Include="..\common\dbvm.h" />
+    <ClInclude Include="..\common\defclass.hpp" />
+    <ClInclude Include="..\common\encrypt_string.hpp" />
+    <ClInclude Include="..\common\exception.hpp" />
+    <ClInclude Include="..\common\fixed_string.hpp" />
+    <ClInclude Include="..\common\hash_switch.hpp" />
+    <ClInclude Include="..\common\ida_defs.h" />
+    <ClInclude Include="..\common\initializer.hpp" />
+    <ClInclude Include="..\common\kernel.h" />
+    <ClInclude Include="..\common\lily.hpp" />
+    <ClInclude Include="..\common\msrnames.h" />
+    <ClInclude Include="..\common\obcallback.h" />
+    <ClInclude Include="..\common\patternscan.hpp" />
+    <ClInclude Include="..\common\peb.h" />
+    <ClInclude Include="..\common\physicalmemory.hpp" />
+    <ClInclude Include="..\common\process.h" />
+    <ClInclude Include="..\imgui\imconfig.h" />
+    <ClInclude Include="..\imgui\imgui.h" />
+    <ClInclude Include="..\imgui\imgui_impl_dx9.h" />
+    <ClInclude Include="..\imgui\imgui_impl_win32.h" />
+    <ClInclude Include="..\imgui\imgui_internal.h" />
+    <ClInclude Include="..\imgui\imstb_rectpack.h" />
+    <ClInclude Include="..\imgui\imstb_textedit.h" />
+    <ClInclude Include="..\imgui\imstb_truetype.h" />
     <ClInclude Include="dump.h" />
-    <ClInclude Include="encrypt_string.hpp" />
-    <ClInclude Include="exception.hpp" />
-    <ClInclude Include="fixed_string.hpp" />
     <ClInclude Include="global.h" />
     <ClInclude Include="GNames.h" />
     <ClInclude Include="GObjects.h" />
     <ClInclude Include="hack.h" />
-    <ClInclude Include="hash_switch.hpp" />
-    <ClInclude Include="ida_defs.h" />
-    <ClInclude Include="imgui\imconfig.h" />
-    <ClInclude Include="imgui\imgui.h" />
-    <ClInclude Include="imgui\imgui_impl_dx9.h" />
-    <ClInclude Include="imgui\imgui_impl_win32.h" />
-    <ClInclude Include="imgui\imgui_internal.h" />
-    <ClInclude Include="imgui\imstb_rectpack.h" />
-    <ClInclude Include="imgui\imstb_textedit.h" />
-    <ClInclude Include="imgui\imstb_truetype.h" />
     <ClInclude Include="info_bone.h" />
     <ClInclude Include="info_character.h" />
     <ClInclude Include="info_item.h" />
@@ -135,16 +149,8 @@
     <ClInclude Include="info_proj.h" />
     <ClInclude Include="info_vehicle.h" />
     <ClInclude Include="init.h" />
-    <ClInclude Include="initializer.hpp" />
-    <ClInclude Include="kernel.h" />
     <ClInclude Include="matrix.h" />
-    <ClInclude Include="msrnames.h" />
     <ClInclude Include="mymath.h" />
-    <ClInclude Include="obcallback.h" />
-    <ClInclude Include="patternscan.hpp" />
-    <ClInclude Include="peb.h" />
-    <ClInclude Include="physicalmemory.hpp" />
-    <ClInclude Include="process.h" />
     <ClInclude Include="pubg_class.h" />
     <ClInclude Include="pubg_class_input.h" />
     <ClInclude Include="pubg_class_output.h" />
@@ -160,21 +166,21 @@
     <ClInclude Include="xenuine.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\common\kernel.cpp" />
+    <ClCompile Include="..\imgui\imgui.cpp" />
+    <ClCompile Include="..\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\imgui\imgui_impl_dx9_custom.cpp" />
+    <ClCompile Include="..\imgui\imgui_impl_win32.cpp" />
+    <ClCompile Include="..\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\imgui\imgui_widgets.cpp" />
     <ClCompile Include="crtmain.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="dllmain.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='EXE|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="hack_main.cpp" />
     <ClCompile Include="hack_render.cpp" />
-    <ClCompile Include="imgui\imgui.cpp" />
-    <ClCompile Include="imgui\imgui_draw.cpp" />
-    <ClCompile Include="imgui\imgui_impl_dx9_custom.cpp" />
-    <ClCompile Include="imgui\imgui_impl_win32.cpp" />
-    <ClCompile Include="imgui\imgui_tables.cpp" />
-    <ClCompile Include="imgui\imgui_widgets.cpp" />
-    <ClCompile Include="kernel.cpp" />
     <ClCompile Include="matrix.cpp" />
     <ClCompile Include="pubg_class_pubg.cpp" />
     <ClCompile Include="pubg_class_ue4.cpp" />

@@ -35,10 +35,10 @@ void ErasePE(HMODULE hDLL) {
 	srand(GetTickCount());
 
 	DWORD dwOld;
-	VirtualProtectEx(GetCurrentProcess(), hDLL, 0x1000, PAGE_READWRITE, &dwOld);
+	VirtualProtectEx((HANDLE)-1, hDLL, 0x1000, PAGE_READWRITE, &dwOld);
 	for (int i = 0; i < 0x1000; i++)
 		(PBYTE(hDLL))[i] = BYTE(rand() % 0xFF);
-	VirtualProtectEx(GetCurrentProcess(), hDLL, 0x1000, dwOld, &dwOld);
+	VirtualProtectEx((HANDLE)-1, hDLL, 0x1000, dwOld, &dwOld);
 }
 
 void BypassedCreateThread2(LPVOID lpStart, LPVOID pParam) {
@@ -64,7 +64,7 @@ void BypassedCreateThread2(LPVOID lpStart, LPVOID pParam) {
 
 	DWORD dwOldProtect;
 	//VirtualProtect is blocked
-	VirtualProtectEx(GetCurrentProcess(), (PVOID)EntryPoint, sizeof(HookCode), PAGE_EXECUTE_READWRITE, &dwOldProtect);
+	VirtualProtectEx((HANDLE)-1, (PVOID)EntryPoint, sizeof(HookCode), PAGE_EXECUTE_READWRITE, &dwOldProtect);
 
 	memcpy(OriginalCode, EntryPoint, sizeof(HookCode));
 
@@ -78,24 +78,7 @@ void BypassedCreateThread2(LPVOID lpStart, LPVOID pParam) {
 	memcpy(EntryPoint, OriginalCode, sizeof(HookCode));
 
 	//VirtualProtect is blocked
-	VirtualProtectEx(GetCurrentProcess(), (PVOID)EntryPoint, sizeof(HookCode), dwOldProtect, &dwOldProtect);
-}
-
-void BypassedCreateThread(LPVOID lpStart, LPVOID pParam) {
-	PBYTE pStub = (PBYTE)VirtualAlloc(0, 0x1000, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-
-	BYTE Code[] = {
-		0x48, 0x8B, 0x01,			//mov rax,[rcx]
-		0x48, 0x8B, 0x49, 0x08,		//mov rcx,[rcx+08]
-		0xFF, 0xE0					//jmp rax
-	};
-	memcpy(pStub, Code, sizeof(Code));
-	*(LPVOID*)(pStub + 0x100) = lpStart;
-	*(LPVOID*)(pStub + 0x108) = pParam;
-
-	CreateThread(0, 0, (LPTHREAD_START_ROUTINE)pStub, pStub + 0x100, 0, 0);
-	Sleep(1);
-	VirtualFree(pStub, 0, MEM_RELEASE);
+	VirtualProtectEx((HANDLE)-1, (PVOID)EntryPoint, sizeof(HookCode), dwOldProtect, &dwOldProtect);
 }
 
 BOOL WINAPI DllMain(HMODULE hDLL, DWORD dwReason, const char* szParam) {
@@ -105,8 +88,10 @@ BOOL WINAPI DllMain(HMODULE hDLL, DWORD dwReason, const char* szParam) {
 	strcpy(g_Password, szParam);
 	*/
 
-	ErasePE(hDLL);
+	MODULEINFO ModuleInfo;
+	if (!GetModuleInformation((HANDLE)-1, hDLL, &ModuleInfo, sizeof(ModuleInfo)))
+		ErasePE(hDLL);
+
 	BypassedCreateThread2(MainThread, 0);
-	//CreateThread(0, 0x100000, MainThread, 0, 0, 0);
 	return TRUE;
 }
