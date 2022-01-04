@@ -1,8 +1,8 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "injectorUI.hpp"
-#include "remoteprocess.hpp"
+#include "injectorUI.h"
+#include "remoteprocess.h"
 
 #define IMR_RELTYPE(x)				((x >> 12) & 0xF)
 #define IMR_RELOFFSET(x)			(x & 0xFFF)

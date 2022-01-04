@@ -82,6 +82,8 @@ void BypassedCreateThread2(LPVOID lpStart, LPVOID pParam) {
 }
 
 BOOL WINAPI DllMain(HMODULE hDLL, DWORD dwReason, const char* szParam) {
+	Global::hModule = hDLL;
+
 	/*
 	if (strlen(szParam) < 20)
 		TerminateProcess(GetCurrentProcess(), 0);

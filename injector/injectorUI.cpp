@@ -1,9 +1,9 @@
-#include "injectorUI.hpp"
+#include "injectorUI.h"
 
 #include <tlhelp32.h>
 #include "kernel.h"
 #include "dbvm.h"
-#include "injector.hpp"
+#include "injector.h"
 
 #define FILE_READ_ACCESS          ( 0x0001 )    // file & pipe
 #define FILE_WRITE_ACCESS         ( 0x0002 )    // file & pipe

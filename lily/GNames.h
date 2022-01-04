@@ -5,7 +5,7 @@
 
 #include "xenuine.h"
 #include "pubg_struct.h"
-#include "compiletime.hpp"
+#include "compiletime.h"
 #include "pubg_class.h"
 
 class TNameEntryArray

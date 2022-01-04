@@ -1,6 +1,6 @@
 #pragma once
 #include <Windows.h>
-#include "defclass.hpp"
+#include "defclass.h"
 
 class OBJECT_TYPE;
 typedef LONG NTSTATUS;

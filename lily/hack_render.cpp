@@ -1,6 +1,6 @@
 #include "hack.h"
 #include "vector.h"
-#include "encrypt_string.hpp"
+#include "encrypt_string.h"
 #include "render.h"
 
 void AddText(const ImFont* font, float font_size, const ImVec2& pos, ImU32 col, const char* szText, float wrap_width = 0.0f, const ImVec4* cpu_fine_clip_rect = 0) {

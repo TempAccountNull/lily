@@ -112,23 +112,26 @@
     <MASM Include="xenuine_.asm" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\common\compiletime.hpp" />
+    <ClInclude Include="..\common\compiletime.h" />
     <ClInclude Include="..\common\dbvm.h" />
-    <ClInclude Include="..\common\defclass.hpp" />
-    <ClInclude Include="..\common\encrypt_string.hpp" />
-    <ClInclude Include="..\common\exception.hpp" />
+    <ClInclude Include="..\common\defclass.h" />
+    <ClInclude Include="..\common\encrypt_string.h" />
+    <ClInclude Include="..\common\exception.h" />
     <ClInclude Include="..\common\fixed_string.hpp" />
-    <ClInclude Include="..\common\hash_switch.hpp" />
+    <ClInclude Include="..\common\hash_switch.h" />
     <ClInclude Include="..\common\ida_defs.h" />
-    <ClInclude Include="..\common\initializer.hpp" />
+    <ClInclude Include="..\common\initializer.h" />
     <ClInclude Include="..\common\kernel.h" />
-    <ClInclude Include="..\common\lily.hpp" />
+    <ClInclude Include="..\common\lily.h" />
     <ClInclude Include="..\common\msrnames.h" />
     <ClInclude Include="..\common\obcallback.h" />
-    <ClInclude Include="..\common\patternscan.hpp" />
+    <ClInclude Include="..\common\patternscan.h" />
     <ClInclude Include="..\common\peb.h" />
-    <ClInclude Include="..\common\physicalmemory.hpp" />
+    <ClInclude Include="..\common\physicalmemory.h" />
     <ClInclude Include="..\common\process.h" />
+    <ClInclude Include="..\common\process.hpp" />
+    <ClInclude Include="..\common\remoteprocess.h" />
+    <ClInclude Include="..\common\shellcode.h" />
     <ClInclude Include="..\imgui\imconfig.h" />
     <ClInclude Include="..\imgui\imgui.h" />
     <ClInclude Include="..\imgui\imgui_impl_dx9.h" />

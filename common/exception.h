@@ -1,7 +1,7 @@
 #pragma once
 
 #include <windows.h>
-#include "initializer.hpp"
+#include "initializer.h"
 
 class ExceptionHandler {
 private:
@@ -24,13 +24,13 @@ private:
 public:
 	static DWORD GetLastExceptionCode() { return LastExceptionCode; }
 	static bool TryExcept(auto pFunc) {
-		DWORD ExceptionCode = 0;
+		volatile DWORD ExceptionCode = 0;
 		CONTEXT CapturedContext;
 
 		DWORD* pPrevExceptionCode = pExceptionCode;
 		CONTEXT* pPrevCapturedContext = pCapturedContext;
 
-		pExceptionCode = &ExceptionCode;
+		pExceptionCode = (DWORD*)&ExceptionCode;
 		pCapturedContext = &CapturedContext;
 
 		RtlCaptureContext(&CapturedContext);

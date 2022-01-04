@@ -1,2 +1,5 @@
 #include "init.h"
-int main() { return Init(); }
+int main() { 
+	Global::hModule = GetModuleHandleA(0);
+	return Init(); 
+}

@@ -2,7 +2,7 @@
 
 #include <Windows.h>
 #include "process.h"
-#include "exception.hpp"
+#include "exception.h"
 
 extern "C" uintptr_t XenuineCall(uintptr_t Seed, uintptr_t Value, uintptr_t rax, uintptr_t pFunc);
 

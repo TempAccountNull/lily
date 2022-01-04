@@ -4,9 +4,9 @@
 #include <d3d9.h>
 #pragma comment(lib, "d3d9.lib")
 
-#include "initializer.hpp"
-#include "lily.hpp"
-#include "encrypt_string.hpp"
+#include "initializer.h"
+#include "lily.h"
+#include "encrypt_string.h"
 
 #include "imgui.h"
 #include "imgui_impl_dx9.h"
@@ -14,6 +14,7 @@
 
 class Global {
 public:
+	static inline HMODULE hModule = 0;
 	static inline char DBVMPassword[21];
 	static inline const int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
 	static inline const int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
@@ -67,11 +68,18 @@ private:
 		return true;
 	}
 
-	INITIALIZER_INCLASS(UEH) {
+	INITIALIZER_INCLASS(UEF) {
 		SetUnhandledExceptionFilter([](PEXCEPTION_POINTERS pExceptionInfo)->LONG {
-			error("Unknown exception"e);
+			const uintptr_t ExceptionAddress = (uintptr_t)pExceptionInfo->ExceptionRecord->ExceptionAddress;
+			char szAddress[0x40];
+			if (hModule)
+				sprintf(szAddress, "Base+0x%I64X"e, ExceptionAddress - (uintptr_t)hModule);
+			else
+				sprintf(szAddress, "0x%I64X"e, ExceptionAddress);
+
+			error(szAddress, "Unhandled exception"e);
 			return EXCEPTION_CONTINUE_SEARCH;
-		});
+			});
 	};
 
 	INITIALIZER_INCLASS(DefaultPassword) {
@@ -91,9 +99,6 @@ private:
 		io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf"e, 40.0f);
 
 		io.IniFilename = 0;
-		//io.WantCaptureMouse = 1;
-		//io.WantCaptureKeyboard = 1;
-		//io.WantTextInput = 1;
 	};
 };
 

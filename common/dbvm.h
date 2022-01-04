@@ -1,9 +1,9 @@
 #pragma once
 #include <Windows.h>
 #include <intrin.h>
-#include "physicalmemory.hpp"
+#include "physicalmemory.h"
 #include "ida_defs.h"
-#include "exception.hpp"
+#include "exception.h"
 
 extern "C" uintptr_t vmcall_intel(uintptr_t password3, uintptr_t passwordr1, void* vmcallinfo);
 extern "C" uintptr_t vmcall_amd(uintptr_t password3, uintptr_t passwordr1, void* vmcallinfo);

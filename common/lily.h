@@ -2,7 +2,7 @@
 
 #include <windows.h>
 #include <stdio.h>
-#include "encrypt_string.hpp"
+#include "encrypt_string.h"
 
 #ifdef _WINDLL
 //#define DPRINT

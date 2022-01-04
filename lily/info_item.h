@@ -1,7 +1,7 @@
 #pragma once
-#include "encrypt_string.hpp"
-#include "compiletime.hpp"
-#include "hash_switch.hpp"
+#include "encrypt_string.h"
+#include "compiletime.h"
+#include "hash_switch.h"
 #include "global.h"
 
 GenerateHashSwitch(GetItemInfo, char* Buf,

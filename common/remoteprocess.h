@@ -1,6 +1,6 @@
 #pragma once
 #include "kernel.h"
-#include "shellcode.hpp"
+#include "shellcode.h"
 
 class RemoteProcess {
 private:

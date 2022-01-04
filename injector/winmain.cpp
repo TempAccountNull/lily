@@ -1,6 +1,6 @@
 #include <windows.h>
-#include "global.hpp"
-#include "injectorUI.hpp"
+#include "global.h"
+#include "injectorUI.h"
 
 #include "imgui.h"
 #include "imgui_impl_dx9.h"
@@ -27,8 +27,9 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nCmdShow) {
-    WNDCLASS WndClass = { };
+    Global::hModule = GetModuleHandleA(0);
 
+    WNDCLASS WndClass = { };
     WndClass.lpfnWndProc = WndProc;
     WndClass.hInstance = hInstance;
     WndClass.lpszClassName = "Injector"e;

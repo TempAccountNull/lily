@@ -7,13 +7,13 @@
 #include <intrin.h>
 #pragma intrinsic(_enable)
 
-#include "lily.hpp"
+#include "lily.h"
 #include "dbvm.h"
-#include "encrypt_string.hpp"
+#include "encrypt_string.h"
 #include "msrnames.h"
-#include "physicalmemory.hpp"
-#include "exception.hpp"
-#include "patternscan.hpp"
+#include "physicalmemory.h"
+#include "exception.h"
+#include "patternscan.h"
 
 using tCallback = std::function<void(void)>;
 extern "C" void RunWithKernelStack(tCallback* callback);

@@ -6,7 +6,7 @@
 #include <atlconv.h>
 #include <functional>
 
-#include "lily.hpp"
+#include "lily.h"
 #include "process.h"
 #include "vector.h"
 
