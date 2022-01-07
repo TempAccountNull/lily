@@ -7,9 +7,11 @@
 #define IMR_RELTYPE(x)				((x >> 12) & 0xF)
 #define IMR_RELOFFSET(x)			(x & 0xFFF)
 
+static_assert(sizeof(uintptr_t) == 8, "64bit");
+
 class Injector {
 private:
-	RemoteProcess process;
+	const RemoteProcess& process;
 	mutable std::string strMsg;
 	std::vector<uint8_t> Binary;
 
@@ -28,9 +30,9 @@ private:
 
 		if (szModuleName)
 			process.VirtualAllocWrapper(szModuleName, strlen(szModuleName) + 1, [&](const void* pszModuleName) {
-			process.RemoteCall(GetModuleHandleA, Result, pszModuleName, 0, 0, 0); });
+			process.RemoteCall(GetModuleHandleA, &Result, pszModuleName, 0, 0, 0, true); });
 		else
-			process.RemoteCall(GetModuleHandleA, Result, 0, 0, 0, 0);
+			process.RemoteCall(GetModuleHandleA, &Result, 0, 0, 0, 0, true);
 
 		return Result;
 	}
@@ -40,9 +42,9 @@ private:
 
 		if (szFileName)
 			process.VirtualAllocWrapper(szFileName, strlen(szFileName) + 1, [&](const void* pszFileName) {
-			process.RemoteCall(LoadLibraryExA, Result, pszFileName, 0, dwFlags, 0); });
+			process.RemoteCall(LoadLibraryExA, &Result, pszFileName, 0, dwFlags, 0, true); });
 		else
-			process.RemoteCall(LoadLibraryExA, Result, 0, 0, dwFlags, 0);
+			process.RemoteCall(LoadLibraryExA, &Result, 0, 0, dwFlags, 0, true);
 
 		return Result;
 	}
@@ -52,9 +54,9 @@ private:
 
 		if (HIWORD(szFuncName))
 			process.VirtualAllocWrapper(szFuncName, strlen(szFuncName) + 1, [&](const void* pszFuncName) {
-			process.RemoteCall(GetProcAddress, Result, hModule, pszFuncName, 0, 0); });
+			process.RemoteCall(GetProcAddress, &Result, hModule, pszFuncName, 0, 0, true); });
 		else
-			process.RemoteCall(GetProcAddress, Result, hModule, szFuncName, 0, 0);
+			process.RemoteCall(GetProcAddress, &Result, hModule, szFuncName, 0, 0, true);
 
 		return Result;
 	}
@@ -92,7 +94,46 @@ private:
 		return RVA - SectionHeader.VirtualAddress + SectionHeader.PointerToRawData;
 	}
 
-	bool FixImports(size_t OffsetNtHeader, const IMAGE_NT_HEADERS& ntHd, size_t OffsetImportDesc, const char* szDLLDir) {
+	bool CheckHeader(size_t& OffsetNtHeader, IMAGE_NT_HEADERS& ntHd) const {
+		IMAGE_DOS_HEADER dosHd;
+		GetBinaryData(0, 0, dosHd);
+		if (dosHd.e_magic != IMAGE_DOS_SIGNATURE) {
+			strMsg << "Invalid DOS signature"e;
+			return false;
+		}
+
+		OffsetNtHeader = dosHd.e_lfanew;
+		GetBinaryData(OffsetNtHeader, 0, ntHd);
+		if (ntHd.Signature != IMAGE_NT_SIGNATURE) {
+			strMsg << "Invalid NT signature"e;
+			return false;
+		}
+
+		if (!(ntHd.FileHeader.Characteristics & IMAGE_FILE_EXECUTABLE_IMAGE)) {
+			strMsg << "File is not executable"e;
+			return false;
+		}
+
+		if (ntHd.OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
+			strMsg << "File is not 64bit application"e;
+			return false;
+		}
+
+		if (!process.IsPlatformMatched()) {
+			strMsg << "Target process is not 64bit process"e;
+			return false;
+		}
+
+		return true;
+	}
+
+	bool FixImports(size_t OffsetNtHeader, const IMAGE_NT_HEADERS& ntHd, const char* szDLLDir) {
+		if (!ntHd.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size)
+			return true;
+		
+		const size_t OffsetImportDesc = GetOffsetFromRVA(OffsetNtHeader, ntHd,
+			ntHd.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
+
 		char szSystemDirectory[MAX_PATH];
 		if (!GetSystemDirectoryA(szSystemDirectory, sizeof(szSystemDirectory))) {
 			strMsg << "GetSystemDirectoryA Failed"e;
@@ -144,49 +185,51 @@ private:
 				if (!ImageThunkData.u1.Ordinal)
 					break;
 
-				if (IMAGE_SNAP_BY_ORDINAL(ImageThunkData.u1.Ordinal)) {
-					uint16_t Ordinal = IMAGE_ORDINAL(ImageThunkData.u1.Ordinal);
+				const char* szFuncName = 0;
 
-					FARPROC pRemoteFuncAddress = RemoteGetProcAddress(hRemoteDLL, (const char*)Ordinal);
-					if (!pRemoteFuncAddress) {
-						strMsg << "RemoteGetProcAddress failed : "e;
-						strMsg += strDLLName;
-						strMsg += " ordinal "e;
-						strMsg += std::to_string(Ordinal);
-						return false;
-					}
-					ImageThunkData.u1.Function = (uintptr_t)pRemoteFuncAddress;
-					SetBinaryData(OffsetImageThunkData, ImageThunkDataIndex, ImageThunkData);
-				}
+				if (IMAGE_SNAP_BY_ORDINAL(ImageThunkData.u1.Ordinal))
+					szFuncName = (const char*)IMAGE_ORDINAL(ImageThunkData.u1.Ordinal);
 				else {
 					size_t OffsetImageImportByName = GetOffsetFromRVA(OffsetNtHeader, ntHd, ImageThunkData.u1.AddressOfData);
 					OffsetImageImportByName += offsetof(IMAGE_IMPORT_BY_NAME, Name);
-
-					std::string strFuncName;
-					for (unsigned i = 0; Binary[OffsetImageImportByName + i]; i++)
-						strFuncName.append(1, (char)Binary[OffsetImageImportByName + i]);
-
-					FARPROC pRemoteFuncAddress = RemoteGetProcAddress(hRemoteDLL, strFuncName.c_str());
-					if (!pRemoteFuncAddress) {
-						strMsg << "RemoteGetProcAddress failed : "e;
-						strMsg += strDLLName;
-						strMsg += " "e;
-						strMsg += strFuncName.c_str();
-						return false;
-					}
-					ImageThunkData.u1.Function = (uintptr_t)pRemoteFuncAddress;
-					SetBinaryData(OffsetImageThunkData, ImageThunkDataIndex, ImageThunkData);
+					for (unsigned i = 0; Binary[OffsetImageImportByName + i]; i++);
+					szFuncName = (const char*)&Binary[OffsetImageImportByName];
 				}
+
+				FARPROC pRemoteFuncAddress = RemoteGetProcAddress(hRemoteDLL, szFuncName);
+				if (!pRemoteFuncAddress) {
+					strMsg << "RemoteGetProcAddress failed : "e;
+					strMsg += strDLLName;
+
+					if (HIWORD(szFuncName)) {
+						strMsg += " "e;
+						strMsg += szFuncName;
+					}
+					else {
+						strMsg += " ordinal "e;
+						strMsg += std::to_string(LOWORD(szFuncName));
+					}
+					return false;
+				}
+
+				ImageThunkData.u1.Function = (uintptr_t)pRemoteFuncAddress;
+				SetBinaryData(OffsetImageThunkData, ImageThunkDataIndex, ImageThunkData);
 			}
 		}
 
 		return true;
 	}
 
-	bool FixRelocs(size_t OffsetNtHeader, const IMAGE_NT_HEADERS& ntHd, uintptr_t RemoteImageBase, size_t OffsetBaseRelocation, size_t Size) {
+	bool FixRelocs(size_t OffsetNtHeader, const IMAGE_NT_HEADERS& ntHd, uintptr_t RemoteImageBase) {
+		if (!ntHd.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size)
+			return true;
+		
+		size_t OffsetBaseRelocation = GetOffsetFromRVA(OffsetNtHeader, ntHd,
+			ntHd.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress);
+		const size_t BaseRelocSectionSize = ntHd.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
 		const size_t Delta = RemoteImageBase - ntHd.OptionalHeader.ImageBase;
 
-		for (size_t nBytes = 0; nBytes < Size; ) {
+		for (size_t nBytes = 0; nBytes < BaseRelocSectionSize; ) {
 			IMAGE_BASE_RELOCATION BaseRelocation;
 			GetBinaryData(OffsetBaseRelocation, 0, BaseRelocation);
 
@@ -198,13 +241,45 @@ private:
 				uint16_t RelocationData;
 				GetBinaryData(OffsetRelocationData, i, RelocationData);
 
-				if (!(IMR_RELTYPE(RelocationData) & IMAGE_REL_BASED_HIGHLOW))
-					continue;
+				const uint8_t RelocType = IMR_RELTYPE(RelocationData);
+				const size_t OffsetRelocData = OffsetVA + IMR_RELOFFSET(RelocationData);
 
-				uintptr_t pFunc;
-				GetBinaryData(OffsetVA + IMR_RELOFFSET(RelocationData), 0, pFunc);
-				pFunc += Delta;
-				SetBinaryData(OffsetVA + IMR_RELOFFSET(RelocationData), 0, pFunc);
+				switch (RelocType) {
+				case IMAGE_REL_BASED_DIR64: {
+					uint64_t RelocData;
+					GetBinaryData(OffsetRelocData, 0, RelocData);
+					RelocData += Delta;
+					SetBinaryData(OffsetRelocData, 0, RelocData);
+					break;
+				}
+				case IMAGE_REL_BASED_HIGHLOW: {
+					uint32_t RelocData;
+					GetBinaryData(OffsetRelocData, 0, RelocData);
+					RelocData += uint32_t(Delta);
+					SetBinaryData(OffsetRelocData, 0, RelocData);
+					break;
+				}
+				case IMAGE_REL_BASED_HIGH: {
+					uint16_t RelocData;
+					GetBinaryData(OffsetRelocData, 0, RelocData);
+					RelocData += HIWORD(Delta);
+					SetBinaryData(OffsetRelocData, 0, RelocData);
+					break;
+				}
+				case IMAGE_REL_BASED_LOW: {
+					uint16_t RelocData;
+					GetBinaryData(OffsetRelocData, 0, RelocData);
+					RelocData += LOWORD(Delta);
+					SetBinaryData(OffsetRelocData, 0, RelocData);
+					break;
+				}
+				case IMAGE_REL_BASED_ABSOLUTE:
+					break;
+				default:
+					strMsg << "Unknown base relocation type"e;
+					strMsg += std::to_string(RelocType);
+					return false;
+				}
 			}
 
 			nBytes += BaseRelocation.SizeOfBlock;
@@ -214,36 +289,32 @@ private:
 		return true;
 	}
 
-	bool InsertPEHeader(size_t SizeOfHeaders, uintptr_t RemoteImageBase, bool IsVirtualProtectNeeded) const {
+	bool InsertBinary(size_t OffsetNtHeader, const IMAGE_NT_HEADERS& ntHd, uintptr_t RemoteImageBase) const {
 		DWORD dwOldProtect;
-		if (!process.RemoteWriteProcessMemory((void*)RemoteImageBase, &Binary[0], SizeOfHeaders, 0))
-			return false;
-		if (IsVirtualProtectNeeded && !process.RemoteVirtualProtect((void*)RemoteImageBase, SizeOfHeaders, PAGE_EXECUTE_READ, &dwOldProtect))
-			return false;
-		return true;
-	}
 
-	bool InsertBinary(size_t OffsetNtHeader, const IMAGE_NT_HEADERS& ntHd, uintptr_t RemoteImageBase, bool IsVirtualProtectNeeded) const {
-		DWORD dwOldProtect;
-		size_t OffsetImageSectionHeader = GetOffsetOptionalHeader(OffsetNtHeader, ntHd);
+		//PE Header
+		if (!process.RemoteWriteProcessMemory((void*)RemoteImageBase, &Binary[0], ntHd.OptionalHeader.SizeOfHeaders, 0))
+			return false;
+		if (!process.RemoteVirtualProtect((void*)RemoteImageBase, ntHd.OptionalHeader.SizeOfHeaders, PAGE_EXECUTE_READ, &dwOldProtect))
+			return false;
+
+		//Other Sections
+		const size_t OffsetImageSectionHeader = GetOffsetOptionalHeader(OffsetNtHeader, ntHd);
 
 		for (unsigned i = 0; i < ntHd.FileHeader.NumberOfSections; i++) {
 			IMAGE_SECTION_HEADER ImageSectionHeader;
 			GetBinaryData(OffsetImageSectionHeader, i, ImageSectionHeader);
 
-			if (!ImageSectionHeader.SizeOfRawData)
+			if (!ImageSectionHeader.Misc.VirtualSize)
 				continue;
-
-			if (!process.RemoteVirtualProtect((void*)(RemoteImageBase + ImageSectionHeader.VirtualAddress),
-				ImageSectionHeader.SizeOfRawData, PAGE_READWRITE, &dwOldProtect))
-				return false;
-
-			if (!process.RemoteWriteProcessMemory((void*)(RemoteImageBase + ImageSectionHeader.VirtualAddress),
-				&Binary[ImageSectionHeader.PointerToRawData], ImageSectionHeader.SizeOfRawData, 0))
-				return false;
-
-			if (!IsVirtualProtectNeeded)
-				continue;
+			
+			if (ImageSectionHeader.SizeOfRawData) {
+				if (ImageSectionHeader.PointerToRawData + ImageSectionHeader.SizeOfRawData > Binary.size())
+					return false;
+				if (!process.RemoteWriteProcessMemory((void*)(RemoteImageBase + ImageSectionHeader.VirtualAddress),
+					&Binary[ImageSectionHeader.PointerToRawData], ImageSectionHeader.SizeOfRawData, 0))
+					return false;
+			}
 
 			DWORD dwProtect;
 			switch (ImageSectionHeader.Characteristics & 0xF0000000) {
@@ -272,76 +343,77 @@ private:
 		return true;
 	}
 
-	HMODULE MapRemoteModuleA(DWORD dwPid, bool bCallDllMain,
-		const char* szParam, EInjectionType InjectionType, const char* szIntoDLL, const char* szDLLDir) {
+	bool AddExceptionTable(size_t OffsetNtHeader, const IMAGE_NT_HEADERS& ntHd, uintptr_t RemoteImageBase) const {
+		if (!ntHd.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION].Size)
+			return true;
 
-		IMAGE_DOS_HEADER dosHd;
-		GetBinaryData(0, 0, dosHd);
-		if (dosHd.e_magic != IMAGE_DOS_SIGNATURE) {
-			strMsg << "Invalid DOS signature"e;
-			return 0;
+		const size_t OffsetRuntimeFunction = GetOffsetFromRVA(OffsetNtHeader, ntHd,
+			ntHd.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress);
+		const size_t Count = 
+			ntHd.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION].Size / sizeof(RUNTIME_FUNCTION);
+
+		bool Result = false;
+		return process.RemoteCall(RtlAddFunctionTable, &Result, 
+			RemoteImageBase + OffsetRuntimeFunction, Count, RemoteImageBase, 0, true) && Result;
+	}
+
+	bool CallTLSCallbacks(size_t OffsetNtHeader, const IMAGE_NT_HEADERS& ntHd, uintptr_t RemoteImageBase, bool& IsTLSCallbackExist) const {
+		IsTLSCallbackExist = false;
+
+		if (!ntHd.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size)
+			return true;
+
+		size_t OffsetTlsDirectory = GetOffsetFromRVA(OffsetNtHeader, ntHd,
+			ntHd.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
+
+		IMAGE_TLS_DIRECTORY TlsDirectory;
+		GetBinaryData(OffsetTlsDirectory, 0, TlsDirectory);
+
+		for (int i = 0, j = 0; i < 5; i++);
+
+		void* pCallBack = 0;
+		for (void** AddressOfCallback = (void**)TlsDirectory.AddressOfCallBacks;
+			process.RemoteReadProcessMemory(AddressOfCallback, &pCallBack, sizeof(pCallBack), 0) && pCallBack;
+			AddressOfCallback++)
+		{
+			if (!process.RemoteCall(pCallBack, 0, RemoteImageBase, DLL_PROCESS_ATTACH, 0, 0, true))
+				return false;
+			IsTLSCallbackExist = true;
 		}
 
+		return true;
+	}
+
+	HMODULE MapRemoteModuleA(bool bCallEntryPoint, const char* szParam,
+		EInjectionType InjectionType, const char* szIntoDLL, const char* szDLLDir) {
+
+		size_t OffsetNtHeader;
 		IMAGE_NT_HEADERS ntHd;
-		size_t OffsetNtHeader = dosHd.e_lfanew;
-		GetBinaryData(OffsetNtHeader, 0, ntHd);
-		if (ntHd.Signature != IMAGE_NT_SIGNATURE) {
-			strMsg << "Invalid NT signature"e;
+		if (!CheckHeader(OffsetNtHeader, ntHd))
 			return 0;
-		}
 
-		size_t BinaryImageSize = ntHd.OptionalHeader.SizeOfImage;
-
-		if (!(ntHd.FileHeader.Characteristics & IMAGE_FILE_DLL)) {
-			strMsg << "File is not DLL"e;
-			return 0;
-		}
-
-#ifdef _WIN64
-		if (ntHd.OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
-			strMsg << "File is not 64bit application"e;
-			return 0;
-		}
-#else
-		if (ntHd.OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
-			strMsg << "File is not 32bit application"e;
-			return 0;
-		}
-#endif
-
-		if (!process.IsPlatformMatched()) {
-#ifdef _WIN64
-			strMsg << "Target process is not 64bit process"e;
-			return 0;
-#else
-			strMsg << "Target process is not 32bit process"e;
-			return 0;
-#endif
-		}
-
+		const size_t BinaryImageSize = ntHd.OptionalHeader.SizeOfImage;
+		const bool IsDLL = (ntHd.FileHeader.Characteristics & IMAGE_FILE_DLL);
+		const bool IsRelocatable = (ntHd.OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE);
 		void* pRemoteImageBase = 0;
 
 		switch (InjectionType) {
 		case EInjectionType::Normal:
 		case EInjectionType::NxBitSwap: {
-			pRemoteImageBase = process.RemoteVirtualAlloc(0, ntHd.OptionalHeader.SizeOfImage,
-				MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-			if (!pRemoteImageBase) {
+			void* pAllocAddress = IsRelocatable ? 0 : (void*)ntHd.OptionalHeader.ImageBase;
+			pRemoteImageBase = process.RemoteVirtualAlloc(pAllocAddress, BinaryImageSize,
+				MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+			if (!pRemoteImageBase || (pAllocAddress && pAllocAddress != pRemoteImageBase)) {
 				strMsg << "RemoteVirtualAlloc failed"e;
 				return 0;
-			}
-
-			if (InjectionType == EInjectionType::NxBitSwap) {
-				DWORD dwOldProtect;
-				if (!process.RemoteVirtualProtect(pRemoteImageBase, ntHd.OptionalHeader.SizeOfImage, PAGE_EXECUTE_READWRITE, &dwOldProtect) ||
-					!process.RemoteVirtualProtect(pRemoteImageBase, ntHd.OptionalHeader.SizeOfImage, PAGE_READWRITE, &dwOldProtect)) {
-					strMsg << "RemoteVirtualProtect failed"e;
-					return 0;
-				}
 			}
 			break;
 		}
 		case EInjectionType::IntoDLL: {
+			if (!IsRelocatable) {
+				strMsg << "Image is not relocatable"e;
+				return 0;
+			}
 			if (!szIntoDLL || !strlen(szIntoDLL)) {
 				strMsg << "No DLL specified"e;
 				return 0;
@@ -358,9 +430,10 @@ private:
 				strMsg += szIntoDLL;
 				return 0;
 			}
+			pRemoteImageBase = (void*)((uintptr_t)pRemoteImageBase + 0x1000);
 
 			MEMORY_BASIC_INFORMATION MemInfo;
-			if (!process.RemoteVirtualQuery((void*)((uintptr_t)pRemoteImageBase + 0x1000), &MemInfo, sizeof(MemInfo))) {
+			if (!process.RemoteVirtualQuery(pRemoteImageBase, &MemInfo, sizeof(MemInfo))) {
 				strMsg << "VirtualQueryEx Failed"e;
 				return 0;
 			}
@@ -379,75 +452,77 @@ private:
 			}
 			break;
 		}
+		default: return 0;
 		}
 
-		if (ntHd.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size) {
-			size_t OffsetImportDesc = GetOffsetFromRVA(OffsetNtHeader, ntHd,
-				ntHd.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
+		if (!FixImports(OffsetNtHeader, ntHd, szDLLDir))
+			return 0;
 
-			if (!FixImports(OffsetNtHeader, ntHd, OffsetImportDesc, szDLLDir))
-				return 0;
-		}
+		if (!FixRelocs(OffsetNtHeader, ntHd, (uintptr_t)pRemoteImageBase))
+			return 0;
 
-		if (ntHd.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size) {
-			size_t OffsetBaseRelocation = GetOffsetFromRVA(OffsetNtHeader, ntHd,
-				ntHd.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress);
-
-			FixRelocs(OffsetNtHeader, ntHd, (uintptr_t)pRemoteImageBase, OffsetBaseRelocation,
-				ntHd.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size);
-		}
-
-		bool IsVirtualProtectNeeded = (InjectionType != EInjectionType::NxBitSwap);
-		
-		size_t SizeWithoutHeader = ntHd.OptionalHeader.SizeOfImage - 0x1000;
-		std::vector<uint8_t> ZeroFill(SizeWithoutHeader, 0);
-		if (!process.RemoteWriteProcessMemory((void*)((uintptr_t)pRemoteImageBase + 0x1000), ZeroFill.data(), SizeWithoutHeader, 0)) {
+		std::vector<uint8_t> ZeroFill(BinaryImageSize, 0);
+		if (!process.RemoteWriteProcessMemory(pRemoteImageBase, ZeroFill.data(), BinaryImageSize, 0)) {
 			strMsg << "Initializing space failed"e;
 			return 0;
 		}
 
-		if (InjectionType != EInjectionType::IntoDLL) {
-			if (!InsertPEHeader(ntHd.OptionalHeader.SizeOfHeaders, (uintptr_t)pRemoteImageBase, IsVirtualProtectNeeded)) {
-				strMsg << "Inserting PE header failed"e;
-				return 0;
-			}
-		}
-
-		if (!InsertBinary(OffsetNtHeader, ntHd, (uintptr_t)pRemoteImageBase, IsVirtualProtectNeeded)) {
+		if (!InsertBinary(OffsetNtHeader, ntHd, (uintptr_t)pRemoteImageBase)) {
 			strMsg << "Inserting binary failed"e;
 			return 0;
 		}
 
-		if (!bCallDllMain)
+		if (!bCallEntryPoint)
 			return (HMODULE)pRemoteImageBase;
 
-		bool bSuccess = false;
+		//if (!AddExceptionTable(OffsetNtHeader, ntHd, (uintptr_t)pRemoteImageBase)) {
+		//	strMsg << "Calling RtlAddFunctionTable failed"e;
+		//	return 0;
+		//}
 
-		process.VirtualAllocWrapper(szParam, strlen(szParam) + 1, [&](const void* pData) {
+		bool IsTLSCallbackExist = false;
+		if (!CallTLSCallbacks(OffsetNtHeader, ntHd, (uintptr_t)pRemoteImageBase, IsTLSCallbackExist)) {
+			strMsg << "Calling TLS Callback failed"e;
+			return 0;
+		}
 
-			auto RemoteCallDLLMain = [&] {
-				BOOL Result;
-				if (!process.RemoteCall((void*)((uintptr_t)pRemoteImageBase + ntHd.OptionalHeader.AddressOfEntryPoint),
-					Result, pRemoteImageBase, DLL_PROCESS_ATTACH, pData, 0))
+		if (InjectionType == EInjectionType::NxBitSwap && !IsTLSCallbackExist && !IsDLL) {
+			strMsg << "Executable does not have TLS callback"e;
+			return 0;
+		}
+
+		//Calling entrypoint
+		bool bSuccess = [&]{
+			void* pszParam = 0;
+			if (szParam && strlen(szParam)) {
+				const size_t Len = strlen(szParam) + 1;
+				pszParam = process.RemoteVirtualAlloc(0, Len, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+				if (!pszParam)
 					return false;
-				return true;
-			};
-
-			if (InjectionType != EInjectionType::NxBitSwap) {
-				bSuccess = RemoteCallDLLMain();
-				return;
+				if (!process.RemoteWriteProcessMemory(pszParam, szParam, Len, 0))
+					return false;
 			}
 
-			if (!process.RemoveNXBit(pRemoteImageBase, ntHd.OptionalHeader.SizeOfImage))
-				return;
+			void* pRemoteEntryPoint = (void*)((uintptr_t)pRemoteImageBase + ntHd.OptionalHeader.AddressOfEntryPoint);
 
-			ShellCode_Ret1 shellcode_ret1;
-			if (!process.WriteProcessMemoryWrapper(VirtualProtect, &shellcode_ret1, sizeof(ShellCode_Ret1), [&] { bSuccess = RemoteCallDLLMain(); })) {
-				bSuccess = false;
-				return;
+			if (InjectionType == EInjectionType::NxBitSwap && IsTLSCallbackExist &&
+				!process.RemoveNXBit(pRemoteImageBase, BinaryImageSize))
+				return false;
+
+			if (IsDLL) {
+				if (InjectionType == EInjectionType::NxBitSwap && !IsTLSCallbackExist) {
+					if (!process.RemoteCall(pRemoteEntryPoint, 0, pRemoteImageBase, -1, pszParam, 0, true))
+						return false;
+					if (!process.RemoveNXBit(pRemoteImageBase, BinaryImageSize))
+						return false;
+				}
+
+				return process.RemoteCall(pRemoteEntryPoint, 0, pRemoteImageBase, DLL_PROCESS_ATTACH, pszParam, 0, false);
 			}
-
-			});
+		
+			//EXE
+			return process.RemoteCall(pRemoteEntryPoint, 0, pRemoteImageBase, 0, pszParam, SW_SHOW, false);
+		}();
 
 		if (!bSuccess) {
 			strMsg << "Calling entrypoint failed"e;
@@ -457,14 +532,13 @@ private:
 		return (HMODULE)pRemoteImageBase;
 	}
 
-
 public:
 	std::string GetErrorMsg() const { return strMsg; }
 
 	Injector(const RemoteProcess& process) : process(process) {}
 	~Injector() {}
 
-	HMODULE MapRemoteModuleAFromFileName(DWORD dwPid, const char* szModule, bool bCallDLLMain,
+	HMODULE MapRemoteModuleAFromFileName(const char* szModule, bool bCallDLLMain,
 		const char* szParam, EInjectionType InjectionType, const char* szIntoDLL) {
 
 		HANDLE hFile = CreateFileA(szModule, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
@@ -486,6 +560,6 @@ public:
 
 		CloseHandle(hFile);
 
-		return MapRemoteModuleA(dwPid, bCallDLLMain, szParam, InjectionType, szIntoDLL, strDLLDir.c_str());
+		return MapRemoteModuleA(bCallDLLMain, szParam, InjectionType, szIntoDLL, strDLLDir.c_str());
 	}
 };

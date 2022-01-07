@@ -2,6 +2,9 @@
 
 #include <windows.h>
 #include <stdio.h>
+#include <atlconv.h>
+#include <algorithm>
+#include <sstream>
 #include "encrypt_string.h"
 
 #ifdef _WINDLL
@@ -44,3 +47,32 @@ static int CreateProcessCMD(const char* szPath) {
 
 static bool IsKeyPushing(int vKey) { return (GetAsyncKeyState(vKey) & 0x8000) != 0; }
 static bool IsKeyPushed(int vKey) { return (GetAsyncKeyState(vKey) & 0x1) != 0; }
+
+static std::wstring s2ws(const std::string& str) {
+	USES_CONVERSION;
+	return std::wstring(A2W(str.c_str()));
+}
+
+static std::string ws2s(const std::wstring& wstr) {
+	USES_CONVERSION;
+	return std::string(W2A(wstr.c_str()));
+}
+
+static std::wstring to_hex_string(uintptr_t i) {
+	std::wstringstream s;
+	s << L"0x" << std::hex << i;
+	return s.str();
+}
+
+static std::wstring trim(const std::wstring& s) {
+	auto wsfront = std::find_if_not(s.begin(), s.end(), [](int c) {return std::isspace(c); });
+	auto wsback = std::find_if_not(s.rbegin(), s.rend(), [](int c) {return std::isspace(c); }).base();
+	return (wsback <= wsfront ? std::wstring() : std::wstring(wsfront, wsback));
+}
+
+static uint64_t GetTickCountInMicroSeconds() {
+	LARGE_INTEGER PerformanceCount, Frequency;
+	QueryPerformanceFrequency(&Frequency);
+	QueryPerformanceCounter(&PerformanceCount);
+	return PerformanceCount.QuadPart * 1000000 / Frequency.QuadPart;
+}

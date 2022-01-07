@@ -204,6 +204,11 @@ public:
 		verify(Offset_Peb);
 	}
 
+	~Kernel() {
+		VirtualFree(DirectoryTableBase, 0, MEM_RELEASE);
+		VirtualFree(MapPhysicalPDPTE, 0, MEM_RELEASE);
+	}
+
 	static bool MemcpyWithExceptionHandler(void* Dst, const void* Src, size_t Size) {
 		return ExceptionHandler::TryExcept([&]() { memcpy(Dst, Src, Size); });
 	}

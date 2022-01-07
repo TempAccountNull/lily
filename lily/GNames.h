@@ -71,14 +71,14 @@ public:
 		return CompileTime::Hash(szBuf);
 	}
 
-	unsigned GetNameHashByObject(ObjectPtr<UObject> Ptr) {
+	unsigned GetNameHashByObject(ObjectPtr<UObject> Ptr) const {
 		UObject Obj;
 		if (!Ptr.Read(Obj))
 			return 0;
 		return GetNameHashByID(Obj.GetFName());
 	}
 
-	void DumpAllNames() {
+	void DumpAllNames() const {
 		FILE* out = fopen("out.txt"e, "w"e);
 
 		char szBuf[NAME_SIZE];

@@ -36,16 +36,13 @@
     <ClInclude Include="hack.h">
       <Filter>hack</Filter>
     </ClInclude>
-    <ClInclude Include="init.h">
-      <Filter>hack</Filter>
-    </ClInclude>
     <ClInclude Include="render.h">
       <Filter>hack</Filter>
     </ClInclude>
-    <ClInclude Include="render_directdrawoverlay.h">
+    <ClInclude Include="render_ddraw.h">
       <Filter>hack</Filter>
     </ClInclude>
-    <ClInclude Include="render_restreamchat.h">
+    <ClInclude Include="render_overlay.h">
       <Filter>hack</Filter>
     </ClInclude>
     <ClInclude Include="matrix.h">
@@ -183,14 +180,14 @@
     <ClInclude Include="..\common\process.h">
       <Filter>common</Filter>
     </ClInclude>
-    <ClInclude Include="..\common\process.hpp">
-      <Filter>common</Filter>
-    </ClInclude>
     <ClInclude Include="..\common\remoteprocess.h">
       <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="..\common\shellcode.h">
       <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="pubg_func.h">
+      <Filter>pubg</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -250,6 +247,12 @@
     </ClCompile>
     <ClCompile Include="..\common\kernel.cpp">
       <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>entrypoint</Filter>
+    </ClCompile>
+    <ClCompile Include="hack_ui.cpp">
+      <Filter>hack</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

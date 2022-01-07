@@ -14,7 +14,6 @@
 
 class Global {
 public:
-	static inline HMODULE hModule = 0;
 	static inline char DBVMPassword[21];
 	static inline const int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
 	static inline const int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
@@ -24,7 +23,14 @@ public:
 	static inline IDirect3DSurface9* pBackBufferSurface;
 	static inline IDirect3DSurface9* pOffscreenPlainSurface;
 	static inline char Buf[0x200];
+
+	static void SetModuleInfo(auto Base, auto Size) {
+		ModuleBase = (uintptr_t)Base;
+		ModuleSize = (uintptr_t)Size;
+	}
 private:
+	static inline uintptr_t ModuleBase = 0;
+	static inline size_t ModuleSize = 0;
 
 	static bool InitD3D() {
 		HRESULT res = Direct3DCreate9Ex(D3D_SDK_VERSION, &pDirect3D9Ex);
@@ -72,8 +78,8 @@ private:
 		SetUnhandledExceptionFilter([](PEXCEPTION_POINTERS pExceptionInfo)->LONG {
 			const uintptr_t ExceptionAddress = (uintptr_t)pExceptionInfo->ExceptionRecord->ExceptionAddress;
 			char szAddress[0x40];
-			if (hModule)
-				sprintf(szAddress, "Base+0x%I64X"e, ExceptionAddress - (uintptr_t)hModule);
+			if (ModuleBase && ExceptionAddress >= ModuleBase && ExceptionAddress < ModuleBase + ModuleSize)
+				sprintf(szAddress, "Base+0x%I64X"e, ExceptionAddress - ModuleBase);
 			else
 				sprintf(szAddress, "0x%I64X"e, ExceptionAddress);
 

@@ -1,5 +1,4 @@
 #pragma once
-
 #include "xenuine.h"
 #include "pubg_struct.h"
 #include "GObjects.h"
@@ -54,9 +53,7 @@ class UCurveVector;
 class FWeaponAttachmentWeaponTagData;
 class FItemTableRowAttachment;
 
-std::pair<float, float> GetBulletDropAndTravelTime(const Vector& GunLocation, const Rotator& GunRotation, const Vector& TargetPos,
-	float ZeroingDistance, float BulletDropAdd, float InitialSpeed, float TrajectoryGravityZ, float BallisticDragScale,
-	float BallisticDropScale, float BDS, float SimulationSubstepTime, float VDragCoefficient, ObjectPtr<UCurveVector> BallisticCurve);
+constexpr uintptr_t UWORLDBASE = 0x8F927B0;
 
 //Engine.World.CurrentLevel 
 DefClass(UWorld, UObject,
@@ -65,15 +62,6 @@ DefClass(UWorld, UObject,
 	,
 	static bool GetUWorld(UWorld& World);
 )
-
-inline bool UWorld::GetUWorld(UWorld& World) {
-	EncryptedObjectPtr<UWorld> P;
-
-	if (!gXenuine->process.GetBaseValue(0x8F927B0, &P))		//Edit this
-		return false;
-
-	return P.Read(World);
-}
 
 DefClass(UGameInstance, UObject,
 	MemberAtOffset(TArray<EncryptedObjectPtr<ULocalPlayer>>, LocalPlayers, 0x58)

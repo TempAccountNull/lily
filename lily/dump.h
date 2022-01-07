@@ -1,5 +1,4 @@
 #pragma once
-
 #include <Windows.h>
 #include <stdio.h>
 #include <string>
@@ -8,33 +7,7 @@
 #include <map>
 #include <fstream>
 #include <iostream>
-#include <sstream>
-#include <algorithm>
-
-#include <atlconv.h>
-static std::wstring s2ws(const std::string& str) {
-	USES_CONVERSION;
-	return std::wstring(A2W(str.c_str()));
-}
-
-static std::wstring to_hex_string(uintptr_t i) {
-	std::wstringstream s;
-	s << L"0x" << std::hex << i;
-	return s.str();
-}
-
-static std::string ws2s(const std::wstring& wstr) {
-	USES_CONVERSION;
-	return std::string(W2A(wstr.c_str()));
-}
-
-static std::wstring trim(const std::wstring& s) {
-	auto wsfront = std::find_if_not(s.begin(), s.end(), [](int c) {return std::isspace(c); });
-	auto wsback = std::find_if_not(s.rbegin(), s.rend(), [](int c) {return std::isspace(c); }).base();
-	return (wsback <= wsfront ? std::wstring() : std::wstring(wsfront, wsback));
-}
-
-#pragma comment(lib, "Onecore.lib")
+#include "lily.h"
 
 #include "process.h"
 
@@ -42,9 +15,9 @@ static std::wstring trim(const std::wstring& s) {
 //14.2.6.7
 //15.1.4.9
 //15.1.6.7
-#define szPatternAllClass "48 8d 05 ? ? ? ? 48 ? ? ? ? 4c 8d 0d ? ? ? ? 4c 8d 05 ? ? ? ? 48 8d 15 ? ? ? ? 48 8d 0d ? ? ? ? e8"
-#define szPatternAllStruct "4c 8d 05 ? ? ? ? 48 ? ? 48 8d 0d ? ? ? ? e8 ? ? ? ? 48 89 05"
-#define szPatternFuncOffset "4c 8d ? ? ? 00 00 48 ? ? 08 49 ? ? eb"
+#define szPatternAllClass "48 8d 05 ? ? ? ? 48 ? ? ? ? 4c 8d 0d ? ? ? ? 4c 8d 05 ? ? ? ? 48 8d 15 ? ? ? ? 48 8d 0d ? ? ? ? e8"e
+#define szPatternAllStruct "4c 8d 05 ? ? ? ? 48 ? ? 48 8d 0d ? ? ? ? e8 ? ? ? ? 48 89 05"e
+#define szPatternFuncOffset "4c 8d ? ? ? 00 00 48 ? ? 08 49 ? ? eb"e
 
 enum class Type {
 	Member,
@@ -53,7 +26,6 @@ enum class Type {
 };
 
 inline DWORD UObjectFuncOffset;
-
 
 static auto GetStructMap(Process& process) {
 	std::map<std::wstring, uintptr_t> StructMap;
@@ -446,10 +418,7 @@ static void DumpAll(Process& process) {
 	}
 }
 
-
-
 static bool Dump(Process& process) {
-
 	uintptr_t ScanResult = process.AobscanCurrentDLL(szPatternFuncOffset);
 	if (!ScanResult || !process.GetValue(ScanResult + 0x3, &UObjectFuncOffset)) {
 		dprintf("UObjectFuncOffset not found");
@@ -622,15 +591,8 @@ static bool Dump(Process& process) {
 				outfile << L"MemberAtOffset(" << wType.c_str() << L", " << wOutName.c_str() << L", " << wOutOffset.c_str() << L")" << std::endl;
 				std::wcout << L"MemberAtOffset(" << wType.c_str() << L", " << wOutName.c_str() << L", " << wOutOffset.c_str() << L")" << std::endl;
 			}
-			
-
 		}
-
-
-
-
 	}
-
 
 	return true;
 }

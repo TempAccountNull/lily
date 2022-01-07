@@ -74,7 +74,7 @@
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>SigSign.exe "$(TargetPath)"</Command>
+      <Command>$(SolutionDir)bin\SigSign.exe "$(TargetPath)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -88,6 +88,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>MinSpace</Optimization>
       <ControlFlowGuard>Guard</ControlFlowGuard>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -101,7 +102,7 @@
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>SigSign.exe "$(TargetPath)"</Command>
+      <Command>$(SolutionDir)bin\SigSign.exe "$(TargetPath)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -15,25 +15,9 @@ void AddTextOutlined(const ImFont* font, float font_size, const ImVec2& pos, ImU
 	AddText(font, font_size, pos, col, szText, wrap_width, cpu_fine_clip_rect);
 }
 
-void Hack::RenderArea(std::function<void(void)> func) const {
-	ImGui_ImplDX9_NewFrame();
-	ImGui::NewFrame();
-
-	auto Viewport = ImGui::GetMainViewport();
-	Viewport->Pos = { -PosX, -PosY };
-	Viewport->WorkPos = { 0.0f, 0.0f };
-	Viewport->Size = { PosX + Width, PosY + Height };
-	Viewport->WorkSize = { Width, Height };
-
-	ImGui::SetNextWindowPos({ 0.0f, 0.0f });
-	ImGui::SetNextWindowSize({ Width, Height });
-	ImGui::Begin("ESP"e, 0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-
-	func();
-
-	ImGui::End();
-	ImGui::EndFrame();
-	render.Present(process.GetHwnd());
+ImVec2 Hack::GetTextSize(const char* szText) {
+	const ImFont* pFont = ImGui::GetIO().Fonts->Fonts[0];
+	return pFont->CalcTextSizeA(FONTSIZE_SMALL, FLT_MAX, 0.0f, szText, 0, 0);
 }
 
 void Hack::InsertMouseInfo() const {
@@ -48,21 +32,6 @@ void Hack::InsertMouseInfo() const {
 	GetCursorPos(&CursorPos);
 	io.MousePos.x = (float)CursorPos.x - PosX;
 	io.MousePos.y = (float)CursorPos.y - PosY;
-}
-
-void Hack::HelpMarker(const char* szText) const {
-	if (!bESP) return;
-
-	char szHelp[] = { '(', '?', ')', 0 };
-	ImGui::TextDisabled(szHelp);
-	if (ImGui::IsItemHovered())
-	{
-		ImGui::BeginTooltip();
-		ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-		ImGui::TextUnformatted(szText);
-		ImGui::PopTextWrapPos();
-		ImGui::EndTooltip();
-	}
 }
 
 void Hack::DrawString(const Vector& Pos, float Margin, const char* szText, float Size, ImU32 Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const {

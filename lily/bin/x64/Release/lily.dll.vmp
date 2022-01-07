@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document>
+	<Protection
+		InputFileName=".\lily.dll"
+		Options="5064"
+		>
+		<Messages
+		/>
+		<Folders
+		/>
+		<Procedures
+		/>
+	</Protection>
+	<DLLBox
+	/>
+	<Script
+	/>
+</Document>

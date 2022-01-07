@@ -5,10 +5,9 @@
 
 class ExceptionHandler {
 private:
-	//__declspec(thread) 
-	static inline DWORD* pExceptionCode;
-	static inline CONTEXT* pCapturedContext;
-	static inline DWORD LastExceptionCode;
+	thread_local static inline DWORD* pExceptionCode;
+	thread_local static inline CONTEXT* pCapturedContext;
+	thread_local static inline DWORD LastExceptionCode;
 
 	INITIALIZER_INCLASS(VEH) {
 		AddVectoredExceptionHandler(1, [](PEXCEPTION_POINTERS pExceptionInfo)->LONG {

@@ -105,6 +105,9 @@
       <IgnoreSpecificDefaultLibraries>libucrt.lib;libvcruntime.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateMapFile>true</GenerateMapFile>
     </Link>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)bin\VMProtect_Con.exe $(TargetDir)lily.dll.vmp </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <MASM Include="..\common\dbvm_.asm" />
@@ -129,7 +132,6 @@
     <ClInclude Include="..\common\peb.h" />
     <ClInclude Include="..\common\physicalmemory.h" />
     <ClInclude Include="..\common\process.h" />
-    <ClInclude Include="..\common\process.hpp" />
     <ClInclude Include="..\common\remoteprocess.h" />
     <ClInclude Include="..\common\shellcode.h" />
     <ClInclude Include="..\imgui\imconfig.h" />
@@ -151,17 +153,17 @@
     <ClInclude Include="info_package.h" />
     <ClInclude Include="info_proj.h" />
     <ClInclude Include="info_vehicle.h" />
-    <ClInclude Include="init.h" />
     <ClInclude Include="matrix.h" />
     <ClInclude Include="mymath.h" />
     <ClInclude Include="pubg_class.h" />
     <ClInclude Include="pubg_class_input.h" />
     <ClInclude Include="pubg_class_output.h" />
+    <ClInclude Include="pubg_func.h" />
     <ClInclude Include="pubg_struct.h" />
     <ClInclude Include="quat.h" />
     <ClInclude Include="render.h" />
-    <ClInclude Include="render_directdrawoverlay.h" />
-    <ClInclude Include="render_restreamchat.h" />
+    <ClInclude Include="render_ddraw.h" />
+    <ClInclude Include="render_overlay.h" />
     <ClInclude Include="rotator.h" />
     <ClInclude Include="transform.h" />
     <ClInclude Include="vector.h" />
@@ -184,6 +186,8 @@
     </ClCompile>
     <ClCompile Include="hack_main.cpp" />
     <ClCompile Include="hack_render.cpp" />
+    <ClCompile Include="hack_ui.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="matrix.cpp" />
     <ClCompile Include="pubg_class_pubg.cpp" />
     <ClCompile Include="pubg_class_ue4.cpp" />

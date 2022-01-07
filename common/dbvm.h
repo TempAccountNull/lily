@@ -5,8 +5,8 @@
 #include "ida_defs.h"
 #include "exception.h"
 
-extern "C" uintptr_t vmcall_intel(uintptr_t password3, uintptr_t passwordr1, void* vmcallinfo);
-extern "C" uintptr_t vmcall_amd(uintptr_t password3, uintptr_t passwordr1, void* vmcallinfo);
+extern "C" uintptr_t vmcall_intel(uint64_t password3, uint64_t passwordr1, void* vmcallinfo);
+extern "C" uintptr_t vmcall_amd(uint64_t password3, uint64_t passwordr1, void* vmcallinfo);
 
 #define VMCALL_GETVERSION 0
 #define VMCALL_CHANGEPASSWORD 1
@@ -119,8 +119,10 @@ extern "C" uintptr_t vmcall_amd(uintptr_t password3, uintptr_t passwordr1, void*
 
 #define VMCALL_DEBUG_SETSPINLOCKTIMEOUT 254
 
-struct TChangeRegOnBPInfo {
-	union {
+#pragma pack(push, 1)
+
+struct ChangeRegOnBPInfo {
+	struct {
 		bool changeRAX : 1;			//0
 		bool changeRBX : 1;			//1
 		bool changeRCX : 1;			//2
@@ -150,9 +152,27 @@ struct TChangeRegOnBPInfo {
 		bool newZF : 1;            //26
 		bool newSF : 1;            //27
 		bool newOF : 1;            //28
-		bool reserved : 7;         //29,30,31
-		};
-	uint64_t changeXMM; //16 nibbles, each bit is one unsigned
+		bool reserved : 3;         //29,30,31
+	};
+	struct {
+		//16 nibbles, each bit is one unsigned
+		unsigned changeXMM0 : 4;
+		unsigned changeXMM1 : 4;
+		unsigned changeXMM2 : 4;
+		unsigned changeXMM3 : 4;
+		unsigned changeXMM4 : 4;
+		unsigned changeXMM5 : 4;
+		unsigned changeXMM6 : 4;
+		unsigned changeXMM7 : 4;
+		unsigned changeXMM8 : 4;
+		unsigned changeXMM9 : 4;
+		unsigned changeXMM10 : 4;
+		unsigned changeXMM11 : 4;
+		unsigned changeXMM12 : 4;
+		unsigned changeXMM13 : 4;
+		unsigned changeXMM14 : 4;
+		unsigned changeXMM15 : 4;
+	};
 	uint64_t changeFP; //just one bit, each bit is a fpu field
 	uint64_t newRAX;
 	uint64_t newRBX;
@@ -221,12 +241,16 @@ struct TChangeRegOnBPInfo {
 	uint64_t XMM15_H;
 };
 
-#pragma pack(push, 1)
 class DBVM {
+public:
+	constexpr static uint64_t default_password1 = 0x76543210;
+	constexpr static uint32_t default_password2 = 0xfedcba98;
+	constexpr static uint64_t default_password3 = 0x90909090;
 private:
 	bool bIntel;
-	uintptr_t current_password1, current_password3;
-	unsigned current_password2;
+	uint64_t current_password1 = default_password1;
+	uint32_t current_password2 = default_password2;
+	uint64_t current_password3 = default_password3;
 public:
 	static bool IsIntel() {
 		int info[4];
@@ -244,6 +268,23 @@ public:
 		return false;
 	}
 
+	static bool IsDBVMCapable() {
+		int info[4];
+		if (IsIntel()) {
+			__cpuid(info, 1);
+			int c = info[2];
+			if ((c >> 5) & 1)
+				return true;
+		}
+		else if (IsAMD()) {
+			__cpuid(info, 0x80000001);
+			int c = info[2];
+			if ((c >> 2) & 1)
+				return true;
+		}
+		return false;
+	}
+
 	uintptr_t dovmcall(void* vmcallinfo) const {
 		if (bIntel)
 			return vmcall_intel(current_password3, current_password1, vmcallinfo);
@@ -253,9 +294,9 @@ public:
 	uintptr_t GetMemory() const {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
 		} vmcallinfo;
 
 		vmcallinfo.structsize = sizeof(vmcallinfo);
@@ -268,9 +309,9 @@ public:
 	_CR3 GetCR3() const {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
 		} vmcallinfo;
 
 		vmcallinfo.structsize = sizeof(vmcallinfo);
@@ -285,9 +326,9 @@ public:
 	bool ReadPhysicalMemory(PhysicalAddress srcPA, void* dstVA, SIZE_T size) const {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
 			PhysicalAddress srcPA;
 			unsigned size;
 			uintptr_t dstVA;
@@ -308,9 +349,9 @@ public:
 	bool WritePhysicalMemory(PhysicalAddress dstPA, LPCVOID srcVA, SIZE_T size) const {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
 			PhysicalAddress dstPA;
 			unsigned size;
 			uintptr_t srcVA;
@@ -331,9 +372,9 @@ public:
 	uintptr_t SwitchToKernelMode(uint16 newCS) const {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
 			uint16 newCS;
 		} vmcallinfo;
 
@@ -348,9 +389,9 @@ public:
 	void ReturnToUserMode() const {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
 		} vmcallinfo;
 
 		vmcallinfo.structsize = sizeof(vmcallinfo);
@@ -366,14 +407,51 @@ public:
 		ReturnToUserMode();
 	}
 
-	bool ChangeRegisterOnBP(PhysicalAddress PABase, TChangeRegOnBPInfo changeregonbpinfo) const {
+	uint64_t ReadMSR(uint32_t MSR) const {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
+			uint32_t MSR;
+			uint64_t Value;
+		} vmcallinfo;
+
+		vmcallinfo.structsize = sizeof(vmcallinfo);
+		vmcallinfo.level2pass = current_password2;
+		vmcallinfo.command = VMCALL_READMSR;
+		vmcallinfo.MSR = MSR;
+
+		return dovmcall(&vmcallinfo);
+	}
+
+	void WriteMSR(uint32_t MSR, uint64_t Value) const {
+		struct
+		{
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
+			uint32_t MSR;
+			uint64_t Value;
+		} vmcallinfo;
+
+		vmcallinfo.structsize = sizeof(vmcallinfo);
+		vmcallinfo.level2pass = current_password2;
+		vmcallinfo.command = VMCALL_WRITEMSR;
+		vmcallinfo.MSR = MSR;
+		vmcallinfo.Value = Value;
+
+		dovmcall(&vmcallinfo);
+	}
+
+	bool ChangeRegisterOnBP(PhysicalAddress PABase, const ChangeRegOnBPInfo& changeregonbpinfo) const {
+		struct
+		{
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
 			PhysicalAddress PABase;
-			TChangeRegOnBPInfo changeregonbpinfo;
+			ChangeRegOnBPInfo changeregonbpinfo;
 		} vmcallinfo;
 
 		vmcallinfo.structsize = sizeof(vmcallinfo);
@@ -388,11 +466,10 @@ public:
 	bool RemoveChangeRegisterOnBP(PhysicalAddress PABase) const {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
 			PhysicalAddress PABase;
-			TChangeRegOnBPInfo changeregonbpinfo;
 		} vmcallinfo;
 
 		vmcallinfo.structsize = sizeof(vmcallinfo);
@@ -406,9 +483,9 @@ public:
 	bool CloakWriteOriginal(PhysicalAddress PABase, void* Src) const {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
 			PhysicalAddress PABase;
 			void* Src;
 		} vmcallinfo;
@@ -425,9 +502,9 @@ public:
 	bool CloakReadOriginal(PhysicalAddress PABase, void* Dst) const {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
 			PhysicalAddress PABase;
 			void* Dst;
 		} vmcallinfo;
@@ -444,9 +521,9 @@ public:
 	uintptr_t CloakActivate(PhysicalAddress PABase, int Mode = 1) const {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
 			PhysicalAddress PABase;
 			uintptr_t Mode;
 		} vmcallinfo;
@@ -465,9 +542,9 @@ public:
 	uintptr_t CloakDeactivate(PhysicalAddress PABase) const {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
 			PhysicalAddress PABase;
 		} vmcallinfo;
 
@@ -483,9 +560,9 @@ public:
 	void CloakReset() const {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
 		} vmcallinfo;
 
 		vmcallinfo.structsize = sizeof(vmcallinfo);
@@ -498,9 +575,9 @@ public:
 	void HideDBVM() const {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
 		} vmcallinfo;
 
 		vmcallinfo.structsize = sizeof(vmcallinfo);
@@ -510,15 +587,15 @@ public:
 		dovmcall(&vmcallinfo);
 	}
 
-	void ChangePassword(uintptr_t password1, unsigned password2, uintptr_t password3) {
+	void ChangePassword(uint64_t password1, uint32_t password2, uint64_t password3) {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
-			uintptr_t password1;
-			unsigned password2;
-			uintptr_t password3;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
+			uint64_t password1;
+			uint32_t password2;
+			uint64_t password3;
 		} vmcallinfo;
 
 		vmcallinfo.structsize = sizeof(vmcallinfo);
@@ -532,24 +609,30 @@ public:
 		SetPassword(password1, password2, password3);
 	}
 
-	void SetPassword(uintptr_t password1, unsigned password2, uintptr_t password3) {
+	void SetPassword(uint64_t password1, uint32_t password2, uint64_t password3) {
 		current_password1 = password1;
 		current_password2 = password2;
 		current_password3 = password3;
 	}
 
+	void GetPassword(uint64_t& password1, uint32_t& password2, uint64_t& password3) const {
+		password1 = current_password1;
+		password2 = current_password2;
+		password3 = current_password3;
+	}
+
 	void SetDefaultPassword() {
-		current_password1 = 0x76543210;
-		current_password2 = 0xfedcba98;
-		current_password3 = 0x90909090;
+		current_password1 = default_password1;
+		current_password2 = default_password2;
+		current_password3 = default_password3;
 	}
 
 	unsigned GetVersion() const {
 		struct
 		{
-			unsigned structsize;
-			unsigned level2pass;
-			unsigned command;
+			uint32_t structsize;
+			uint32_t level2pass;
+			uint32_t command;
 		} vmcallinfo;
 
 		vmcallinfo.structsize = sizeof(vmcallinfo);
@@ -618,6 +701,6 @@ public:
 			});
 	}
 
-	DBVM(uintptr_t password1 = 0x76543210, unsigned password2 = 0xfedcba98, uintptr_t password3 = 0x90909090) : current_password1(password1), current_password2(password2), current_password3(password3), bIntel(IsIntel()) {}
+	DBVM() : bIntel(IsIntel()) {}
 };
 #pragma pack(pop)

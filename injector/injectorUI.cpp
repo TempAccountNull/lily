@@ -1,5 +1,6 @@
 #include "injectorUI.h"
 
+#include <memory>
 #include <tlhelp32.h>
 #include "kernel.h"
 #include "dbvm.h"
@@ -18,24 +19,7 @@
 #define IOCTL_CE_ALLOCATE_MEMORY_FOR_DBVM		CTL_CODE(IOCTL_UNKNOWN_BASE, 0x0862, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
 #define IOCTL_CE_VMXCONFIG						CTL_CODE(IOCTL_UNKNOWN_BASE, 0x082d, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
 
-bool IsDBVMCapable() {
-	int info[4];
-	if (DBVM::IsIntel()) {
-		__cpuid(info, 1);
-		int c = info[2];
-		if ((c >> 5) & 1)
-			return true;
-	}
-	else if (DBVM::IsAMD()) {
-		__cpuid(info, 0x80000001);
-		int c = info[2];
-		if ((c >> 2) & 1)
-			return true;
-	}
-	return false;
-}
-
-bool VMXConfig(HANDLE hDevice, uint64_t Password1, uint32_t Password2, uint64_t Password3) {
+bool VMXConfig(HANDLE hDevice, const DBVM& dbvm) {
 #pragma pack(push, 1)
 	struct
 	{
@@ -46,10 +30,11 @@ bool VMXConfig(HANDLE hDevice, uint64_t Password1, uint32_t Password2, uint64_t 
 	} input;
 #pragma pack(pop, 1)
 
+	if (!dbvm.GetVersion())
+		return false;
+
 	input.Virtualization_Enabled = 1;
-	input.Password1 = Password1;
-	input.Password2 = Password2;
-	input.Password3 = Password3;
+	dbvm.GetPassword(input.Password1, input.Password2, input.Password3);
 
 	DWORD BytesReturned;
 	return DeviceIoControl(hDevice, IOCTL_CE_VMXCONFIG, &input, sizeof(input), 0, 0, &BytesReturned, 0);
@@ -152,21 +137,54 @@ bool StartDriver(const char* szServiceName, const char* szFilePath) {
 
 DWORD GetPIDByName(const char* szProcName) {
 	DWORD Result = 0;
-	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 
 	PROCESSENTRY32 pe32 = { 0 };
 	pe32.dwSize = sizeof(pe32);
-	if (Process32First(hSnapshot, &pe32)) {
+	if (Process32First(hSnapShot, &pe32)) {
 		do {
 			if (_stricmp(pe32.szExeFile, szProcName) == 0) {
 				Result = pe32.th32ProcessID;
 				break;
 			}
-		} while (Process32Next(hSnapshot, &pe32));
+		} while (Process32Next(hSnapShot, &pe32));
 	}
 
-	CloseHandle(hSnapshot);
+	CloseHandle(hSnapShot);
 	return Result;
+}
+
+DWORD GetPID(char* szProcessName, bool bCreateProcess) {
+	if (!bCreateProcess)
+		return GetPIDByName(szProcessName);
+
+	STARTUPINFO StartupInfo = { .cb = sizeof(StartupInfo) };
+	PROCESS_INFORMATION ProcessInfo = {};
+	if (!CreateProcessA(0, szProcessName, 0, 0, 0, CREATE_SUSPENDED, 0, 0, &StartupInfo, &ProcessInfo))
+		return 0;
+
+	CONTEXT Context = { .ContextFlags = CONTEXT_ALL };
+	GetThreadContext(ProcessInfo.hThread, &Context);
+	Context.Rcx = -1;
+	Context.Rip = (uintptr_t)Sleep;
+	SetThreadContext(ProcessInfo.hThread, &Context);
+	ResumeThread(ProcessInfo.hThread);
+
+	bool IsLoaded = [&] {
+		for (unsigned i = 0; i < 100; i++) {
+			Sleep(10);
+			DWORD dwSize;
+			HMODULE hModule;
+			if (EnumProcessModules(ProcessInfo.hProcess, &hModule, sizeof(hModule), &dwSize))
+				return true;
+		}
+		TerminateProcess(ProcessInfo.hProcess, 0);
+		return false;
+	}();
+
+	CloseHandle(ProcessInfo.hThread);
+	CloseHandle(ProcessInfo.hProcess);
+	return IsLoaded ? ProcessInfo.dwProcessId : 0;
 }
 
 void InjectorUI::OnButtonDBVM() {
@@ -192,7 +210,7 @@ void InjectorUI::OnButtonDBVM() {
 			return true;
 		}
 
-		if (!IsDBVMCapable()) {
+		if (!DBVM::IsDBVMCapable()) {
 			strMsg << "Your system DOES NOT support DBVM."e;
 			return false;
 		}
@@ -276,18 +294,18 @@ void InjectorUI::OnButtonDBVM() {
 		LaunchDBVM(hDevice, L"\\??\\"es + std::wstring(strPathImg.begin(), strPathImg.end()));
 
 		dbvm.SetDefaultPassword();
-		if (!ExceptionHandler::TryExcept(
-			[&] {dbvm.ChangePassword(default_password1, default_password2, default_password3); })) {
+		if (!dbvm.GetVersion()) {
 			strMsg << "Could not launch DBVM: DeviceIoControl Failed."e;
 			return false;
 		}
 
+		dbvm.ChangePassword(default_password1, default_password2, default_password3);
+		SetPasswordFromParam();
+
 		bool IsHided = false;
-		if (VMXConfig(hDevice, default_password1, default_password2, default_password3)) {
-			if (AddMemoryDBVM(hDevice, (uint64_t)GetCPUCount() * 0x20)) {
-				dbvm.HideDBVM();
-				IsHided = true;
-			}
+		if (VMXConfig(hDevice, dbvm) && AddMemoryDBVM(hDevice, (uint64_t)GetCPUCount() * 0x20)) {
+			dbvm.HideDBVM();
+			IsHided = true;
 		}
 
 		strMsg << "dbvm loaded. "e;
@@ -304,65 +322,61 @@ void InjectorUI::OnButtonDBVM() {
 	MessageBoxA(hWnd, strMsg.c_str(), ""e, bSuccess ? 0 : MB_ICONERROR);
 }
 
-void InjectorUI::OnButtonSetPassword() {
-	if (strlen(szLicense) < 20) {
-		MessageBoxA(hWnd, "License too short."e, ""e, MB_ICONERROR);
-		return;
-	}
-
-	uint64_t password1 = *(uint64_t*)(szLicense + 0) ^ 0xda2355698be6166c;
-	uint32_t password2 = *(uint32_t*)(szLicense + 8) ^ 0x6765fa70;
-	uint64_t password3 = *(uint64_t*)(szLicense + 12) ^ 0xe21cb5155c065962;
-
-	bool bSuccess = [&] {
-		dbvm.SetPassword(password1, password2, password3);
-		if (dbvm.GetVersion())
-			return true;
-
-		dbvm.SetPassword(default_password1, default_password2, default_password3);
-		if (ExceptionHandler::TryExcept([&] { dbvm.ChangePassword(password1, password2, password3); }))
-			return true;
-
+bool InjectorUI::SetPasswordFromParam() {
+	if (strlen(szParam) < 20)
 		return false;
-	}();
 
-	MessageBoxA(hWnd, bSuccess ? "Success"e : "Failed"e, ""e, bSuccess ? 0 : MB_ICONERROR);
+	uint64_t password1 = *(uint64_t*)(szParam + 0) ^ 0xda2355698be6166c;
+	uint32_t password2 = *(uint32_t*)(szParam + 8) ^ 0x6765fa70;
+	uint64_t password3 = *(uint64_t*)(szParam + 12) ^ 0xe21cb5155c065962;
+
+	dbvm.SetPassword(password1, password2, password3);
+	if (dbvm.GetVersion())
+		return true;
+
+	dbvm.SetPassword(default_password1, default_password2, default_password3);
+	if (ExceptionHandler::TryExcept([&] { dbvm.ChangePassword(password1, password2, password3); }))
+		return true;
+
+	return false;
+}
+
+void InjectorUI::OnButtonSetPassword() {
+	if (SetPasswordFromParam()) MessageBoxA(hWnd, "Success", ""e, 0);
+	else MessageBoxA(hWnd, "Failed", ""e, MB_ICONERROR);
 }
 
 void InjectorUI::OnButtonInject() {
 	std::string strMsg;
 
 	bInjected = [&] {
-		DWORD dwPid = GetPIDByName(szProcessName);
-		if (!dwPid) {
-			strMsg << "No target process."e;
-			return false;
-		}
-
-		FILE* in = fopen(szDLLName, "r"e);
+		FILE* in = fopen(szImageName, "r"e);
 		if (!in) {
-			strMsg << "DLL file not exist."e;
+			strMsg << "Image not exist."e;
 			return false;
 		}
 		fclose(in);
 
-		//if (InjectionType == EInjectionType::NxBitSwap && !dbvm.GetVersion()) {
-		if (!dbvm.GetVersion()) {
+		if (InjectionType == EInjectionType::NxBitSwap && !dbvm.GetVersion()) {
 			strMsg << "DBVM is not loaded."e;
 			return false;
 		}
 
-		HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, dwPid);
-		if (!hProcess) {
-			strMsg << "Failed opening target process"e;
+		const DWORD dwPid = GetPID(szProcessName, bCreateProcess);
+		if (!dwPid) {
+			strMsg << "No target process"e;
 			return false;
 		}
 
-		Kernel kernel(dbvm);
-		Injector injector(RemoteProcess(hProcess, &kernel));
-		bool Result = injector.MapRemoteModuleAFromFileName(dwPid, szDLLName, true, szLicense, InjectionType, szIntoDLL);
+		const std::shared_ptr<const Kernel> pKernel(dbvm.GetVersion() ? new Kernel(dbvm) : 0);
+		const RemoteProcess remoteprocess(dwPid, pKernel);
+		Injector injector(remoteprocess);
+
+		bool Result = injector.MapRemoteModuleAFromFileName(szImageName, true, szParam, InjectionType, szIntoDLL);
 		strMsg = injector.GetErrorMsg();
-		CloseHandle(hProcess);
+
+		if (!Result)
+			remoteprocess.RemoteTerminateProcess(0);
 
 		return Result;
 	}();

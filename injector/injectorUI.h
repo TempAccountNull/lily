@@ -20,40 +20,35 @@ enum class EInjectionType {
 class InjectorUI {
 private:
 	DBVM dbvm;
+
 	bool bInjected = false;
 	HWND hWnd = 0;
 	IDirect3DDevice9Ex* pDirect3DDevice9Ex = 0;
 
 	char szProcessName[0x100] = { 0 };
-	char szDLLName[0x100] = { 0 };
+	bool bCreateProcess = false;
+	char szImageName[0x100] = { 0 };
 	char szIntoDLL[0x100] = { 0 };
-	char szLicense[0x100] = { 0 };
+	char szParam[0x100] = { 0 };
 	EInjectionType InjectionType = EInjectionType::Normal;
 
 	char szServiceName[0x100] = { 0 };
 	char szProcessEventName[0x100] = { 0 };
 	char szThreadEventName[0x100] = { 0 };
 	char szSysFileName[0x100] = { 0 };
-	uint64_t default_password1 = 0;
-	uint32_t default_password2 = 0;
-	uint64_t default_password3 = 0;
+
+	uint64_t default_password1 = 0xf26ec13d3110be5c;
+	uint32_t default_password2 = 0xbcdc7ab6;
+	uint64_t default_password3 = 0xc635c7311748ef9a;
 
 	void GetDriver64Data() {
-		szServiceName << "93827461_CEDRIVER60"e;
-		szProcessEventName << "93827461_DBKProcList60"e;
-		szThreadEventName << "93827461_DBKThreadList60"e;
-		szSysFileName << "dbk64.sys"e;
-		default_password1 = 0xf26ec13d3110be5c;
-		default_password2 = 0xbcdc7ab6;
-		default_password3 = 0xc635c7311748ef9a;
-
 		FILE* in = fopen("driver64.dat"e, "r"e);
 		if (!in)
 			return;
 
-		int Result = fscanf(in, "%s %s %s %s %I64x %x %I64x"e, 
-			szServiceName, szProcessEventName, szThreadEventName, szSysFileName, 
-			default_password1, default_password2, default_password3);
+		int Result = fscanf(in, "%s %s %s %s %I64x %x %I64x"e,
+			szServiceName, szProcessEventName, szThreadEventName, szSysFileName,
+			&default_password1, &default_password2, &default_password3);
 
 		fclose(in);
 		verify(Result == 7);
@@ -105,11 +100,42 @@ private:
 		pDirect3DDevice9Ex->Present(&Rect, &Rect, hWnd, 0);
 	}
 
+	bool SetPasswordFromParam();
+
 	void OnButtonSetPassword();
 	void OnButtonDBVM();
 	void OnButtonInject();
+
+	void GetDataFromINI() {
+		GetPrivateProfileString(APP, "PROCESS"e, ""e, szProcessName, sizeof(szProcessName), INI);
+		GetPrivateProfileString(APP, "IMAGE"e, ""e, szImageName, sizeof(szImageName), INI);
+		GetPrivateProfileString(APP, "INTODLL"e, "", szIntoDLL, sizeof(szIntoDLL), INI);
+		GetPrivateProfileString(APP, "PARAM"e, "", szParam, sizeof(szParam), INI);
+		InjectionType = (EInjectionType)GetPrivateProfileIntA(APP, "TYPE"e, (int)EInjectionType::Normal, INI);
+		bCreateProcess = GetPrivateProfileIntA(APP, "CREATE"e, false, INI);
+	}
+
+	void SaveDataToINI() const {
+		WritePrivateProfileString(APP, "PROCESS"e, szProcessName, INI);
+		WritePrivateProfileString(APP, "IMAGE"e, szImageName, INI);
+		WritePrivateProfileString(APP, "INTODLL"e, szIntoDLL, INI);
+		WritePrivateProfileString(APP, "PARAM"e, szParam, INI);
+		char buffer[100];
+		_itoa((int)InjectionType, buffer, 10);
+		WritePrivateProfileString(APP, "TYPE"e, buffer, INI);
+		_itoa(bCreateProcess, buffer, 10);
+		WritePrivateProfileString(APP, "CREATE"e, buffer, INI);
+	}
+
 public:
 	InjectorUI(HWND hWnd, IDirect3DDevice9Ex* pDirect3DDevice9Ex) : hWnd(hWnd), pDirect3DDevice9Ex(pDirect3DDevice9Ex) {
+		GetDataFromINI();
+
+		szServiceName << "93827461_CEDRIVER60"e;
+		szProcessEventName << "93827461_DBKProcList60"e;
+		szThreadEventName << "93827461_DBKThreadList60"e;
+		szSysFileName << "dbk64.sys"e;
+
 		GetDriver64Data();
 
 		dbvm.SetPassword(default_password1, default_password2, default_password3);
@@ -119,25 +145,32 @@ public:
 				dbvm.ChangePassword(default_password1, default_password2, default_password3);
 		}
 
-		GetPrivateProfileString(APP, "PROCESS"e, "target.exe"e, szProcessName, sizeof(szProcessName), INI);
-		GetPrivateProfileString(APP, "DLL"e, "module.dll"e, szDLLName, sizeof(szDLLName), INI);
-		GetPrivateProfileString(APP, "INTODLL"e, "", szIntoDLL, sizeof(szIntoDLL), INI);
-		GetPrivateProfileString(APP, "LICENSE"e, "", szLicense, sizeof(szLicense), INI);
-		InjectionType = (EInjectionType)GetPrivateProfileIntA(APP, "TYPE"e, (int)EInjectionType::Normal, INI);
+		SetPasswordFromParam();
 	}
 
 	~InjectorUI() {
-		WritePrivateProfileString(APP, "PROCESS"e, szProcessName, INI);
-		WritePrivateProfileString(APP, "DLL"e, szDLLName, INI);
-		WritePrivateProfileString(APP, "INTODLL"e, szIntoDLL, INI);
-		WritePrivateProfileString(APP, "LICENSE"e, szLicense, INI);
-		char buffer[100];
-		_itoa((int)InjectionType, buffer, 10);
-		WritePrivateProfileString(APP, "TYPE"e, buffer, INI);
+		SaveDataToINI();
 	}
 
 	bool ProcessFrame() {
+		auto CreateRightAlignedItem = [&](auto f) {
+			const float ItemSpacing = ImGui::GetStyle().ItemSpacing.x;
+
+			//The 100.0f is just a guess size for the first frame.
+			static float HostButtonWidth = 100.0f;
+			float pos = HostButtonWidth + ItemSpacing;
+			ImGui::SameLine(ImGui::GetWindowWidth() - pos);
+			f();
+			//Get the actual width for next frame.
+			HostButtonWidth = ImGui::GetItemRectSize().x;
+		};
+
 		RenderArea([&] {
+			if (dbvm.GetVersion())
+				ImGui::Text("DBVM detected"e);
+			else
+				ImGui::Text("DBVM not detected"e);
+
 			ImGui::Text("Process"e);
 			ImGui::SameLine();
 			float TextAlign = ImGui::GetCursorPosX();
@@ -147,17 +180,23 @@ public:
 			if (ImGui::Button("GO"e, { -1, 0.0f }))
 				OnButtonInject();
 			
-			ImGui::Text("DLL"e);
+			ImGui::Text("IMAGE"e);
 			ImGui::SameLine();
 			ImGui::SetCursorPosX(TextAlign);
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth() * 0.7f);
-			ImGui::InputText("##DLL"e, szDLLName, sizeof(szDLLName));
+			ImGui::InputText("##DLL"e, szImageName, sizeof(szImageName));
 			ImGui::SameLine();
 			if (ImGui::Button("DBVM"e, { -1, 0.0f }))
 				OnButtonDBVM();
 
 			if (ImGui::RadioButton("Normal"e, InjectionType == EInjectionType::Normal))
 				InjectionType = EInjectionType::Normal;
+			ImGui::SameLine();
+
+			CreateRightAlignedItem([&] {
+				ImGui::Checkbox("CreateProcess"e, &bCreateProcess);
+				});
+
 			if (ImGui::RadioButton("NxBitSwap"e, InjectionType == EInjectionType::NxBitSwap))
 				InjectionType = EInjectionType::NxBitSwap;
 			if (ImGui::RadioButton("IntoDLL"e, InjectionType == EInjectionType::IntoDLL))
@@ -168,18 +207,14 @@ public:
 			ImGui::InputText("##IntoDLL"e, szIntoDLL, sizeof(szIntoDLL));
 
 			ImGui::SetNextItemWidth(-1);
-			ImGui::InputTextMultiline("##License"e, szLicense, sizeof(szLicense));
+			ImGui::InputTextMultiline("##License"e, szParam, sizeof(szParam));
 
 			ImGui::NewLine();
 
-			const float ItemSpacing = ImGui::GetStyle().ItemSpacing.x;
-
-			static float HostButtonWidth = 100.0f; //The 100.0f is just a guess size for the first frame.
-			float pos = HostButtonWidth + ItemSpacing;
-			ImGui::SameLine(ImGui::GetWindowWidth() - pos);
-			if (ImGui::Button("SetPassword"e))
-				OnButtonSetPassword();
-			HostButtonWidth = ImGui::GetItemRectSize().x; //Get the actual width for next frame.
+			CreateRightAlignedItem([&] {
+				if (ImGui::Button("SetPassword"e))
+					OnButtonSetPassword();
+				});
 		});
 		return bInjected;
 	}

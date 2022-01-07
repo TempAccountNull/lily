@@ -1,6 +1,39 @@
 #include "pubg_class.h"
 #include "transform.h"
 
+Vector WorldToScreen(const Vector& WorldLocation, const Matrix& RotationMatrix, const Vector& CameraLocation, float CameraFOV, float Width, float Height) {
+	Vector Screenlocation(0, 0, 0);
+
+	Vector AxisX = RotationMatrix.GetScaledAxisX();
+	Vector AxisY = RotationMatrix.GetScaledAxisY();
+	Vector AxisZ = RotationMatrix.GetScaledAxisZ();
+
+	Vector vDelta(WorldLocation - CameraLocation);
+	Vector vTransformed(vDelta | AxisY, vDelta | AxisZ, vDelta | AxisX);
+
+	if (vTransformed.Z == 0.0)
+		vTransformed.Z = -0.001f;
+
+	Screenlocation.Z = vTransformed.Z;
+
+	if (vTransformed.Z < 0.0f)
+		vTransformed.Z = -vTransformed.Z;
+
+	float ScreenCenterX = Width / 2.0f;
+	float ScreenCenterY = Height / 2.0f;
+	float TangentFOV = tanf(ConvertToRadians(CameraFOV / 2.0f));
+
+	Screenlocation.X = ScreenCenterX + vTransformed.X * (ScreenCenterX / TangentFOV) / vTransformed.Z;
+	Screenlocation.Y = ScreenCenterY - vTransformed.Y * (ScreenCenterX / TangentFOV) / vTransformed.Z;
+	return Screenlocation;
+}
+
+bool UWorld::GetUWorld(UWorld& World) {
+	ObjectPtr<EncryptedObjectPtr<UWorld>> PP = gXenuine->process.GetBaseAddress() + UWORLDBASE;
+	EncryptedObjectPtr<UWorld> P;
+	return PP.Read(P) && P.Read(World);
+}
+
 Transform USkeletalMeshSocket::GetSocketLocalTransform() const {
 	return Transform(Rotator(RelativeRotation), RelativeLocation, RelativeScale);
 }

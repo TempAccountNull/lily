@@ -27,6 +27,13 @@ public:
 		}
 	}
 
+	void Clear() {
+		ImGui_ImplDX9_NewFrame();
+		ImGui::NewFrame();
+		ImGui::EndFrame();
+		Present(0);
+	}
+
 	virtual void Present(HWND hGameWnd) = 0;
 	virtual bool IsFocused(HWND hGameWnd) const = 0;
 };

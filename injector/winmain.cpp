@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <Psapi.h>
 #include "global.h"
 #include "injectorUI.h"
 
@@ -25,9 +26,10 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
-
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nCmdShow) {
-    Global::hModule = GetModuleHandleA(0);
+    MODULEINFO ModuleInfo;
+    GetModuleInformation((HANDLE)-1, GetModuleHandleA(0), &ModuleInfo, sizeof(ModuleInfo));
+    Global::SetModuleInfo(ModuleInfo.lpBaseOfDll, ModuleInfo.SizeOfImage);
 
     WNDCLASS WndClass = { };
     WndClass.lpfnWndProc = WndProc;
@@ -35,7 +37,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nC
     WndClass.lpszClassName = "Injector"e;
     RegisterClass(&WndClass);
 
-    HWND hWnd = CreateWindowExA(0, "Injector"e, "Injector"e, WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME,
+    HWND hWnd = CreateWindowExA(0, "Injector"e, ""e, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
         CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, 0, 0, hInstance, 0);
 
     if (!hWnd)
