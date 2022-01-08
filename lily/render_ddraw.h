@@ -93,11 +93,4 @@ public:
 
 		pOverlaySurface->Flip(0, DDFLIP_DONOTWAIT | DDFLIP_NOVSYNC);
 	}
-
-	virtual bool IsFocused(HWND hGameWnd) const {
-		if (GetForegroundWindow() == hGameWnd)
-			return true;
-
-		return false;
-	}
 };

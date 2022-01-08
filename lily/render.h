@@ -35,5 +35,4 @@ public:
 	}
 
 	virtual void Present(HWND hGameWnd) = 0;
-	virtual bool IsFocused(HWND hGameWnd) const = 0;
 };

@@ -13,6 +13,9 @@ typedef struct {}*PPPROP;
 typedef struct {}*PPROP;
 typedef struct {}*PWND;
 
+using tPsGetProcessWin32Process = PVOID(*)(PVOID Process);
+using tPsSetProcessWin32Process = NTSTATUS(*)(PVOID Process, PVOID Win32Process, PVOID PrevWin32Process);
+
 using tUserValidateHwnd = tagWND*(*)(HWND hWnd);
 using tValidateHwnd = PWND(*)(HWND hWnd);
 using tUserFindAtom = ATOM(*)(PCWSTR AtomName);
@@ -24,6 +27,8 @@ class KernelLily : public Kernel {
 private:
 	uintptr_t pPsProcessType = 0;
 
+	tPsGetProcessWin32Process pPsGetProcessWin32Process = 0;
+	tPsSetProcessWin32Process pPsSetProcessWin32Process = 0;
 	tValidateHwnd pValidateHwnd = 0;
 	tUserFindAtom pUserFindAtom = 0;
 	tRealGetProp pRealGetProp = 0;
@@ -96,6 +101,18 @@ private:
 		return Result;
 	}
 
+	PVOID PsGetProcessWin32Process(PVOID Process) const {
+		PVOID Result;
+		KernelExecute([&] { Result = SafeCall(pPsGetProcessWin32Process, Process); });
+		return Result;
+	}
+
+	NTSTATUS PsSetProcessWin32Process(PVOID Process, PVOID Win32Process, PVOID PrevWin32Process) const {
+		NTSTATUS Result;
+		KernelExecute([&] { Result = SafeCall(pPsSetProcessWin32Process, Process, Win32Process, PrevWin32Process); });
+		return Result;
+	}
+
 public:
 	tagWND* UserValidateHwnd(HWND hWnd) const { return SafeCall(pUserValidateHwnd, hWnd); }
 
@@ -131,9 +148,38 @@ public:
 		return Result;
 	}
 
+	bool PsSetProcessWin32ProcessWrapper(HWND hWnd, auto f) const {
+		DWORD dwPid;
+		if (!GetWindowThreadProcessId(hWnd, &dwPid))
+			return false;
+
+		const PVOID CurrentProcess = (PVOID)GetEPROCESS(GetCurrentProcessId());
+		if (!CurrentProcess)
+			return false;
+
+		const PVOID ProcessHWND = (PVOID)GetEPROCESS(dwPid);
+		if (!ProcessHWND)
+			return false;
+
+		const PVOID Win32ProcessCurrent = PsGetProcessWin32Process(CurrentProcess);
+		const PVOID Win32ProcessHWND = PsGetProcessWin32Process(ProcessHWND);
+		PsSetProcessWin32Process(CurrentProcess, 0, Win32ProcessCurrent);
+		PsSetProcessWin32Process(CurrentProcess, Win32ProcessHWND, 0);
+		f();
+		PsSetProcessWin32Process(CurrentProcess, 0, Win32ProcessHWND);
+		PsSetProcessWin32Process(CurrentProcess, Win32ProcessCurrent, 0);
+
+		const bool bWin32ProcessRollbacked = (PsGetProcessWin32Process(CurrentProcess) == Win32ProcessCurrent);
+		verify(bWin32ProcessRollbacked);
+		return true;
+	}
+
 	KernelLily(const DBVM& dbvm) : Kernel(dbvm) {
 		uintptr_t ScanResult = 0;
-
+		pPsGetProcessWin32Process = (tPsGetProcessWin32Process)GetKernelProcAddress("ntoskrnl.exe"e, "PsGetProcessWin32Process"e);
+		verify(pPsGetProcessWin32Process);
+		pPsSetProcessWin32Process = (tPsSetProcessWin32Process)GetKernelProcAddress("ntoskrnl.exe"e, "PsSetProcessWin32Process"e);
+		verify(pPsSetProcessWin32Process);
 		pExAllocatePool = (tExAllocatePool)GetKernelProcAddress("ntoskrnl.exe"e, "ExAllocatePool"e);
 		verify(pExAllocatePool);
 

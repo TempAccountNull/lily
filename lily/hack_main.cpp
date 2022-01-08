@@ -40,7 +40,7 @@ void Hack::Loop(Process& process) {
 		UpdateGameClientRect();
 		float TimeDelta = ProcessTimeDelta();
 
-		if (render.IsFocused(hGameWnd)) {
+		if (GetForegroundWindow() == hGameWnd) {
 			InsertMouseInfo();
 			ProcessHotkey();
 		}
