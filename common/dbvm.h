@@ -5,119 +5,8 @@
 #include "ida_defs.h"
 #include "exception.h"
 
-extern "C" uintptr_t vmcall_intel(uint64_t password3, uint64_t passwordr1, void* vmcallinfo);
-extern "C" uintptr_t vmcall_amd(uint64_t password3, uint64_t passwordr1, void* vmcallinfo);
-
-#define VMCALL_GETVERSION 0
-#define VMCALL_CHANGEPASSWORD 1
-#define VMCALL_READ_PHYSICAL_MEMORY 3
-#define VMCALL_WRITE_PHYSICAL_MEMORY 4
-#define VMCALL_REDIRECTINT1 9
-#define VMCALL_INT1REDIRECTED 10
-#define VMCALL_CHANGESELECTORS 12
-#define VMCALL_BLOCK_INTERRUPTS 13
-#define VMCALL_RESTORE_INTERRUPTS 14
-
-#define VMCALL_REGISTER_CR3_EDIT_CALLBACK 16
-#define VMCALL_RETURN_FROM_CR3_EDIT_CALLBACK 17
-#define VMCALL_GETCR0 18
-#define VMCALL_GETCR3 19
-#define VMCALL_GETCR4 20
-#define VMCALL_RAISEPRIVILEGE 21
-#define VMCALL_REDIRECTINT14 22
-#define VMCALL_INT14REDIRECTED 23
-#define VMCALL_REDIRECTINT3 24
-#define VMCALL_INT3REDIRECTED 25
-
-//dbvm v6+
-#define VMCALL_READMSR 26
-#define VMCALL_WRITEMSR 27
-
-#define VMCALL_ULTIMAP 28
-#define VMCALL_ULTIMAP_DISABLE 29
-
-
-//dbvm v7
-#define VMCALL_SWITCH_TO_KERNELMODE 30
-#define VMCALL_DISABLE_DATAPAGEFAULTS 31
-#define VMCALL_ENABLE_DATAPAGEFAULTS 32
-#define VMCALL_GETLASTSKIPPEDPAGEFAULT 33
-
-#define VMCALL_ULTIMAP_PAUSE 34
-#define VMCALL_ULTIMAP_RESUME 35
-
-#define VMCALL_ULTIMAP_DEBUGINFO 36
-
-#define VMCALL_PSODTEST 37
-
-//dbvm11
-#define VMCALL_GETMEM 38
-#define VMCALL_JTAGBREAK 39
-#define VMCALL_GETNMICOUNT 40
-
-#define VMCALL_WATCH_WRITES 41
-#define VMCALL_WATCH_READS 42
-#define VMCALL_WATCH_RETRIEVELOG 43
-#define VMCALL_WATCH_DELETE 44
-
-#define VMCALL_CLOAK_ACTIVATE 45
-#define VMCALL_CLOAK_DEACTIVATE 46
-#define VMCALL_CLOAK_READORIGINAL 47
-#define VMCALL_CLOAK_WRITEORIGINAL 48
-
-#define VMCALL_CLOAK_CHANGEREGONBP 49
-#define VMCALL_CLOAK_REMOVECHANGEREGONBP  50
-
-#define VMCALL_EPT_RESET 51
-
-#define VMCALL_LOG_CR3VALUES_START 52
-#define VMCALL_LOG_CR3VALUES_STOP 53
-
-#define VMCALL_REGISTERPLUGIN 54
-#define VMCALL_RAISEPMI 55
-#define VMCALL_ULTIMAP2_HIDERANGEUSAGE 56
-
-#define VMCALL_ADD_MEMORY 57
-//#define VMCALL_DISABLE_EPT 58 dus nut wurk
-
-
-#ifdef STATISTICS
-#define VMCALL_GET_STATISTICS 59
-#endif
-
-#define VMCALL_WATCH_EXECUTES 60
-#define VMCALL_SETTSCADJUST   61
-#define VMCALL_SETSPEEDHACK   62
-#define VMCALL_CAUSEDDEBUGBREAK 63
-
-#define VMCALL_DISABLE_TSCADJUST 64
-
-#define VMCALL_CLOAKEX_ACTIVATE 65
-
-#define VMCALL_DISABLETSCHOOK 66
-#define VMCALL_ENABLETSCHOOK 67
-
-#define VMCALL_WATCH_GETSTATUS 68
-
-#define VMCALL_CLOAK_TRACEONBP 69
-#define VMCALL_CLOAK_TRACEONBP_REMOVE 70
-#define VMCALL_CLOAK_TRACEONBP_READLOG 71
-#define VMCALL_CLOAK_TRACEONBP_GETSTATUS 72
-#define VMCALL_CLOAK_TRACEONBP_STOPTRACE 73
-
-#define VMCALL_GETBROKENTHREADLISTSIZE 74
-#define VMCALL_GETBROKENTHREADENTRYSHORT 75
-#define VMCALL_GETBROKENTHREADENTRYFULL 76
-#define VMCALL_SETBROKENTHREADENTRYFULL 77
-#define VMCALL_RESUMEBROKENTHREAD 78
-
-#define VMCALL_HIDEDBVMPHYSICALADDRESSES 79
-#define VMCALL_HIDEDBVMPHYSICALADDRESSESALL 80
-
-#define VMCALL_KERNELMODE 100
-#define VMCALL_USERMODE 101
-
-#define VMCALL_DEBUG_SETSPINLOCKTIMEOUT 254
+extern "C" uintptr_t vmcall_intel(uint64_t Password3, uint64_t Password1, void* pVMCallInfo);
+extern "C" uintptr_t vmcall_amd(uint64_t Password3, uint64_t Password1, void* pVMCallInfo);
 
 #pragma pack(push, 1)
 
@@ -247,10 +136,96 @@ public:
 	constexpr static uint32_t default_password2 = 0xfedcba98;
 	constexpr static uint64_t default_password3 = 0x90909090;
 private:
-	bool bIntel;
+	bool bIntel = true;
 	uint64_t current_password1 = default_password1;
 	uint32_t current_password2 = default_password2;
 	uint64_t current_password3 = default_password3;
+	//////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////
+	constexpr static uint32_t VMCALL_GETVERSION = 0;
+	constexpr static uint32_t VMCALL_CHANGEPASSWORD = 1;
+	constexpr static uint32_t VMCALL_READ_PHYSICAL_MEMORY = 3;
+	constexpr static uint32_t VMCALL_WRITE_PHYSICAL_MEMORY = 4;
+	constexpr static uint32_t VMCALL_REDIRECTINT1 = 9;
+	constexpr static uint32_t VMCALL_INT1REDIRECTED = 10;
+	constexpr static uint32_t VMCALL_CHANGESELECTORS = 12;
+	constexpr static uint32_t VMCALL_BLOCK_INTERRUPTS = 13;
+	constexpr static uint32_t VMCALL_RESTORE_INTERRUPTS = 14;
+	constexpr static uint32_t VMCALL_REGISTER_CR3_EDIT_CALLBACK = 16;
+	constexpr static uint32_t VMCALL_RETURN_FROM_CR3_EDIT_CALLBACK = 17;
+	constexpr static uint32_t VMCALL_GETCR0 = 18;
+	constexpr static uint32_t VMCALL_GETCR3 = 19;
+	constexpr static uint32_t VMCALL_GETCR4 = 20;
+	constexpr static uint32_t VMCALL_RAISEPRIVILEGE = 21;
+	constexpr static uint32_t VMCALL_REDIRECTINT14 = 22;
+	constexpr static uint32_t VMCALL_INT14REDIRECTED = 23;
+	constexpr static uint32_t VMCALL_REDIRECTINT3 = 24;
+	constexpr static uint32_t VMCALL_INT3REDIRECTED = 25;
+	//dbvm v6+
+	constexpr static uint32_t VMCALL_READMSR = 26;
+	constexpr static uint32_t VMCALL_WRITEMSR = 27;
+	constexpr static uint32_t VMCALL_ULTIMAP = 28;
+	constexpr static uint32_t VMCALL_ULTIMAP_DISABLE = 29;
+	//dbvm v7
+	constexpr static uint32_t VMCALL_SWITCH_TO_KERNELMODE = 30;
+	constexpr static uint32_t VMCALL_DISABLE_DATAPAGEFAULTS = 31;
+	constexpr static uint32_t VMCALL_ENABLE_DATAPAGEFAULTS = 32;
+	constexpr static uint32_t VMCALL_GETLASTSKIPPEDPAGEFAULT = 33;
+	constexpr static uint32_t VMCALL_ULTIMAP_PAUSE = 34;
+	constexpr static uint32_t VMCALL_ULTIMAP_RESUME = 35;
+	constexpr static uint32_t VMCALL_ULTIMAP_DEBUGINFO = 36;
+	constexpr static uint32_t VMCALL_PSODTEST = 37;
+	//dbvm11
+	constexpr static uint32_t VMCALL_GETMEM = 38;
+	constexpr static uint32_t VMCALL_JTAGBREAK = 39;
+	constexpr static uint32_t VMCALL_GETNMICOUNT = 40;
+	constexpr static uint32_t VMCALL_WATCH_WRITES = 41;
+	constexpr static uint32_t VMCALL_WATCH_READS = 42;
+	constexpr static uint32_t VMCALL_WATCH_RETRIEVELOG = 43;
+	constexpr static uint32_t VMCALL_WATCH_DELETE = 44;
+	constexpr static uint32_t VMCALL_CLOAK_ACTIVATE = 45;
+	constexpr static uint32_t VMCALL_CLOAK_DEACTIVATE = 46;
+	constexpr static uint32_t VMCALL_CLOAK_READORIGINAL = 47;
+	constexpr static uint32_t VMCALL_CLOAK_WRITEORIGINAL = 48;
+	constexpr static uint32_t VMCALL_CLOAK_CHANGEREGONBP = 49;
+	constexpr static uint32_t VMCALL_CLOAK_REMOVECHANGEREGONBP = 50;
+	constexpr static uint32_t VMCALL_EPT_RESET = 51;
+	constexpr static uint32_t VMCALL_LOG_CR3VALUES_START = 52;
+	constexpr static uint32_t VMCALL_LOG_CR3VALUES_STOP = 53;
+	constexpr static uint32_t VMCALL_REGISTERPLUGIN = 54;
+	constexpr static uint32_t VMCALL_RAISEPMI = 55;
+	constexpr static uint32_t VMCALL_ULTIMAP2_HIDERANGEUSAGE = 56;
+	constexpr static uint32_t VMCALL_ADD_MEMORY = 57;
+	constexpr static uint32_t VMCALL_DISABLE_EPT = 58;
+	constexpr static uint32_t VMCALL_GET_STATISTICS = 59;
+	constexpr static uint32_t VMCALL_WATCH_EXECUTES = 60;
+	constexpr static uint32_t VMCALL_SETTSCADJUST = 61;
+	constexpr static uint32_t VMCALL_SETSPEEDHACK = 62;
+	constexpr static uint32_t VMCALL_CAUSEDDEBUGBREAK = 63;
+	constexpr static uint32_t VMCALL_DISABLE_TSCADJUST = 64;
+	constexpr static uint32_t VMCALL_CLOAKEX_ACTIVATE = 65;
+	constexpr static uint32_t VMCALL_DISABLETSCHOOK = 66;
+	constexpr static uint32_t VMCALL_ENABLETSCHOOK = 67;
+	constexpr static uint32_t VMCALL_WATCH_GETSTATUS = 68;
+	constexpr static uint32_t VMCALL_CLOAK_TRACEONBP = 69;
+	constexpr static uint32_t VMCALL_CLOAK_TRACEONBP_REMOVE = 70;
+	constexpr static uint32_t VMCALL_CLOAK_TRACEONBP_READLOG = 71;
+	constexpr static uint32_t VMCALL_CLOAK_TRACEONBP_GETSTATUS = 72;
+	constexpr static uint32_t VMCALL_CLOAK_TRACEONBP_STOPTRACE = 73;
+	constexpr static uint32_t VMCALL_GETBROKENTHREADLISTSIZE = 74;
+	constexpr static uint32_t VMCALL_GETBROKENTHREADENTRYSHORT = 75;
+	constexpr static uint32_t VMCALL_GETBROKENTHREADENTRYFULL = 76;
+	constexpr static uint32_t VMCALL_SETBROKENTHREADENTRYFULL = 77;
+	constexpr static uint32_t VMCALL_RESUMEBROKENTHREAD = 78;
+	constexpr static uint32_t VMCALL_HIDEDBVMPHYSICALADDRESSES = 79;
+	constexpr static uint32_t VMCALL_HIDEDBVMPHYSICALADDRESSESALL = 80;
+	constexpr static uint32_t VMCALL_KERNELMODE = 100;
+	constexpr static uint32_t VMCALL_USERMODE = 101;
+	constexpr static uint32_t VMCALL_DEBUG_SETSPINLOCKTIMEOUT = 254;
+	//////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////
 public:
 	static bool IsIntel() {
 		int info[4];
@@ -285,120 +260,66 @@ public:
 		return false;
 	}
 
-	uintptr_t dovmcall(void* vmcallinfo) const {
+	DBVM() : bIntel(IsIntel()) {}
+
+	template <typename... Types>
+	uint64_t VMCall(uint32_t Command, Types... Args) const {
+		constexpr size_t SizeOfArgs = (0 + ... + sizeof(Args));
+		uint8_t VMCallInfo[sizeof(uint32_t) + sizeof(current_password2) + sizeof(Command) + SizeOfArgs];
+		size_t Index = 0;
+
+		auto AddElement = [&]<class Type>(const Type& Element) {
+			*(Type*)&VMCallInfo[Index] = Element;
+			Index += sizeof(Element);
+		};
+
+		AddElement(uint32_t(sizeof(VMCallInfo)));
+		AddElement(current_password2);
+		AddElement(Command);
+		(AddElement(Args), ...);
+
 		if (bIntel)
-			return vmcall_intel(current_password3, current_password1, vmcallinfo);
-		return vmcall_amd(current_password3, current_password1, vmcallinfo);
+			return vmcall_intel(current_password3, current_password1, VMCallInfo);
+		return vmcall_amd(current_password3, current_password1, VMCallInfo);
+	}
+
+	uint32_t GetVersion() const {
+		uint32_t Version;
+		if (!ExceptionHandler::TryExcept([&]() { Version = (uint32_t)VMCall(VMCALL_GETVERSION); }))
+			return 0;
+
+		if ((Version >> 24) != 0xCE)
+			return 0;
+
+		return Version & 0xFFFFFF;
 	}
 
 	uintptr_t GetMemory() const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_GETMEM;
-
-		return (unsigned)dovmcall(&vmcallinfo);
+		return VMCall(VMCALL_GETMEM);
 	}
 
 	_CR3 GetCR3() const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_GETCR3;
-
 		_CR3 CR3;
-		CR3.Value = dovmcall(&vmcallinfo);
+		CR3.Value = VMCall(VMCALL_GETCR3);
 		return CR3;
 	}
 
-	bool ReadPhysicalMemory(PhysicalAddress srcPA, void* dstVA, SIZE_T size) const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-			PhysicalAddress srcPA;
-			unsigned size;
-			uintptr_t dstVA;
-			unsigned nopagefault;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_READ_PHYSICAL_MEMORY;
-		vmcallinfo.srcPA = srcPA;
-		vmcallinfo.size = (unsigned)size;
-		vmcallinfo.dstVA = (uintptr_t)dstVA;
-		vmcallinfo.nopagefault = true;
-
-		return dovmcall(&vmcallinfo) == 0;
+	bool ReadPhysicalMemory(PhysicalAddress srcPA, void* dstVA, size_t size) const {
+		constexpr unsigned nopagefault = true;
+		return VMCall(VMCALL_READ_PHYSICAL_MEMORY, srcPA, (unsigned)size, dstVA, nopagefault) == 0;
 	}
 
-	bool WritePhysicalMemory(PhysicalAddress dstPA, LPCVOID srcVA, SIZE_T size) const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-			PhysicalAddress dstPA;
-			unsigned size;
-			uintptr_t srcVA;
-			unsigned nopagefault;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_WRITE_PHYSICAL_MEMORY;
-		vmcallinfo.dstPA = dstPA;
-		vmcallinfo.size = (unsigned)size;
-		vmcallinfo.srcVA = (uintptr_t)srcVA;
-		vmcallinfo.nopagefault = true;
-
-		return dovmcall(&vmcallinfo) == 0;
+	bool WritePhysicalMemory(PhysicalAddress dstPA, const void* srcVA, size_t size) const {
+		constexpr unsigned nopagefault = true;
+		return VMCall(VMCALL_WRITE_PHYSICAL_MEMORY, dstPA, (unsigned)size, srcVA, nopagefault) == 0;
 	}
 
-	uintptr_t SwitchToKernelMode(uint16 newCS) const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-			uint16 newCS;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_KERNELMODE;
-		vmcallinfo.newCS = newCS;
-
-		return dovmcall(&vmcallinfo);
+	void SwitchToKernelMode(uint16_t newCS) const {
+		VMCall(VMCALL_KERNELMODE, newCS);
 	}
 
 	void ReturnToUserMode() const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_USERMODE;
-
-		dovmcall(&vmcallinfo);
+		VMCall(VMCALL_USERMODE);
 	}
 
 	void SetCR3(CR3 cr3) const {
@@ -408,204 +329,50 @@ public:
 	}
 
 	uint64_t ReadMSR(uint32_t MSR) const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-			uint32_t MSR;
-			uint64_t Value;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_READMSR;
-		vmcallinfo.MSR = MSR;
-
-		return dovmcall(&vmcallinfo);
+		return VMCall(VMCALL_READMSR, MSR, uint64_t(0));
 	}
 
 	void WriteMSR(uint32_t MSR, uint64_t Value) const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-			uint32_t MSR;
-			uint64_t Value;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_WRITEMSR;
-		vmcallinfo.MSR = MSR;
-		vmcallinfo.Value = Value;
-
-		dovmcall(&vmcallinfo);
+		VMCall(VMCALL_WRITEMSR, MSR, Value);
 	}
 
 	bool ChangeRegisterOnBP(PhysicalAddress PABase, const ChangeRegOnBPInfo& changeregonbpinfo) const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-			PhysicalAddress PABase;
-			ChangeRegOnBPInfo changeregonbpinfo;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_CLOAK_CHANGEREGONBP;
-		vmcallinfo.PABase = PABase;
-		vmcallinfo.changeregonbpinfo = changeregonbpinfo;
-
-		return dovmcall(&vmcallinfo) == 0;
+		return VMCall(VMCALL_CLOAK_CHANGEREGONBP, PABase, changeregonbpinfo) == 0;
 	}
 
 	bool RemoveChangeRegisterOnBP(PhysicalAddress PABase) const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-			PhysicalAddress PABase;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_CLOAK_REMOVECHANGEREGONBP;
-		vmcallinfo.PABase = PABase;
-
-		return dovmcall(&vmcallinfo) == 0;
+		return VMCall(VMCALL_CLOAK_REMOVECHANGEREGONBP, PABase) == 0;
 	}
 
-	bool CloakWriteOriginal(PhysicalAddress PABase, void* Src) const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-			PhysicalAddress PABase;
-			void* Src;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_CLOAK_WRITEORIGINAL;
-		vmcallinfo.PABase = PABase;
-		vmcallinfo.Src = Src;
-
-		return dovmcall(&vmcallinfo) == 0;
+	bool CloakWriteOriginal(PhysicalAddress PABase, const void* Src) const {
+		return VMCall(VMCALL_CLOAK_WRITEORIGINAL, PABase, Src) == 0;
 	}
 
 	bool CloakReadOriginal(PhysicalAddress PABase, void* Dst) const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-			PhysicalAddress PABase;
-			void* Dst;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_CLOAK_READORIGINAL;
-		vmcallinfo.PABase = PABase;
-		vmcallinfo.Dst = Dst;
-
-		return dovmcall(&vmcallinfo) == 0;
+		return VMCall(VMCALL_CLOAK_READORIGINAL, PABase, Dst) == 0;
 	}
 
-	void CloakActivate(PhysicalAddress PABase, int Mode = 1) const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-			PhysicalAddress PABase;
-			uintptr_t Mode;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_CLOAK_ACTIVATE;
-		vmcallinfo.PABase = PABase;
-		vmcallinfo.Mode = Mode;
-
+	void CloakActivate(PhysicalAddress PABase, uintptr_t Mode = 1) const {
 		//1 already clocked
 		//0 success
-		dovmcall(&vmcallinfo);
+		VMCall(VMCALL_CLOAK_ACTIVATE, PABase, Mode);
 	}
 
 	void CloakDeactivate(PhysicalAddress PABase) const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-			PhysicalAddress PABase;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_CLOAK_DEACTIVATE;
-		vmcallinfo.PABase = PABase;
-
 		//0 success
-		dovmcall(&vmcallinfo);
+		VMCall(VMCALL_CLOAK_DEACTIVATE, PABase);
 	}
 
 	void CloakReset() const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_EPT_RESET;
-
-		dovmcall(&vmcallinfo);
+		VMCall(VMCALL_EPT_RESET);
 	}
 
 	void HideDBVM() const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_HIDEDBVMPHYSICALADDRESSESALL;
-
-		dovmcall(&vmcallinfo);
+		VMCall(VMCALL_HIDEDBVMPHYSICALADDRESSESALL);
 	}
 
 	void ChangePassword(uint64_t password1, uint32_t password2, uint64_t password3) {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-			uint64_t password1;
-			uint32_t password2;
-			uint64_t password3;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_CHANGEPASSWORD;
-		vmcallinfo.password1 = password1;
-		vmcallinfo.password2 = password2;
-		vmcallinfo.password3 = password3;
-
-		dovmcall(&vmcallinfo);
+		VMCall(VMCALL_CHANGEPASSWORD, password1, password2, password3);
 		SetPassword(password1, password2, password3);
 	}
 
@@ -625,28 +392,6 @@ public:
 		current_password1 = default_password1;
 		current_password2 = default_password2;
 		current_password3 = default_password3;
-	}
-
-	unsigned GetVersion() const {
-		struct
-		{
-			uint32_t structsize;
-			uint32_t level2pass;
-			uint32_t command;
-		} vmcallinfo;
-
-		vmcallinfo.structsize = sizeof(vmcallinfo);
-		vmcallinfo.level2pass = current_password2;
-		vmcallinfo.command = VMCALL_GETVERSION;
-
-		unsigned ret;
-		if (!ExceptionHandler::TryExcept([&]() { ret = (unsigned)dovmcall(&vmcallinfo); }))
-			return 0;
-
-		if ((ret >> 24) != 0xCE)
-			return 0;
-
-		return ret & 0xffffff;
 	}
 
 	PhysicalAddress GetPTEAddress(uintptr_t VirtualAddress, CR3 cr3) const {
@@ -701,7 +446,5 @@ public:
 				return true;
 			});
 	}
-
-	DBVM() : bIntel(IsIntel()) {}
 };
 #pragma pack(pop)
