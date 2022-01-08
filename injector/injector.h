@@ -27,38 +27,41 @@ private:
 
 	HMODULE RemoteGetModuleHandleA(const char* szModuleName) const {
 		HMODULE Result = 0;
+		bool bSuccess = false;
 
 		if (szModuleName)
 			process.VirtualAllocWrapper(szModuleName, strlen(szModuleName) + 1, [&](const void* pszModuleName) {
-			process.RemoteCall(GetModuleHandleA, &Result, pszModuleName, 0, 0, 0, true); });
+			bSuccess = process.RemoteCall(GetModuleHandleA, &Result, pszModuleName, 0, 0, 0, true, false); });
 		else
-			process.RemoteCall(GetModuleHandleA, &Result, 0, 0, 0, 0, true);
+			bSuccess = process.RemoteCall(GetModuleHandleA, &Result, 0, 0, 0, 0, true, false);
 
-		return Result;
+		return bSuccess ? Result : 0;
 	}
 
 	HMODULE RemoteLoadLibraryExA(const char* szFileName, DWORD dwFlags = 0) const {
 		HMODULE Result = 0;
+		bool bSuccess = false;
 
 		if (szFileName)
 			process.VirtualAllocWrapper(szFileName, strlen(szFileName) + 1, [&](const void* pszFileName) {
-			process.RemoteCall(LoadLibraryExA, &Result, pszFileName, 0, dwFlags, 0, true); });
+			bSuccess = process.RemoteCall(LoadLibraryExA, &Result, pszFileName, 0, dwFlags, 0, true, false); });
 		else
-			process.RemoteCall(LoadLibraryExA, &Result, 0, 0, dwFlags, 0, true);
+			bSuccess = process.RemoteCall(LoadLibraryExA, &Result, 0, 0, dwFlags, 0, true, false);
 
-		return Result;
+		return bSuccess ? Result : 0;
 	}
 
 	FARPROC RemoteGetProcAddress(HMODULE hModule, const char* szFuncName) const {
 		FARPROC Result = 0;
+		bool bSuccess = false;
 
 		if (HIWORD(szFuncName))
 			process.VirtualAllocWrapper(szFuncName, strlen(szFuncName) + 1, [&](const void* pszFuncName) {
-			process.RemoteCall(GetProcAddress, &Result, hModule, pszFuncName, 0, 0, true); });
+			bSuccess = process.RemoteCall(GetProcAddress, &Result, hModule, pszFuncName, 0, 0, true, false); });
 		else
-			process.RemoteCall(GetProcAddress, &Result, hModule, szFuncName, 0, 0, true);
+			bSuccess = process.RemoteCall(GetProcAddress, &Result, hModule, szFuncName, 0, 0, true, false);
 
-		return Result;
+		return bSuccess ? Result : 0;
 	}
 
 	size_t GetOffsetOptionalHeader(size_t OffsetNtHeader, const IMAGE_NT_HEADERS& ntHd) const {
@@ -144,7 +147,7 @@ private:
 			IMAGE_IMPORT_DESCRIPTOR ImportDesc;
 			GetBinaryData(OffsetImportDesc, ImportDescIndex, ImportDesc);
 
-			uintptr_t NameOffset = GetOffsetFromRVA(OffsetNtHeader, ntHd, ImportDesc.Name);
+			const uintptr_t NameOffset = GetOffsetFromRVA(OffsetNtHeader, ntHd, ImportDesc.Name);
 			if (!NameOffset)
 				break;
 
@@ -167,16 +170,21 @@ private:
 				strPathDLL += strDLLName;
 				hRemoteDLL = RemoteLoadLibraryExA(strPathDLL.c_str());
 			}
-			if (!hRemoteDLL) {
+
+			char szFileName[MAX_PATH];
+			if (!hRemoteDLL || !process.RemoteGetModuleFileNameExA(hRemoteDLL, szFileName, sizeof(szFileName))) {
 				strMsg << "RemoteLoadLibrary failed : "e;
 				strMsg += strDLLName;
 				return false;
 			}
 
+			const HMODULE hLocalDLL = LoadLibraryA(szFileName);
+			verify(hLocalDLL);
+
 			//fix the time/date stamp
 			//ImportDesc.TimeDateStamp = ntHd.FileHeader.TimeDateStamp;
 
-			size_t OffsetImageThunkData = GetOffsetFromRVA(OffsetNtHeader, ntHd, ImportDesc.FirstThunk);
+			const size_t OffsetImageThunkData = GetOffsetFromRVA(OffsetNtHeader, ntHd, ImportDesc.FirstThunk);
 
 			for (unsigned ImageThunkDataIndex = 0;; ImageThunkDataIndex++) {
 				IMAGE_THUNK_DATA ImageThunkData;
@@ -185,18 +193,25 @@ private:
 				if (!ImageThunkData.u1.Ordinal)
 					break;
 
-				const char* szFuncName = 0;
+				const char* szFuncName = [&] {
+					if (IMAGE_SNAP_BY_ORDINAL(ImageThunkData.u1.Ordinal))
+						return (const char*)IMAGE_ORDINAL(ImageThunkData.u1.Ordinal);
 
-				if (IMAGE_SNAP_BY_ORDINAL(ImageThunkData.u1.Ordinal))
-					szFuncName = (const char*)IMAGE_ORDINAL(ImageThunkData.u1.Ordinal);
-				else {
 					size_t OffsetImageImportByName = GetOffsetFromRVA(OffsetNtHeader, ntHd, ImageThunkData.u1.AddressOfData);
 					OffsetImageImportByName += offsetof(IMAGE_IMPORT_BY_NAME, Name);
 					for (unsigned i = 0; Binary[OffsetImageImportByName + i]; i++);
-					szFuncName = (const char*)&Binary[OffsetImageImportByName];
-				}
+					return (const char*)&Binary[OffsetImageImportByName];
+				}();
 
-				FARPROC pRemoteFuncAddress = RemoteGetProcAddress(hRemoteDLL, szFuncName);
+				const FARPROC pRemoteFuncAddress = [&] {
+					const FARPROC pFuncAddress = GetProcAddress(hLocalDLL, szFuncName);
+					verify(pFuncAddress);
+					return FARPROC((uintptr_t)pFuncAddress - (uintptr_t)hLocalDLL + (uintptr_t)hRemoteDLL);
+					//if (pFuncAddress)
+					//	return FARPROC((uintptr_t)pFuncAddress - (uintptr_t)hLocalDLL + (uintptr_t)hRemoteDLL);
+					//return RemoteGetProcAddress(hRemoteDLL, szFuncName);
+				}();
+
 				if (!pRemoteFuncAddress) {
 					strMsg << "RemoteGetProcAddress failed : "e;
 					strMsg += strDLLName;
@@ -354,7 +369,7 @@ private:
 
 		bool Result = false;
 		return process.RemoteCall(RtlAddFunctionTable, &Result, 
-			RemoteImageBase + OffsetRuntimeFunction, Count, RemoteImageBase, 0, true) && Result;
+			RemoteImageBase + OffsetRuntimeFunction, Count, RemoteImageBase, 0, true, false) && Result;
 	}
 
 	bool CallTLSCallbacks(size_t OffsetNtHeader, const IMAGE_NT_HEADERS& ntHd, uintptr_t RemoteImageBase, bool& IsTLSCallbackExist) const {
@@ -376,7 +391,7 @@ private:
 			process.RemoteReadProcessMemory(AddressOfCallback, &pCallBack, sizeof(pCallBack), 0) && pCallBack;
 			AddressOfCallback++)
 		{
-			if (!process.RemoteCall(pCallBack, 0, RemoteImageBase, DLL_PROCESS_ATTACH, 0, 0, true))
+			if (!process.RemoteCall(pCallBack, 0, RemoteImageBase, DLL_PROCESS_ATTACH, 0, 0, true, false))
 				return false;
 			IsTLSCallbackExist = true;
 		}
@@ -511,17 +526,17 @@ private:
 
 			if (IsDLL) {
 				if (InjectionType == EInjectionType::NxBitSwap && !IsTLSCallbackExist) {
-					if (!process.RemoteCall(pRemoteEntryPoint, 0, pRemoteImageBase, -1, pszParam, 0, true))
+					if (!process.RemoteCall(pRemoteEntryPoint, 0, pRemoteImageBase, -1, pszParam, 0, true, false))
 						return false;
 					if (!process.RemoveNXBit(pRemoteImageBase, BinaryImageSize))
 						return false;
 				}
 
-				return process.RemoteCall(pRemoteEntryPoint, 0, pRemoteImageBase, DLL_PROCESS_ATTACH, pszParam, 0, false);
+				return process.RemoteCall(pRemoteEntryPoint, 0, pRemoteImageBase, DLL_PROCESS_ATTACH, pszParam, 0, false, true);
 			}
 		
 			//EXE
-			return process.RemoteCall(pRemoteEntryPoint, 0, pRemoteImageBase, 0, pszParam, SW_SHOW, false);
+			return process.RemoteCall(pRemoteEntryPoint, 0, pRemoteImageBase, 0, pszParam, SW_SHOW, false, true);
 		}();
 
 		if (!bSuccess) {

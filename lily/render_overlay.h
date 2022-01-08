@@ -84,26 +84,25 @@ private:
 	}
 
 	bool AddRenderWindowToJob() const {
-		DWORD dwPid = 0;
-		if (!GetWindowThreadProcessId(hESPWnd, &dwPid)) {
-			PostMessageA(hESPWnd, WM_CLOSE, 0, 0);
-			return false;
-		}
+		const HANDLE hProcess = [&] {
+			DWORD dwPid = 0;
+			if (!GetWindowThreadProcessId(hESPWnd, &dwPid))
+				return (HANDLE)0;
 
-		const HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, dwPid);
+			return OpenProcess(PROCESS_ALL_ACCESS, FALSE, dwPid);
+		}();
+
 		if (!hProcess) {
 			PostMessageA(hESPWnd, WM_CLOSE, 0, 0);
 			return false;
 		}
 
-		if (!AssignProcessToJobObject(hJob, hProcess)) {
+		const bool bResult = AssignProcessToJobObject(hJob, hProcess);
+		if (!bResult)
 			TerminateProcess(hProcess, 0);
-			CloseHandle(hProcess);
-			return false;
-		}
 
 		CloseHandle(hProcess);
-		return true;
+		return bResult;
 	}
 
 	bool OpenRestreamChat() {

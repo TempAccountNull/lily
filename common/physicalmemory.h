@@ -49,7 +49,7 @@ typedef struct _PTE
             uintptr_t ProtectionKey : 4;         // If the PKE bit of CR4 is set, determines the protection key.
             uintptr_t ExecuteDisable : 1;       // If 1, instruction fetches not allowed.
         };
-        uintptr_t Value;
+        uintptr_t Value = 0;
     };
 } PTE, * PPTE;
 static_assert(sizeof(PTE) == sizeof(PVOID), "Size mismatch, only 64-bit supported.");
@@ -74,7 +74,7 @@ typedef struct _PDE
             uintptr_t Ignored3 : 11;
             uintptr_t ExecuteDisable : 1;       // If 1, instruction fetches not allowed.
         };
-        uintptr_t Value;
+        uintptr_t Value = 0;
     };
 } PDE, * PPDE;
 static_assert(sizeof(PDE) == sizeof(PVOID), "Size mismatch, only 64-bit supported.");
@@ -99,7 +99,7 @@ typedef struct _PDPTE
             uintptr_t Ignored3 : 11;
             uintptr_t ExecuteDisable : 1;       // If 1, instruction fetches not allowed.
         };
-        uintptr_t Value;
+        uintptr_t Value = 0;
     };
 } PDPTE, * PPDPTE;
 static_assert(sizeof(PDPTE) == sizeof(PVOID), "Size mismatch, only 64-bit supported.");
@@ -124,7 +124,7 @@ typedef struct _PML4E
             uintptr_t Ignored3 : 11;
             uintptr_t ExecuteDisable : 1;       // If 1, instruction fetches not allowed.
         };
-        uintptr_t Value;
+        uintptr_t Value = 0;
     };
 } PML4E, * PPML4E;
 static_assert(sizeof(PML4E) == sizeof(PVOID), "Size mismatch, only 64-bit supported.");
@@ -142,7 +142,7 @@ typedef struct _CR3
             uintptr_t PageFrameNumber : 36;
             uintptr_t Reserved : 16;
         };
-        uintptr_t Value;
+        uintptr_t Value = 0;
     };
 } CR3, *PCR3;
 static_assert(sizeof(_CR3) == sizeof(PVOID), "Size mismatch, only 64-bit supported.");

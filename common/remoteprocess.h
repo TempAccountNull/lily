@@ -8,6 +8,7 @@ private:
 	const HANDLE hProcess;
 	const DWORD dwPid;
 	void* RemoteEntryPoint;
+	CR3 cr3;
 public:
 	bool VirtualProtectWrapper(void* pRemoteAddress, size_t Size, auto f) const {
 		DWORD dwOldProtect;
@@ -21,7 +22,20 @@ public:
 		return true;
 	}
 
-	bool WriteProcessMemoryWrapper(void* pRemoteAddress, const void* pBuffer, size_t Size, auto f) const {
+	bool TriggerCOW(void* pRemoteAddress, size_t Size) const {
+		std::vector<uint8_t> OriginalBytes(Size);
+		bool bResult = false;
+		if (!VirtualProtectWrapper(pRemoteAddress, Size, [&] {
+			if (!RemoteReadProcessMemory(pRemoteAddress, OriginalBytes.data(), Size, 0))
+				return;
+			if (!RemoteWriteProcessMemory(pRemoteAddress, OriginalBytes.data(), Size, 0))
+				return;
+			bResult = true;
+			})) return false;
+		return bResult;
+	}
+
+	bool WriteProcessMemoryWinAPIWrapper(void* pRemoteAddress, const void* pBuffer, size_t Size, auto f) const {
 		std::vector<uint8_t> OriginalBytes(Size);
 		if (!RemoteReadProcessMemory(pRemoteAddress, OriginalBytes.data(), Size, 0))
 			return false;
@@ -38,20 +52,70 @@ public:
 		return true;
 	}
 
-	bool CreateRemoteThreadWrapper(void* pStartAddress, void* pParam, bool bWaitUntilExit, auto f) const {
-		HANDLE hThread = RemoteCreateRemoteThread(0, 0, (LPTHREAD_START_ROUTINE)pStartAddress, pParam, 0, 0);
+	bool WriteProcessMemoryCloakWrapper(void* pRemoteAddress, const void* pBuffer, size_t Size, auto f) const {
+		verify(cr3.Value);
+		//if (!TriggerCOW(pRemoteAddress, Size))
+		//	return false;
+
+		std::vector<uint8_t> OriginalBytes(Size);
+		if (!RemoteReadProcessMemory(pRemoteAddress, OriginalBytes.data(), Size, 0))
+			return false;
+
+		if (!pKernel->dbvm.WPMCloak((uintptr_t)pRemoteAddress, pBuffer, Size, cr3))
+			return false;
+		f();
+		if (!pKernel->dbvm.WPMCloak((uintptr_t)pRemoteAddress, OriginalBytes.data(), Size, cr3))
+			return false;
+
+		return true;
+	}
+
+	bool WriteProcessMemoryWrapper(void* pRemoteAddress, const void* pBuffer, size_t Size, auto f) const {
+		if (cr3.Value)
+			return WriteProcessMemoryCloakWrapper(pRemoteAddress, pBuffer, Size, f);
+		return WriteProcessMemoryWinAPIWrapper(pRemoteAddress, pBuffer, Size, f);
+	}
+
+	HANDLE CreateRemoteThreadParams(auto pStartAddress, auto Rax, auto Rcx, auto Rdx, auto R8, auto R9, bool bExitProcess) const {
+		const HANDLE hThread = RemoteCreateRemoteThread(0, 0, (LPTHREAD_START_ROUTINE)RemoteEntryPoint, 0, CREATE_SUSPENDED, 0);
 		if (!hThread)
 			return 0;
 
-		bool bSuccess = true;
-		if (bWaitUntilExit)
-			bSuccess = (WaitForSingleObject(hThread, 2000) == WAIT_OBJECT_0);
-		else Sleep(1);
+		const bool bSuccess = [&] {
+			CONTEXT Context = { .ContextFlags = CONTEXT_ALL };
+			if (!GetThreadContext(hThread, &Context))
+				return false;
 
-		if (bSuccess) f();
-		else TerminateThread(hThread, 0);
-		CloseHandle(hThread);
-		return bSuccess;
+			Context.Rax = (uintptr_t)Rax;
+			Context.Rcx = (uintptr_t)Rcx;
+			Context.Rdx = (uintptr_t)Rdx;
+			Context.R8 = (uintptr_t)R8;
+			Context.R9 = (uintptr_t)R9;
+			Context.Rip = (uintptr_t)pStartAddress;
+
+			uintptr_t pExitFunc = 0;
+			if (!bExitProcess)
+				pExitFunc = (uintptr_t)ExitThread;
+
+			if (!RemoteWriteProcessMemory((void*)Context.Rsp, &pExitFunc, sizeof(pExitFunc), 0))
+				return false;
+
+			if (!SetThreadContext(hThread, &Context))
+				return false;
+
+			if (ResumeThread(hThread) == -1)
+				return false;
+
+			return true;
+		}();
+
+		if (!bSuccess) {
+			TerminateThread(hThread, 0);
+			CloseHandle(hThread);
+			return 0;
+		}
+		
+		return hThread;
 	}
 
 	BOOL RemoteVirtualProtect(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect) const {
@@ -87,9 +151,18 @@ public:
 		return TerminateProcess(hProcess, uExitCode);
 	}
 
+	BOOL RemoteGetModuleInformation(HMODULE hModule, LPMODULEINFO lpmodinfo, DWORD cb) const {
+		return GetModuleInformation(hProcess, hModule, lpmodinfo, cb);
+	}
+
+	DWORD RemoteGetModuleFileNameExA(HMODULE hModule, LPSTR lpFilename, DWORD nSize) const {
+		return GetModuleFileNameExA(hProcess, hModule, lpFilename, nSize);
+	}
+
 	RemoteProcess(DWORD dwPid, const std::shared_ptr<const Kernel> pKernel) :
-		hProcess(OpenProcess(PROCESS_ALL_ACCESS, FALSE, dwPid)), pKernel(pKernel), dwPid(dwPid) {
-		bool bSuccess = [&] {
+		hProcess(OpenProcess(PROCESS_ALL_ACCESS, FALSE, dwPid)), pKernel(pKernel), dwPid(dwPid),
+		cr3(pKernel ? pKernel->GetKernelCR3(dwPid) : CR3()) {
+		const bool bSuccess = [&] {
 			if (!hProcess)
 				return false;
 			HMODULE hModule;
@@ -97,7 +170,7 @@ public:
 			if (!EnumProcessModules(hProcess, &hModule, sizeof(hModule), &dwSize))
 				return false;
 			MODULEINFO ModuleInfo;
-			if (!GetModuleInformation(hProcess, hModule, &ModuleInfo, sizeof(ModuleInfo)))
+			if (!RemoteGetModuleInformation(hModule, &ModuleInfo, sizeof(ModuleInfo)))
 				return false;
 			RemoteEntryPoint = ModuleInfo.EntryPoint;
 			return true;
@@ -106,22 +179,19 @@ public:
 	}
 
 	~RemoteProcess() {
+		if (pKernel)
+			pKernel->dbvm.CloakReset();
 		CloseHandle(hProcess);
 	}
 
 	bool RemoveNXBit(void* pRemoteAddress, size_t Size) const {
-		if (!pKernel)
-			return false;
+		verify(cr3.Value);
 
 		DWORD dwOldProtect;
 		if (!RemoteVirtualProtect(pRemoteAddress, Size, PAGE_EXECUTE_READWRITE, &dwOldProtect) ||
 			!RemoteVirtualProtect(pRemoteAddress, Size, PAGE_READWRITE, &dwOldProtect)) {
 			return false;
 		}
-
-		CR3 cr3 = pKernel->GetDirectoryTableBase(dwPid);
-		if (!cr3.Value)
-			return false;
 
 		for (size_t i = 0; i < Size; i += 0x1000) {
 			uintptr_t VirtualAddress = (uintptr_t)pRemoteAddress + i;
@@ -206,25 +276,44 @@ public:
 	}
 
 	template<class R, class A1, class A2, class A3, class A4>
-	bool RemoteCall(void* pFunc, R pResult, A1 a1, A2 a2, A3 a3, A4 a4, bool bWaitUntilExit) const {
+	bool RemoteCall(void* pFunc, R pResult, A1 a1, A2 a2, A3 a3, A4 a4, bool bWaitUntilExit, bool bExitProcess) const {
 		bool bResult1 = false;
 		bool bResult2 = false;
-		bool bResult3 = false;
-		bool bResult4 = false;
 
-		ShellCode_RemoteCall lilyinfo(pFunc, a1, a2, a3, a4);
-		bResult1 = VirtualAllocWrapper(&lilyinfo, sizeof(lilyinfo), [&](const void* pShellCode) {
-			ShellCode_SetRaxAndCall ShellCode(pShellCode);
-			bResult2 = WriteProcessMemoryWrapper(RemoteEntryPoint, &ShellCode, sizeof(ShellCode), [&] {
-				bResult3 = CreateRemoteThreadWrapper(RemoteEntryPoint, 0, bWaitUntilExit, [&] {
-					if (!RemoteReadProcessMemory(pShellCode, &lilyinfo, sizeof(lilyinfo), 0))
-						return;
-					if constexpr (std::is_pointer_v<R>) if (pResult)
-						*pResult = (std::remove_pointer_t<R>)lilyinfo.GetReturnValue();
-					bResult4 = true;
-					});
+		if (bWaitUntilExit) {
+			ShellCode_CallRaxLoop shellcode;
+			bResult1 = WriteProcessMemoryWrapper(RemoteEntryPoint, &shellcode, sizeof(shellcode), [&] {
+				const HANDLE hThread = CreateRemoteThreadParams(RemoteEntryPoint, pFunc, a1, a2, a3, a4, bExitProcess);
+				if (!hThread)
+					return;
+				bResult2 = [&] {
+					Sleep(1);
+					for (unsigned i = 0; i < 10; i++, Sleep(100)) {
+						CONTEXT Context = { .ContextFlags = CONTEXT_ALL };
+						if (!GetThreadContext(hThread, &Context))
+							return false;
+						if (Context.Rip != (uintptr_t)RemoteEntryPoint + shellcode.OffsetLoopOpcode)
+							continue;
+						if constexpr (std::is_pointer_v<R>) if (pResult)
+							*pResult = (std::remove_pointer_t<R>)Context.Rax;
+						return TerminateThread(hThread, 0) == TRUE;
+					}
+					return false;
+				}();
+				CloseHandle(hThread);
 				});
-			});
-		return bResult1 && bResult2 && bResult3 && bResult4;
+		}
+		else {
+			ShellCode_JmpRax shellcode;
+			bResult1 = WriteProcessMemoryWrapper(RemoteEntryPoint, &shellcode, sizeof(shellcode), [&] {
+				const HANDLE hThread = CreateRemoteThreadParams(RemoteEntryPoint, pFunc, a1, a2, a3, a4, bExitProcess);
+				if (!hThread)
+					return;
+				Sleep(1);
+				bResult2 = true;
+				});
+		}
+
+		return bResult1 && bResult2;
 	}
 };

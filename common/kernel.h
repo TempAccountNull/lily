@@ -312,7 +312,7 @@ public:
 		return 0;
 	}
 
-	CR3 GetDirectoryTableBase(DWORD Pid) const {
+	CR3 GetKernelCR3(DWORD Pid) const {
 		CR3 cr3 = { 0 };
 
 		uintptr_t pProcess = GetEPROCESS(Pid);
@@ -349,7 +349,7 @@ public:
 
 	bool MapProcess(DWORD Pid) {
 		mapCR3.Value = mapPid = 0;
-		CR3 cr3 = GetDirectoryTableBase(Pid);
+		CR3 cr3 = GetKernelCR3(Pid);
 		if (!cr3.Value)
 			return false;
 

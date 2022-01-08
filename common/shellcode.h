@@ -1,10 +1,33 @@
 #pragma once
 #include <cstdint>
 
+class ShellCode_CallRax {
+	//sub rsp,78
+	//call rax
+	//add rsp,78
+	uint8_t ShellCode[0xa] = {
+		0x48, 0x83, 0xEC, 0x78,
+		0xFF, 0xD0,
+		0x48, 0x83, 0xC4, 0x78
+	};
+};
+
 class ShellCode_Loop { uint8_t ShellCode[0x2] = { 0xEB, 0xFE }; };
 class ShellCode_Ret { uint8_t ShellCode[0x1] = { 0xC3 }; };
 class ShellCode_Ret1 { uint8_t ShellCode[0x5] = { 0x31, 0xC0, 0xFF, 0xC0, 0xC3 }; };
 class ShellCode_JmpRax { uint8_t ShellCode[0x3] = { 0xFF, 0xE0 }; };
+
+class ShellCode_CallRaxRet {
+	ShellCode_CallRax shellcode1;
+	ShellCode_Ret shellcode2;
+};
+
+class ShellCode_CallRaxLoop {
+	ShellCode_CallRax shellcode1;
+	ShellCode_Loop shellcode2;
+public:
+	constexpr static size_t OffsetLoopOpcode = sizeof(shellcode1);
+};
 
 class ShellCode_RemoteCall {
 private:

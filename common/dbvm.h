@@ -518,7 +518,7 @@ public:
 		return dovmcall(&vmcallinfo) == 0;
 	}
 
-	uintptr_t CloakActivate(PhysicalAddress PABase, int Mode = 1) const {
+	void CloakActivate(PhysicalAddress PABase, int Mode = 1) const {
 		struct
 		{
 			uint32_t structsize;
@@ -536,10 +536,10 @@ public:
 
 		//1 already clocked
 		//0 success
-		return dovmcall(&vmcallinfo);
+		dovmcall(&vmcallinfo);
 	}
 
-	uintptr_t CloakDeactivate(PhysicalAddress PABase) const {
+	void CloakDeactivate(PhysicalAddress PABase) const {
 		struct
 		{
 			uint32_t structsize;
@@ -554,7 +554,7 @@ public:
 		vmcallinfo.PABase = PABase;
 
 		//0 success
-		return dovmcall(&vmcallinfo);
+		dovmcall(&vmcallinfo);
 	}
 
 	void CloakReset() const {
@@ -693,8 +693,9 @@ public:
 	}
 
 	bool RemoveCloak(uintptr_t Address, size_t Size, CR3 cr3) const {
-		return ReadProcessMemoryByPhysicalMemoryAccess(Address, 0, Size, cr3,
-			[&](PhysicalAddress PA, void* Buffer, size_t Size) { 
+		return WriteProcessMemoryByPhysicalMemoryAccess(Address, 0, Size, cr3,
+			[&](PhysicalAddress PA, void* Buffer, size_t Size) { return ReadPhysicalMemory(PA, Buffer, Size); },
+			[&](PhysicalAddress PA, const void* Buffer, size_t Size) {
 				uintptr_t PABase = PA & ~0xFFF;
 				CloakDeactivate(PABase);
 				return true;

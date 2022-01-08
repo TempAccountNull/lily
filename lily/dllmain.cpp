@@ -61,7 +61,5 @@ BOOL WINAPI DllMain(HMODULE hDLL, DWORD dwReason, char* szParam) {
 	}();
 
 	verify(IsInjectorValid);
-
 	realmain();
-	ExitProcess(0);
 }

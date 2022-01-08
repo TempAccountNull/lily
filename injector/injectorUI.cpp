@@ -303,7 +303,7 @@ void InjectorUI::OnButtonDBVM() {
 		SetPasswordFromParam();
 
 		bool IsHided = false;
-		if (VMXConfig(hDevice, dbvm) && AddMemoryDBVM(hDevice, (uint64_t)GetCPUCount() * 0x20)) {
+		if (VMXConfig(hDevice, dbvm) && AddMemoryDBVM(hDevice, (uint64_t)GetCPUCount() * 0x30)) {
 			dbvm.HideDBVM();
 			IsHided = true;
 		}

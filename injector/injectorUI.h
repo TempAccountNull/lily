@@ -107,24 +107,24 @@ private:
 	void OnButtonInject();
 
 	void GetDataFromINI() {
-		GetPrivateProfileString(APP, "PROCESS"e, ""e, szProcessName, sizeof(szProcessName), INI);
-		GetPrivateProfileString(APP, "IMAGE"e, ""e, szImageName, sizeof(szImageName), INI);
-		GetPrivateProfileString(APP, "INTODLL"e, "", szIntoDLL, sizeof(szIntoDLL), INI);
-		GetPrivateProfileString(APP, "PARAM"e, "", szParam, sizeof(szParam), INI);
+		GetPrivateProfileStringA(APP, "PROCESS"e, ""e, szProcessName, sizeof(szProcessName), INI);
+		GetPrivateProfileStringA(APP, "IMAGE"e, ""e, szImageName, sizeof(szImageName), INI);
+		GetPrivateProfileStringA(APP, "INTODLL"e, "", szIntoDLL, sizeof(szIntoDLL), INI);
+		GetPrivateProfileStringA(APP, "PARAM"e, "", szParam, sizeof(szParam), INI);
 		InjectionType = (EInjectionType)GetPrivateProfileIntA(APP, "TYPE"e, (int)EInjectionType::Normal, INI);
 		bCreateProcess = GetPrivateProfileIntA(APP, "CREATE"e, false, INI);
 	}
 
 	void SaveDataToINI() const {
-		WritePrivateProfileString(APP, "PROCESS"e, szProcessName, INI);
-		WritePrivateProfileString(APP, "IMAGE"e, szImageName, INI);
-		WritePrivateProfileString(APP, "INTODLL"e, szIntoDLL, INI);
-		WritePrivateProfileString(APP, "PARAM"e, szParam, INI);
+		WritePrivateProfileStringA(APP, "PROCESS"e, szProcessName, INI);
+		WritePrivateProfileStringA(APP, "IMAGE"e, szImageName, INI);
+		WritePrivateProfileStringA(APP, "INTODLL"e, szIntoDLL, INI);
+		WritePrivateProfileStringA(APP, "PARAM"e, szParam, INI);
 		char buffer[100];
 		_itoa((int)InjectionType, buffer, 10);
-		WritePrivateProfileString(APP, "TYPE"e, buffer, INI);
+		WritePrivateProfileStringA(APP, "TYPE"e, buffer, INI);
 		_itoa(bCreateProcess, buffer, 10);
-		WritePrivateProfileString(APP, "CREATE"e, buffer, INI);
+		WritePrivateProfileStringA(APP, "CREATE"e, buffer, INI);
 	}
 
 public:
@@ -166,10 +166,15 @@ public:
 		};
 
 		RenderArea([&] {
-			if (dbvm.GetVersion())
-				ImGui::Text("DBVM detected"e);
+			if (dbvm.GetVersion()) {
+				std::string strMsg;
+				strMsg << "dbvm loaded. "e;
+				strMsg += std::to_string(dbvm.GetMemory() / 0x1000);
+				strMsg += " pages free"e;
+				ImGui::Text(strMsg.c_str());
+			}
 			else
-				ImGui::Text("DBVM not detected"e);
+				ImGui::Text("dbvm not loaded"e);
 
 			ImGui::Text("Process"e);
 			ImGui::SameLine();
