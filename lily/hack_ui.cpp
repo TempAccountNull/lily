@@ -68,6 +68,9 @@ void Hack::ProcessImGui() {
 	ImGui::SetNextWindowSize({ MenuSizeX, MenuSizeY }, ImGuiCond_Once);
 	if (ImGui::Begin("Hotkey works holding mouse m-button or alt key"e))
 	{
+		ImGui::Text("Update : " __DATE__ " " __TIME__ ""e);
+		ImGui::NewLine();
+
 		ImGui::Text("Range (+,-)"e);
 		ImGui::PushItemWidth(-1);
 		ImGui::SliderInt("Range"e, &nRange, 100, 1000, "%dM"e, ImGuiSliderFlags_AlwaysClamp);
