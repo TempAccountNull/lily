@@ -14,9 +14,9 @@
 #include "physicalmemory.h"
 #include "exception.h"
 #include "patternscan.h"
+#include "lambda.h"
 
-using tCallback = std::function<void(void)>;
-extern "C" void RunWithKernelStack(tCallback* callback);
+extern "C" void RunWithKernelStack(void* pFunc, void* pThis);
 
 class Kernel {
 private:
@@ -122,17 +122,20 @@ public:
 	std::function<bool(uintptr_t Address, const void* Buffer, size_t Size)>
 		WPM_dbvm = [&](uintptr_t Address, const void* Buffer, size_t Size)
 	{ return dbvm.WPM(Address, Buffer, Size, CustomCR3); };
-
+	
 	template <typename... Types>
 	__declspec(guard(ignore)) static auto SafeCall(auto pFunc, Types... args) { return pFunc(args...); }
 
-	void KernelExecute(tCallback kernel_callback, bool bSet_EFLAGS_IF = false) const {
+	void KernelExecute(auto f, bool bSetInterrupt = false) const {
+		auto pFunc = Lambda::pFunc(f);
+		auto pThis = Lambda::pThis(f);
+
 		dbvm.SwitchToKernelMode(0x10);
 		_stac();
-		if (bSet_EFLAGS_IF) _enable();
+		if (bSetInterrupt) _enable();
 		//__writecr8(2);
 		__writecr3(CustomCR3.Value);
-		RunWithKernelStack(&kernel_callback);
+		RunWithKernelStack(pFunc, pThis);
 		//__writecr8(0);
 		dbvm.ReturnToUserMode();
 	}

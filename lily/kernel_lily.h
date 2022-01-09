@@ -201,13 +201,13 @@ public:
 		RPM_dbvm(ScanResult + 0x3, &OffsetProp, sizeof(OffsetProp));
 		verify(OffsetProp);
 
-		uintptr_t ppPsProcessType = GetKernelProcAddress("ntoskrnl.exe"e, "PsProcessType");
+		uintptr_t ppPsProcessType = GetKernelProcAddress("ntoskrnl.exe"e, "PsProcessType"e);
 		verify(ppPsProcessType);
 
 		RPM_dbvm(ppPsProcessType, &pPsProcessType, sizeof(pPsProcessType));
 		verify(pPsProcessType);
 
-		ScanResult = PatternScan::Range((uintptr_t)IsChild, 0x30, "48 8B CA E8", RPM_dbvm);
+		ScanResult = PatternScan::Range((uintptr_t)IsChild, 0x30, "48 8B CA E8"e, RPM_dbvm);
 		verify(ScanResult);
 
 		pUserValidateHwnd = (tUserValidateHwnd)PatternScan::GetJumpAddress(ScanResult + 0x3, RPM_dbvm);

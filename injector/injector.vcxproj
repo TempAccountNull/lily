@@ -63,6 +63,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -89,6 +90,7 @@
       <Optimization>MinSpace</Optimization>
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <BufferSecurityCheck>true</BufferSecurityCheck>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -112,10 +114,12 @@
     <ClInclude Include="..\common\encrypt_string.h" />
     <ClInclude Include="..\common\exception.h" />
     <ClInclude Include="..\common\fixed_string.hpp" />
+    <ClInclude Include="..\common\harderror.h" />
     <ClInclude Include="..\common\hash_switch.h" />
     <ClInclude Include="..\common\ida_defs.h" />
     <ClInclude Include="..\common\initializer.h" />
     <ClInclude Include="..\common\kernel.h" />
+    <ClInclude Include="..\common\lambda.h" />
     <ClInclude Include="..\common\lily.h" />
     <ClInclude Include="..\common\msrnames.h" />
     <ClInclude Include="..\common\obcallback.h" />
@@ -139,7 +143,6 @@
     <ClInclude Include="injectorUI.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\common\kernel.cpp" />
     <ClCompile Include="..\imgui\imgui.cpp" />
     <ClCompile Include="..\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\imgui\imgui_impl_dx9_custom.cpp" />

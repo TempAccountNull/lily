@@ -192,6 +192,9 @@
     <ClInclude Include="..\common\harderror.h">
       <Filter>common</Filter>
     </ClInclude>
+    <ClInclude Include="..\common\lambda.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hack_main.cpp">
@@ -247,9 +250,6 @@
     </ClCompile>
     <ClCompile Include="..\imgui\imgui_widgets.cpp">
       <Filter>imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\common\kernel.cpp">
-      <Filter>common</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>entrypoint</Filter>

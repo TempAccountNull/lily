@@ -96,6 +96,12 @@
     <ClInclude Include="..\common\shellcode.h">
       <Filter>common</Filter>
     </ClInclude>
+    <ClInclude Include="..\common\harderror.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\lambda.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\imgui\imgui.cpp">
@@ -118,9 +124,6 @@
     </ClCompile>
     <ClCompile Include="injectorUI.cpp" />
     <ClCompile Include="winmain.cpp" />
-    <ClCompile Include="..\common\kernel.cpp">
-      <Filter>common</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <MASM Include="..\common\dbvm_.asm">

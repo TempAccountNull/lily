@@ -147,8 +147,10 @@ typedef struct _CR3
 } CR3, *PCR3;
 static_assert(sizeof(_CR3) == sizeof(PVOID), "Size mismatch, only 64-bit supported.");
 
-using TypeWritePhysicalMemoryFunc = std::function<bool(PhysicalAddress PA, const void* Buffer, size_t Size)>;
-using TypeReadPhysicalMemoryFunc = std::function<bool(PhysicalAddress PA, void* Buffer, size_t Size)>;
+//function<bool(PhysicalAddress PA, const void* Buffer, size_t Size)>;
+#define TypeWritePhysicalMemoryFunc auto
+//function<bool(PhysicalAddress PA, void* Buffer, size_t Size)>
+#define TypeReadPhysicalMemoryFunc auto
 
 static PhysicalAddress GetPTEAddressByPhysicalMemoryAccess(uintptr_t VirtualAddress, CR3 cr3, TypeReadPhysicalMemoryFunc ReadPhysicalMemory) {
     const uintptr_t Address = VirtualAddress;
