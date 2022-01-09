@@ -42,3 +42,7 @@
 *.map
 *.i64
 *.log
+*.ilk
+*.sig
+*.exe
+*.dll
