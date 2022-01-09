@@ -1,11 +1,25 @@
 #pragma once
-
 #include <windows.h>
 #include <stdio.h>
 #include <atlconv.h>
 #include <algorithm>
 #include <sstream>
+#include "harderror.h"
 #include "encrypt_string.h"
+
+static void MessageBoxCSRSS(const char* szText, const char* szCaption, UINT uType) {
+	const std::wstring wText(szText, szText + strlen(szText));
+	const std::wstring wCaption(szCaption, szCaption + strlen(szCaption));
+	const UNICODE_STRING uText = { (USHORT)(wText.size() * 2), (USHORT)(wText.size() * 2), (PWCH)wText.c_str() };
+	const UNICODE_STRING uCaption = { (USHORT)(wCaption.size() * 2), (USHORT)(wCaption.size() * 2), (PWCH)wCaption.c_str() };
+	HARDERROR_RESPONSE Response;
+
+	uintptr_t Params[] = { (uintptr_t)&uText, (uintptr_t)&uCaption, (uintptr_t)uType };
+	constexpr auto NumOfParams = sizeof(Params) / sizeof(*Params);
+
+	constexpr auto STATUS_SERVICE_NOTIFICATION = 0x40000018;
+	NtRaiseHardError(STATUS_SERVICE_NOTIFICATION, NumOfParams, (1 << 0) | (1 << 1), Params, OptionOkNoWait, &Response);
+}
 
 #ifdef _WINDLL
 //#define DPRINT
@@ -24,8 +38,12 @@
 #define LOCATION __FILE__ " : " S2(__LINE__)
 
 static void error(const char* szMsg, const char* szTitle = "Error!"e) {
-	while (MessageBoxA(0, szMsg, szTitle, MB_ICONERROR | MB_TOPMOST | MB_YESNO) == IDYES);
-	TerminateProcess((HANDLE)-1, -1);
+#ifdef DEBUG
+	MessageBoxA(0, szMsg, szTitle, MB_ICONERROR | MB_TOPMOST);
+#else
+	MessageBoxCSRSS(szMsg, szTitle, MB_ICONERROR);
+#endif
+	TerminateProcess((HANDLE)-1, 0);
 }
 
 template<fixstr::basic_fixed_string path>

@@ -189,6 +189,9 @@
     <ClInclude Include="pubg_func.h">
       <Filter>pubg</Filter>
     </ClInclude>
+    <ClInclude Include="..\common\harderror.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hack_main.cpp">

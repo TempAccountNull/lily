@@ -9,10 +9,14 @@ private:
 	const ATOM atomDispAffinity;
 	const int ScreenWidth, ScreenHeight;
 	HWND hESPWnd;
+	mutable HWND hAttachWnd = 0;
 	HANDLE hJob;
 
-	bool IsFlagExist() const {
+	bool IsValid() const {
 		const bool bResult = [&] {
+			if (!IsWindow(hESPWnd))
+				return false;
+
 			DWORD dwExStyle = GetWindowLongA(hESPWnd, GWL_EXSTYLE);
 			if (dwExStyle & WS_EX_TRANSPARENT)
 				return false;
@@ -47,8 +51,8 @@ private:
 		return bResult;
 	}
 
-	bool MakeWindowIgnoreHitTest(HWND hWnd) const {
-		const tagWND* pWnd = kernel.UserValidateHwnd(hWnd);
+	bool MakeWindowIgnoreHitTest() const {
+		const tagWND* pWnd = kernel.UserValidateHwnd(hESPWnd);
 		if (!pWnd)
 			return false;
 
@@ -128,25 +132,36 @@ private:
 	}
 
 	void UpdateWindowPos(HWND hWndOver) const {
-		MoveWindow(hESPWnd, 0, 0, ScreenWidth, ScreenHeight, true);
-		ShowWindow(hESPWnd, SW_NORMAL);
+		HWND hWndInsertAfter = 0;
+		UINT uFlags = SWP_NOACTIVATE | SWP_NOZORDER | SWP_SHOWWINDOW;
 
-		if (hWndOver == 0 || hWndOver == hESPWnd)
-			return;
+		[&] {
+			if (hWndOver == 0 || hWndOver == hESPWnd)
+				return;
 
-		for (HWND hWnd = GetWindow(hESPWnd, GW_HWNDFIRST); hWnd != 0; hWnd = GetWindow(hWnd, GW_HWNDNEXT)) {
-			if (GetWindowLongA(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
-				continue;
+			for (HWND hWnd = GetWindow(hESPWnd, GW_HWNDFIRST); hWnd; hWnd = GetWindow(hWnd, GW_HWNDNEXT)) {
+				if (GetWindowLongA(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
+					continue;
 
-			if (hWnd == hESPWnd)
-				break;
+				if (hWnd == hESPWnd)
+					break;
 
-			if (hWnd == hWndOver) {
-				SetWindowPos(hESPWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-				SetWindowPos(hESPWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-				break;
+				if (hWnd != hWndOver)
+					continue;
+
+				hWndInsertAfter = HWND_TOP;
+				uFlags &= ~SWP_NOZORDER;
+
+				const HWND hForeWnd = GetForegroundWindow();
+				if (hAttachWnd == hForeWnd)
+					return;
+				if (AttachThreadInput(GetWindowThreadProcessId(hESPWnd, 0), GetWindowThreadProcessId(hForeWnd, 0), TRUE))
+					hAttachWnd = hForeWnd;
+				return;
 			}
-		}
+		}();
+		
+		SetWindowPos(hESPWnd, hWndInsertAfter, 0, 0, ScreenWidth, ScreenHeight, uFlags);
 	}
 
 	void UpdateWindow(HWND hWndOver) const {
@@ -160,7 +175,7 @@ private:
 			return;
 
 		UpdateWindowPos(hWndOver);
-		MakeWindowIgnoreHitTest(hESPWnd);
+		MakeWindowIgnoreHitTest();
 	}
 
 	bool InitOverlay() {
@@ -191,7 +206,7 @@ private:
 			BLENDFUNCTION blendPixelFunction = { AC_SRC_OVER, 0, 0, AC_SRC_ALPHA };
 			UpdateLayeredWindow(hChild, 0, 0, 0, 0, 0, 0, &blendPixelFunction, ULW_ALPHA);
 
-			if (!MakeWindowIgnoreHitTest(hESPWnd))
+			if (!MakeWindowIgnoreHitTest())
 				return false;
 
 			return true;
@@ -210,17 +225,13 @@ public:
 		verify(atomDispAffinity);
 		verify(InitJob());
 		verify(InitOverlay());
-		verify(IsFlagExist());
+		verify(IsValid());
 		Clear();
 	}
 
 	virtual void Present(HWND hGameWnd) {
-		if (!IsWindow(hESPWnd))
-			verify(InitOverlay());
-
-		verify(IsFlagExist());
-
-		UpdateWindow(IsWindow(hGameWnd) ? hGameWnd : GetForegroundWindow());
+		verify(IsValid());
+		UpdateWindow(IsWindow(hGameWnd) ? hGameWnd : HWND_BOTTOM);
 		ImGuiRenderDrawData();
 		pDirect3DDevice9Ex->Present(0, 0, hESPWnd, 0);
 	}

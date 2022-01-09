@@ -58,6 +58,7 @@
     <IncludePath>../imgui;../common;$(IncludePath)</IncludePath>
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
     <OutDir>$(MSBuildProjectDirectory)\bin\$(Platform)\$(Configuration)\</OutDir>
+    <GenerateManifest>false</GenerateManifest>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -121,6 +122,7 @@
     <ClInclude Include="..\common\encrypt_string.h" />
     <ClInclude Include="..\common\exception.h" />
     <ClInclude Include="..\common\fixed_string.hpp" />
+    <ClInclude Include="..\common\harderror.h" />
     <ClInclude Include="..\common\hash_switch.h" />
     <ClInclude Include="..\common\ida_defs.h" />
     <ClInclude Include="..\common\initializer.h" />

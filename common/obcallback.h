@@ -1,9 +1,10 @@
 #pragma once
 #include <Windows.h>
+#include <bcrypt.h>		//NTSTATUS
+#include <SubAuth.h>	//UNICODE_STRING
 #include "defclass.h"
 
 class OBJECT_TYPE;
-typedef LONG NTSTATUS;
 typedef OBJECT_TYPE* POBJECT_TYPE;
 typedef ULONG OB_OPERATION;
 
@@ -90,12 +91,6 @@ typedef struct _OB_OPERATION_REGISTRATION {
 	_In_ POB_PRE_OPERATION_CALLBACK  PreOperation;
 	_In_ POB_POST_OPERATION_CALLBACK PostOperation;
 } OB_OPERATION_REGISTRATION, * POB_OPERATION_REGISTRATION;
-
-typedef struct _UNICODE_STRING {
-	USHORT Length;
-	USHORT MaximumLength;
-	PWCH   Buffer;
-} UNICODE_STRING, *PUNICODE_STRING;
 
 //////////////////////////Undocumented////////////////////////////////////
 //////////////////////////Undocumented////////////////////////////////////
