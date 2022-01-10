@@ -19,9 +19,9 @@ private:
         return target(args...);
     }
 public:
-    Function() noexcept = delete;
-    Function(Function& rhs) : CallBack(rhs.CallBack), Object(rhs.Object) {}
-    Function& operator=(Function& rhs) {
+    Function() = delete;
+    Function(Function& rhs) noexcept : CallBack(rhs.CallBack), Object(rhs.Object) {}
+    Function& operator=(Function& rhs) noexcept {
         CallBack = rhs.CallBack;
         Object = rhs.Object;
     }
