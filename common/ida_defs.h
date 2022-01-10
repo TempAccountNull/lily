@@ -10,6 +10,9 @@
 
 #ifndef HEXRAYS_DEFS_H
 #define HEXRAYS_DEFS_H
+#include <Windows.h>
+#include <stdio.h>
+#include <stdint.h>
 
 #if defined(__GNUC__)
 typedef          long long ll;

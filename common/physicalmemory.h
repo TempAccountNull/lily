@@ -1,6 +1,6 @@
 #pragma once
 #include <windows.h>
-#include <functional>
+#include "function.h"
 
 class PhysicalAddress {
 private:
@@ -147,10 +147,8 @@ typedef struct _CR3
 } CR3, *PCR3;
 static_assert(sizeof(_CR3) == sizeof(PVOID), "Size mismatch, only 64-bit supported.");
 
-//function<bool(PhysicalAddress PA, const void* Buffer, size_t Size)>;
-#define TypeWritePhysicalMemoryFunc auto
-//function<bool(PhysicalAddress PA, void* Buffer, size_t Size)>
-#define TypeReadPhysicalMemoryFunc auto
+using TypeWritePhysicalMemoryFunc = Function<bool(PhysicalAddress PA, const void* Buffer, size_t Size)>;
+using TypeReadPhysicalMemoryFunc = Function<bool(PhysicalAddress PA, void* Buffer, size_t Size)>;
 
 static PhysicalAddress GetPTEAddressByPhysicalMemoryAccess(uintptr_t VirtualAddress, CR3 cr3, TypeReadPhysicalMemoryFunc ReadPhysicalMemory) {
     const uintptr_t Address = VirtualAddress;

@@ -2,7 +2,6 @@
 #include <Windows.h>
 #include <Psapi.h>
 #include <string>
-#include <functional>
 #include <stdio.h>
 #include <intrin.h>
 #pragma intrinsic(_enable)
@@ -14,7 +13,7 @@
 #include "physicalmemory.h"
 #include "exception.h"
 #include "patternscan.h"
-#include "lambda.h"
+#include "function.h"
 
 extern "C" void RunWithKernelStack(void* pFunc, void* pThis);
 
@@ -115,27 +114,24 @@ private:
 public:
 	const DBVM& dbvm;
 
-	std::function<bool(uintptr_t Address, void* Buffer, size_t Size)>
+	Function<bool(uintptr_t Address, void* Buffer, size_t Size)>
 		RPM_dbvm = [&](uintptr_t Address, void* Buffer, size_t Size)
 	{ return dbvm.RPM(Address, Buffer, Size, CustomCR3); };
 
-	std::function<bool(uintptr_t Address, const void* Buffer, size_t Size)>
+	Function<bool(uintptr_t Address, const void* Buffer, size_t Size)>
 		WPM_dbvm = [&](uintptr_t Address, const void* Buffer, size_t Size)
 	{ return dbvm.WPM(Address, Buffer, Size, CustomCR3); };
 	
 	template <typename... Types>
 	__declspec(guard(ignore)) static auto SafeCall(auto pFunc, Types... args) { return pFunc(args...); }
 
-	void KernelExecute(auto f, bool bSetInterrupt = false) const {
-		auto pFunc = Lambda::pFunc(f);
-		auto pThis = Lambda::pThis(f);
-
+	void KernelExecute(Function<void(void)> CallBack, bool bSetInterrupt = false) const {
 		dbvm.SwitchToKernelMode(0x10);
 		_stac();
 		if (bSetInterrupt) _enable();
 		//__writecr8(2);
 		__writecr3(CustomCR3.Value);
-		RunWithKernelStack(pFunc, pThis);
+		RunWithKernelStack(CallBack.pFunc(), CallBack.pThis());
 		//__writecr8(0);
 		dbvm.ReturnToUserMode();
 	}

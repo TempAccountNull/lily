@@ -1,11 +1,9 @@
 #pragma once
-
 #include <Windows.h>
-#include <functional>
-#include <type_traits>
+#include "function.h"
 
 template<class Type>
-using TypeRPMFunc = std::function<bool(Type Address, void* Buffer, size_t Size)>;
+using TypeRPMFunc = Function<bool(Type Address, void* Buffer, size_t Size)>;
 
 class PatternScan {
 private:

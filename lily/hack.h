@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include <string>
-#include <functional>
 
 #include "render.h"
 #include "pubg_class.h"

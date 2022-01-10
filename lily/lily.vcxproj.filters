@@ -192,7 +192,7 @@
     <ClInclude Include="..\common\harderror.h">
       <Filter>common</Filter>
     </ClInclude>
-    <ClInclude Include="..\common\lambda.h">
+    <ClInclude Include="..\common\function.h">
       <Filter>common</Filter>
     </ClInclude>
   </ItemGroup>
