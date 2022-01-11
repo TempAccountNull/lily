@@ -1,9 +1,9 @@
 #pragma once
 #include <Windows.h>
-#include "function.h"
+#include "function_ref.hpp"
 
 template<class Type>
-using TypeRPMFunc = Function<bool(Type Address, void* Buffer, size_t Size)>;
+using tReadProcessMemory = tl::function_ref<bool(Type Address, void* Buffer, size_t Size)>;
 
 class PatternScan {
 private:
@@ -66,11 +66,11 @@ private:
 	}
 
 	template <class Type>
-	static bool GetModuleInfo(Type ModuleBase, const char* szSectionName, DWORD& Base, DWORD& Size, TypeRPMFunc<Type> RPM) {
+	static bool GetModuleInfo(Type ModuleBase, const char* szSectionName, DWORD& Base, DWORD& Size, tReadProcessMemory<Type> ReadProcessMemory) {
 		static_assert(std::is_same<Type, uint32_t>::value | std::is_same<Type, uint64_t>::value, "Type must be 32bit or 64bit.");
 
 		IMAGE_DOS_HEADER DosHeader;
-		if (!RPM(ModuleBase, &DosHeader, sizeof(DosHeader)))
+		if (!ReadProcessMemory(ModuleBase, &DosHeader, sizeof(DosHeader)))
 			return false;
 
 		if (DosHeader.e_magic != IMAGE_DOS_SIGNATURE)
@@ -81,7 +81,7 @@ private:
 			using NtHeadersType = IMAGE_NT_HEADERS32;
 
 		NtHeadersType NtHeaders;
-		if (!RPM(ModuleBase + DosHeader.e_lfanew, &NtHeaders, sizeof(NtHeaders)))
+		if (!ReadProcessMemory(ModuleBase + DosHeader.e_lfanew, &NtHeaders, sizeof(NtHeaders)))
 			return false;
 
 		if (NtHeaders.Signature != IMAGE_NT_SIGNATURE)
@@ -101,7 +101,7 @@ private:
 				sizeof(IMAGE_SECTION_HEADER) * i;
 			
 			IMAGE_SECTION_HEADER Section;
-			if (!RPM(SectionPtr, &Section, sizeof(Section)))
+			if (!ReadProcessMemory(SectionPtr, &Section, sizeof(Section)))
 				continue;
 
 			char NameNullTerminated[sizeof(Section.Name) + 1] = { 0 };
@@ -120,7 +120,7 @@ private:
 
 public:
 	template <class Type>
-	static Type Range(Type Address, size_t Len, uint8_t* bMask, uint8_t* vMask, TypeRPMFunc<Type> RPM) {
+	static Type Range(Type Address, size_t Len, uint8_t* bMask, uint8_t* vMask, tReadProcessMemory<Type> ReadProcessMemory) {
 		static_assert(std::is_same<Type, uint32_t>::value | std::is_same<Type, uint64_t>::value, "Type must be 32bit or 64bit.");
 
 		Type Start = Address & ~0xFFF;
@@ -129,10 +129,10 @@ public:
 		for (Type i = Start; i < End; i += 0x1000) {
 			uint8_t Buf[0x2000];
 
-			if (!RPM(i, Buf, 0x1000))
+			if (!ReadProcessMemory(i, Buf, 0x1000))
 				continue;
 
-			RPM(i + 0x1000, Buf + 0x1000, 0x1000);
+			ReadProcessMemory(i + 0x1000, Buf + 0x1000, 0x1000);
 
 			Type AddressTemp = (Type)Buf;
 			while (1) {
@@ -152,7 +152,7 @@ public:
 	}
 
 	template <class Type>
-	static Type Range(Type Address, size_t Len, const char* szPattern, TypeRPMFunc<Type> RPM) {
+	static Type Range(Type Address, size_t Len, const char* szPattern, tReadProcessMemory<Type> ReadProcessMemory) {
 		static_assert(std::is_same<Type, uint32_t>::value | std::is_same<Type, uint64_t>::value, "Type must be 32bit or 64bit.");
 
 		uint8_t bMask[MAX_MASK_SIZE] = { 0 };
@@ -160,50 +160,50 @@ public:
 		if (!ConvertStringToMask(szPattern, bMask, vMask, MAX_MASK_SIZE))
 			return 0;
 
-		return Range(Address, Len, bMask, vMask, RPM);
+		return Range(Address, Len, bMask, vMask, ReadProcessMemory);
 	}
 
 	template <class Type>
-	static Type Module(Type ModuleBase, const char* szSectionName, uint8_t* bMask, uint8_t* vMask, TypeRPMFunc<Type> RPM) {
+	static Type Module(Type ModuleBase, const char* szSectionName, uint8_t* bMask, uint8_t* vMask, tReadProcessMemory<Type> ReadProcessMemory) {
 		static_assert(std::is_same<Type, uint32_t>::value | std::is_same<Type, uint64_t>::value, "Type must be 32bit or 64bit.");
 
 		DWORD Base, Size;
-		if (!GetModuleInfo<Type>(ModuleBase, szSectionName, Base, Size, RPM))
+		if (!GetModuleInfo<Type>(ModuleBase, szSectionName, Base, Size, ReadProcessMemory))
 			return 0;
 
-		return Range(ModuleBase + Base, Size, bMask, vMask, RPM);
+		return Range(ModuleBase + Base, Size, bMask, vMask, ReadProcessMemory);
 	}
 
 	template <class Type>
-	static Type Module(Type ModuleBase, const char* szSectionName, const char* szPattern, TypeRPMFunc<Type> RPM) {
+	static Type Module(Type ModuleBase, const char* szSectionName, const char* szPattern, tReadProcessMemory<Type> ReadProcessMemory) {
 		static_assert(std::is_same<Type, uint32_t>::value | std::is_same<Type, uint64_t>::value, "Type must be 32bit or 64bit.");
 
 		DWORD Base, Size;
-		if (!GetModuleInfo<Type>(ModuleBase, szSectionName, Base, Size, RPM))
+		if (!GetModuleInfo<Type>(ModuleBase, szSectionName, Base, Size, ReadProcessMemory))
 			return 0;
 
-		return Range(ModuleBase + Base, Size, szPattern, RPM);
+		return Range(ModuleBase + Base, Size, szPattern, ReadProcessMemory);
 	}
 
-	static uintptr_t Range(uintptr_t Address, size_t Len, uint8_t* bMask, uint8_t* vMask, TypeRPMFunc<uintptr_t> RPM) {
-		return Range<uintptr_t>(Address, Len, bMask, vMask, RPM);
+	static uintptr_t Range(uintptr_t Address, size_t Len, uint8_t* bMask, uint8_t* vMask, tReadProcessMemory<uintptr_t> ReadProcessMemory) {
+		return Range<uintptr_t>(Address, Len, bMask, vMask, ReadProcessMemory);
 	}
 
-	static uintptr_t Range(uintptr_t Address, size_t Len, const char* szPattern, TypeRPMFunc<uintptr_t> RPM) {
-		return Range<uintptr_t>(Address, Len, szPattern, RPM);
+	static uintptr_t Range(uintptr_t Address, size_t Len, const char* szPattern, tReadProcessMemory<uintptr_t> ReadProcessMemory) {
+		return Range<uintptr_t>(Address, Len, szPattern, ReadProcessMemory);
 	}
 
-	static uintptr_t Module(uintptr_t ModuleBase, const char* szSectionName, uint8_t* bMask, uint8_t* vMask, TypeRPMFunc<uintptr_t> RPM) {
-		return Module<uintptr_t>(ModuleBase, szSectionName, bMask, vMask, RPM);
+	static uintptr_t Module(uintptr_t ModuleBase, const char* szSectionName, uint8_t* bMask, uint8_t* vMask, tReadProcessMemory<uintptr_t> ReadProcessMemory) {
+		return Module<uintptr_t>(ModuleBase, szSectionName, bMask, vMask, ReadProcessMemory);
 	}
 
-	static uintptr_t Module(uintptr_t ModuleBase, const char* szSectionName, const char* szPattern, TypeRPMFunc<uintptr_t> RPM) {
-		return Module<uintptr_t>(ModuleBase, szSectionName, szPattern, RPM);
+	static uintptr_t Module(uintptr_t ModuleBase, const char* szSectionName, const char* szPattern, tReadProcessMemory<uintptr_t> ReadProcessMemory) {
+		return Module<uintptr_t>(ModuleBase, szSectionName, szPattern, ReadProcessMemory);
 	}
 
-	static uintptr_t GetJumpAddress(uintptr_t OpcodeAddress, TypeRPMFunc<uintptr_t> RPM) {
+	static uintptr_t GetJumpAddress(uintptr_t OpcodeAddress, tReadProcessMemory<uintptr_t> ReadProcessMemory) {
 		uint8_t Opcode[5];
-		if (!RPM(OpcodeAddress, Opcode, 5))
+		if (!ReadProcessMemory(OpcodeAddress, Opcode, 5))
 			return 0;
 		return uintptr_t(intptr_t(OpcodeAddress + 0x5) + *(int*)(Opcode + 1));
 	}

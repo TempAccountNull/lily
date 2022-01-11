@@ -7,6 +7,8 @@
 #include "harderror.h"
 #include "encrypt_string.h"
 
+#define AUTO_VARIABLE(name, value) decltype(value) name = value
+
 static void MessageBoxCSRSS(const char* szText, const char* szCaption, UINT uType) {
 	const std::wstring wText(szText, szText + strlen(szText));
 	const std::wstring wCaption(szCaption, szCaption + strlen(szCaption));
@@ -93,4 +95,14 @@ static uint64_t GetTickCountInMicroSeconds() {
 	QueryPerformanceFrequency(&Frequency);
 	QueryPerformanceCounter(&PerformanceCount);
 	return PerformanceCount.QuadPart * 1000000 / Frequency.QuadPart;
+}
+
+static void* VirtualAllocLock(size_t Size, DWORD dwProtect) {
+	uint8_t byte;
+	void* const pMemory = VirtualAlloc(0, Size, MEM_COMMIT | MEM_RESERVE, dwProtect);
+	if (!pMemory)
+		return 0;
+	ReadProcessMemory((HANDLE)-1, pMemory, &byte, 1, 0);
+	VirtualLock(pMemory, 0x1000);
+	return pMemory;
 }

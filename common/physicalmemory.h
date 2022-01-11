@@ -1,6 +1,6 @@
 #pragma once
 #include <windows.h>
-#include "function.h"
+#include "function_ref.hpp"
 
 class PhysicalAddress {
 private:
@@ -147,10 +147,10 @@ typedef struct _CR3
 } CR3, *PCR3;
 static_assert(sizeof(_CR3) == sizeof(PVOID), "Size mismatch, only 64-bit supported.");
 
-using TypeWritePhysicalMemoryFunc = Function<bool(PhysicalAddress PA, const void* Buffer, size_t Size)>;
-using TypeReadPhysicalMemoryFunc = Function<bool(PhysicalAddress PA, void* Buffer, size_t Size)>;
+using tWritePhysicalMemory = tl::function_ref<bool(PhysicalAddress PA, const void* Buffer, size_t Size)>;
+using tReadPhysicalMemory = tl::function_ref<bool(PhysicalAddress PA, void* Buffer, size_t Size)>;
 
-static PhysicalAddress GetPTEAddressByPhysicalMemoryAccess(uintptr_t VirtualAddress, CR3 cr3, TypeReadPhysicalMemoryFunc ReadPhysicalMemory) {
+static PhysicalAddress GetPTEAddressByPhysicalMemoryAccess(uintptr_t VirtualAddress, CR3 cr3, tReadPhysicalMemory ReadPhysicalMemory) {
     const uintptr_t Address = VirtualAddress;
     const uintptr_t IndexPML4 = (Address >> 39) & 0x1FF;
     const uintptr_t IndexPageDirPtr = (Address >> 30) & 0x1FF;
@@ -192,7 +192,7 @@ static PhysicalAddress GetPTEAddressByPhysicalMemoryAccess(uintptr_t VirtualAddr
     return EntryPageDir.PageFrameNumber * 0x1000 + IndexPageTable * 8;
 }
 
-static PhysicalAddress GetPhysicalAddressByPhysicalMemoryAccess(uintptr_t VirtualAddress, CR3 cr3, TypeReadPhysicalMemoryFunc ReadPhysicalMemory) {
+static PhysicalAddress GetPhysicalAddressByPhysicalMemoryAccess(uintptr_t VirtualAddress, CR3 cr3, tReadPhysicalMemory ReadPhysicalMemory) {
     const uintptr_t Address = VirtualAddress;
     const uintptr_t IndexPML4 = (Address >> 39) & 0x1FF;
     const uintptr_t IndexPageDirPtr = (Address >> 30) & 0x1FF;
@@ -242,7 +242,7 @@ static PhysicalAddress GetPhysicalAddressByPhysicalMemoryAccess(uintptr_t Virtua
 }
 
 static bool ReadProcessMemoryByPhysicalMemoryAccess(uintptr_t Address, void* Buffer, size_t Size, CR3 cr3,
-    TypeReadPhysicalMemoryFunc ReadPhysicalMemory) {
+    tReadPhysicalMemory ReadPhysicalMemory) {
     while (Size > 0) {
         size_t BlockSize = 0x1000 - (Address & 0xFFF);
         if (BlockSize > Size)
@@ -264,7 +264,7 @@ static bool ReadProcessMemoryByPhysicalMemoryAccess(uintptr_t Address, void* Buf
 }
 
 static bool WriteProcessMemoryByPhysicalMemoryAccess(uintptr_t Address, const void* Buffer, size_t Size, CR3 cr3, 
-    TypeReadPhysicalMemoryFunc ReadPhysicalMemory, TypeWritePhysicalMemoryFunc WritePhysicalMemory)  {
+    tReadPhysicalMemory ReadPhysicalMemory, tWritePhysicalMemory WritePhysicalMemory)  {
     while (Size > 0) {
         size_t BlockSize = 0x1000 - (Address & 0xFFF);
         if (BlockSize > Size)

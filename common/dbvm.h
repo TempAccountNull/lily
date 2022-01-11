@@ -1,9 +1,11 @@
 #pragma once
 #include <Windows.h>
 #include <intrin.h>
+#include <functional>
 #include "physicalmemory.h"
 #include "ida_defs.h"
 #include "exception.h"
+#include "util.h"
 
 extern "C" uintptr_t vmcall_intel(uint64_t Password3, uint64_t Password1, void* pVMCallInfo);
 extern "C" uintptr_t vmcall_amd(uint64_t Password3, uint64_t Password1, void* pVMCallInfo);
@@ -131,6 +133,8 @@ struct ChangeRegOnBPInfo {
 };
 
 class DBVM {
+private:
+	DBVM* const _this = this;
 public:
 	constexpr static uint64_t default_password1 = 0x76543210;
 	constexpr static uint32_t default_password2 = 0xfedcba98;
@@ -304,15 +308,20 @@ public:
 		return CR3;
 	}
 
-	bool ReadPhysicalMemory(PhysicalAddress srcPA, void* dstVA, size_t size) const {
+private:
+	bool _ReadPhysicalMemory(PhysicalAddress srcPA, void* dstVA, size_t size) const {
 		constexpr unsigned nopagefault = true;
 		return VMCall(VMCALL_READ_PHYSICAL_MEMORY, srcPA, (unsigned)size, dstVA, nopagefault) == 0;
 	}
 
-	bool WritePhysicalMemory(PhysicalAddress dstPA, const void* srcVA, size_t size) const {
+	bool _WritePhysicalMemory(PhysicalAddress dstPA, const void* srcVA, size_t size) const {
 		constexpr unsigned nopagefault = true;
 		return VMCall(VMCALL_WRITE_PHYSICAL_MEMORY, dstPA, (unsigned)size, srcVA, nopagefault) == 0;
 	}
+
+public:
+	AUTO_VARIABLE(const ReadPhysicalMemory, std::bind(&DBVM::_ReadPhysicalMemory, _this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	AUTO_VARIABLE(const WritePhysicalMemory, std::bind(&DBVM::_WritePhysicalMemory, _this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
 	void SwitchToKernelMode(uint16_t newCS) const {
 		VMCall(VMCALL_KERNELMODE, newCS);
@@ -395,31 +404,23 @@ public:
 	}
 
 	PhysicalAddress GetPTEAddress(uintptr_t VirtualAddress, CR3 cr3) const {
-		return ::GetPTEAddressByPhysicalMemoryAccess(VirtualAddress, cr3, [&](PhysicalAddress PA, void* Buffer, size_t Size) {
-			return ReadPhysicalMemory(PA, Buffer, Size);
-			});
+		return GetPTEAddressByPhysicalMemoryAccess(VirtualAddress, cr3, ReadPhysicalMemory);
 	}
 
 	PhysicalAddress GetPhysicalAddress(uintptr_t VirtualAddress, CR3 cr3) const {
-		return ::GetPhysicalAddressByPhysicalMemoryAccess(VirtualAddress, cr3, [&](PhysicalAddress PA, void* Buffer, size_t Size) {
-			return ReadPhysicalMemory(PA, Buffer, Size);
-			});
-	}
-
-	bool WPM(uintptr_t Address, const void* Buffer, size_t Size, CR3 cr3) const {
-		return WriteProcessMemoryByPhysicalMemoryAccess(Address, Buffer, Size, cr3,
-			[&](PhysicalAddress PA, void* Buffer, size_t Size) { return ReadPhysicalMemory(PA, Buffer, Size); },
-			[&](PhysicalAddress PA, const void* Buffer, size_t Size) { return WritePhysicalMemory(PA, Buffer, Size); });
+		return GetPhysicalAddressByPhysicalMemoryAccess(VirtualAddress, cr3, ReadPhysicalMemory);
 	}
 
 	bool RPM(uintptr_t Address, void* Buffer, size_t Size, CR3 cr3) const {
-		return ReadProcessMemoryByPhysicalMemoryAccess(Address, Buffer, Size, cr3,
-			[&](PhysicalAddress PA, void* Buffer, size_t Size) { return ReadPhysicalMemory(PA, Buffer, Size); });
+		return ReadProcessMemoryByPhysicalMemoryAccess(Address, Buffer, Size, cr3, ReadPhysicalMemory);
+	}
+
+	bool WPM(uintptr_t Address, const void* Buffer, size_t Size, CR3 cr3) const {
+		return WriteProcessMemoryByPhysicalMemoryAccess(Address, Buffer, Size, cr3, ReadPhysicalMemory, WritePhysicalMemory);
 	}
 
 	bool WPMCloak(uintptr_t Address, const void* Buffer, size_t Size, CR3 cr3) const {
-		return WriteProcessMemoryByPhysicalMemoryAccess(Address, Buffer, Size, cr3,
-			[&](PhysicalAddress PA, void* Buffer, size_t Size) { return ReadPhysicalMemory(PA, Buffer, Size); },
+		return WriteProcessMemoryByPhysicalMemoryAccess(Address, Buffer, Size, cr3, ReadPhysicalMemory,
 			[&](PhysicalAddress PA, const void* Buffer, size_t Size) {
 				PhysicalAddress PABase = PA & ~0xFFF;
 				CloakActivate(PABase, 0);
@@ -438,8 +439,7 @@ public:
 	}
 
 	bool RemoveCloak(uintptr_t Address, size_t Size, CR3 cr3) const {
-		return WriteProcessMemoryByPhysicalMemoryAccess(Address, 0, Size, cr3,
-			[&](PhysicalAddress PA, void* Buffer, size_t Size) { return ReadPhysicalMemory(PA, Buffer, Size); },
+		return WriteProcessMemoryByPhysicalMemoryAccess(Address, 0, Size, cr3, ReadPhysicalMemory,
 			[&](PhysicalAddress PA, const void* Buffer, size_t Size) {
 				uintptr_t PABase = PA & ~0xFFF;
 				CloakDeactivate(PABase);

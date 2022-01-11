@@ -5,7 +5,7 @@
 #pragma comment(lib, "d3d9.lib")
 
 #include "initializer.h"
-#include "lily.h"
+#include "util.h"
 #include "encrypt_string.h"
 
 #include "imgui.h"

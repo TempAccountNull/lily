@@ -130,8 +130,8 @@
     <ClInclude Include="..\common\ida_defs.h" />
     <ClInclude Include="..\common\initializer.h" />
     <ClInclude Include="..\common\kernel.h" />
-    <ClInclude Include="..\common\function.h" />
-    <ClInclude Include="..\common\lily.h" />
+    <ClInclude Include="..\common\function_ref.hpp" />
+    <ClInclude Include="..\common\util.h" />
     <ClInclude Include="..\common\msrnames.h" />
     <ClInclude Include="..\common\obcallback.h" />
     <ClInclude Include="..\common\patternscan.h" />
