@@ -94,12 +94,12 @@ private:
 		}
 
 		for (unsigned i = 0; i < NtHeaders.FileHeader.NumberOfSections; i++) {
-			uintptr_t SectionPtr = 
-				ModuleBase + DosHeader.e_lfanew + 
+			uintptr_t SectionPtr =
+				ModuleBase + DosHeader.e_lfanew +
 				offsetof(NtHeadersType, OptionalHeader) +
 				NtHeaders.FileHeader.SizeOfOptionalHeader +
 				sizeof(IMAGE_SECTION_HEADER) * i;
-			
+
 			IMAGE_SECTION_HEADER Section;
 			if (!ReadProcessMemory(SectionPtr, &Section, sizeof(Section)))
 				continue;

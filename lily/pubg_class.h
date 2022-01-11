@@ -302,7 +302,7 @@ DefClass(USkeleton, UObject,
 )
 
 //TslGame.DroppedItem.Item 
-DefClass(ADroppedItem, UObject,
+DefClass(ADroppedItem, AActor,
 	MemberAtOffset(EncryptedObjectPtr<UItem>, Item, 0x428)
 ,)
 

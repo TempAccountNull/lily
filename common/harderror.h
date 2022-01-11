@@ -2,7 +2,6 @@
 #include <Windows.h>
 #include <bcrypt.h>		//NTSTATUS
 #include <SubAuth.h>	//UNICODE_STRING
-#include "encrypt_string.h"
 
 typedef enum _HARDERROR_RESPONSE_OPTION {
 	OptionAbortRetryIgnore,
@@ -35,10 +34,3 @@ using tNtRaiseHardError = NTSTATUS(*)(
 	IN ULONG_PTR* Parameters, 
 	IN HARDERROR_RESPONSE_OPTION ResponseOption, 
 	OUT PHARDERROR_RESPONSE Response);
-
-const inline tNtRaiseHardError NtRaiseHardError = [&] {
-	const auto Result = (tNtRaiseHardError)GetProcAddress(GetModuleHandleA("ntdll.dll"e), "NtRaiseHardError"e);
-	if (!Result)
-		exit(0);
-	return Result;
-}();

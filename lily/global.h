@@ -1,12 +1,11 @@
 #pragma once
+#include "util.h"
 
 #include <Windows.h>
 #include <d3d9.h>
-#include <psapi.h>
 #pragma comment(lib, "d3d9.lib")
 
 #include "initializer.h"
-#include "util.h"
 #include "encrypt_string.h"
 #include "dbvm.h"
 #include "msrnames.h"

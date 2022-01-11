@@ -25,22 +25,22 @@ public:
 		return Count < MaxSize ? Count : MaxSize;
 	}
 
-	bool SetValue(int i, const T& value) {
-		if (i < 0 || i >= GetCount(ARRAY_MAX)) return false;
-		return gXenuine->process.SetValue(Data + sizeof(T) * i, &value);
-	}
-
 	bool GetValue(int i, T& value) const {
 		if (i < 0 || i >= GetCount(ARRAY_MAX)) return false;
 		return gXenuine->process.GetValue(Data + sizeof(T) * i, &value);
 	}
 
+	bool SetValue(int i, const T& value) {
+		if (i < 0 || i >= GetCount(ARRAY_MAX)) return false;
+		return gXenuine->process.SetValue(Data + sizeof(T) * i, &value);
+	}
+
 	bool GetValues(T& value, size_t MaxSize = ARRAY_MAX) const {
-		return gXenuine->process.GetValueWithSize(Data, &value, sizeof(T) * GetCount(MaxSize));
+		return gXenuine->process.ReadProcessMemory(Data, &value, sizeof(T) * GetCount(MaxSize));
 	}
 
 	bool SetValues(const T& value, size_t MaxSize = ARRAY_MAX) const {
-		return gXenuine->process.SetValueWithSize(Data, &value, sizeof(T) * GetCount(MaxSize));
+		return gXenuine->process.WriteProcessMemory(Data, &value, sizeof(T) * GetCount(MaxSize));
 	}
 
 	std::vector<T> GetVector(size_t MaxSize = ARRAY_MAX) const {
@@ -77,12 +77,11 @@ struct TPair {
 	ValueType Value;
 };
 
-
 template<class KeyType, class ValueType>
 class TMap : public TSet<TPair<KeyType, ValueType>> {};
 
 
-template<class T>
+template<class ObjectType>
 class ObjectPtr {
 private:
 	uintptr_t P;
@@ -90,42 +89,24 @@ public:
 	ObjectPtr(uintptr_t P = 0) : P(P) {}
 
 	operator uintptr_t() const { return P; }
-	bool Read(T& Obj) const { return gXenuine->process.GetValue(P, &Obj); }
 
-	//Do not call Read() with other types (including inherited class)
-	template<class T2>
-	bool Read(T2& Obj) const { return 1 / 0; }
+	template <class Type, class = std::enable_if_t<std::is_same_v<ObjectType, Type>, Type>>
+	bool Read(Type& Obj) const { return gXenuine->process.GetValue(P, &Obj); }
 
-	template<class T2>
-	bool ReadOtherType(T2& Obj) const { return gXenuine->process.GetValue(P, &Obj); }
+	template <class Type, class = std::enable_if_t<std::is_same_v<ObjectType, Type>, Type>>
+	bool Write(Type& Obj) const { return gXenuine->process.SetValue(P, &Obj); }
 
-	bool Write(T& Obj) const { return gXenuine->process.SetValue(P, &Obj); }
+	template<class Type, class = std::enable_if_t<std::is_base_of_v<ObjectType, Type>, Type>>
+	bool ReadOtherType(Type Obj) const { return gXenuine->process.GetValue(P, &Obj); }
 
-	template<class T2>
-	bool WriteAtOffset(T2& Obj, size_t Offset) const { return gXenuine->process.SetValue(P + Offset, &Obj); }
+	template<class DataType>
+	bool WriteAtOffset(DataType& Data, size_t Offset) const { return gXenuine->process.SetValue(P + Offset, &Data); }
 };
 
-template<class T>
-class EncryptedObjectPtr {
-private:
-	XenuinePtr P;
+template<class ObjectType>
+class EncryptedObjectPtr : public ObjectPtr<ObjectType> {
 public:
-	EncryptedObjectPtr(uintptr_t P = 0) : P(P) {}
-
-	operator uintptr_t() const { return P; }
-	bool Read(T& Obj) const { return gXenuine->process.GetValue(P, &Obj); }
-
-	//Do not call Read() with other types (including inherited class)
-	template<class T2>
-	bool Read(T2& Obj) const { return 1 / 0; }
-
-	template<class T2>
-	bool ReadOtherType(T2& Obj) const { return gXenuine->process.GetValue(P, &Obj); }
-
-	bool Write(T& Obj) const { return gXenuine->process.SetValue(P, &Obj); }
-
-	template<class T2>
-	bool WriteAtOffset(T2& Obj, size_t Offset) const { return gXenuine->process.SetValue(P + Offset, &Obj); }
+	EncryptedObjectPtr(XenuinePtr P = 0) : ObjectPtr<ObjectType>(P) {}
 };
 
 // ScriptStruct CoreUObject.Vector

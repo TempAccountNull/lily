@@ -66,9 +66,6 @@
     <ClInclude Include="..\common\kernel.h">
       <Filter>common</Filter>
     </ClInclude>
-    <ClInclude Include="..\common\lily.h">
-      <Filter>common</Filter>
-    </ClInclude>
     <ClInclude Include="..\common\msrnames.h">
       <Filter>common</Filter>
     </ClInclude>
@@ -100,6 +97,12 @@
       <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="..\common\lambda.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\function_ref.hpp">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\util.h">
       <Filter>common</Filter>
     </ClInclude>
   </ItemGroup>

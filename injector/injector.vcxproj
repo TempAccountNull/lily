@@ -114,13 +114,13 @@
     <ClInclude Include="..\common\encrypt_string.h" />
     <ClInclude Include="..\common\exception.h" />
     <ClInclude Include="..\common\fixed_string.hpp" />
+    <ClInclude Include="..\common\function_ref.hpp" />
     <ClInclude Include="..\common\harderror.h" />
     <ClInclude Include="..\common\hash_switch.h" />
     <ClInclude Include="..\common\ida_defs.h" />
     <ClInclude Include="..\common\initializer.h" />
     <ClInclude Include="..\common\kernel.h" />
     <ClInclude Include="..\common\lambda.h" />
-    <ClInclude Include="..\common\lily.h" />
     <ClInclude Include="..\common\msrnames.h" />
     <ClInclude Include="..\common\obcallback.h" />
     <ClInclude Include="..\common\patternscan.h" />
@@ -130,6 +130,7 @@
     <ClInclude Include="..\common\process.hpp" />
     <ClInclude Include="..\common\remoteprocess.h" />
     <ClInclude Include="..\common\shellcode.h" />
+    <ClInclude Include="..\common\util.h" />
     <ClInclude Include="..\imgui\imconfig.h" />
     <ClInclude Include="..\imgui\imgui.h" />
     <ClInclude Include="..\imgui\imgui_impl_dx9.h" />

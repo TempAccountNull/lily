@@ -175,7 +175,7 @@ public:
 		if (!IsKeyPushed(VK_END))
 			return;
 		render.Clear();
-		TerminateProcess((HANDLE)-1, 0);
+		exit(0);
 	}
 
 	void RenderArea(auto func) const {

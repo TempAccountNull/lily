@@ -1,4 +1,6 @@
 #pragma once
+#include "util.h"
+
 #include <Windows.h>
 #include <stdio.h>
 #include <string>
@@ -7,7 +9,6 @@
 #include <map>
 #include <fstream>
 #include <iostream>
-#include "util.h"
 
 #include "process.h"
 
@@ -45,7 +46,7 @@ static auto GetStructMap(Process& process) {
 		uintptr_t NamePtr = (INT64)ScanAddress + 0x3 + 0x4 + IntValue;
 
 		wchar_t wStructName[0x100];
-		if (!process.GetValueWithSize(NamePtr, wStructName, sizeof(wStructName))) {
+		if (!process.ReadProcessMemory(NamePtr, wStructName, sizeof(wStructName))) {
 			dprintf("struct2");
 			continue;
 		}
@@ -81,7 +82,7 @@ static auto GetClassMap(Process& process) {
 		uintptr_t pClassName = (INT64)ScanAddress + 0x3 + 0x4 + value;
 
 		wchar_t wClassName[0x100];
-		if (!process.GetValueWithSize(pClassName, wClassName, sizeof(wClassName))) {
+		if (!process.ReadProcessMemory(pClassName, wClassName, sizeof(wClassName))) {
 			dprintf("class2");
 			continue;
 		}
@@ -127,7 +128,7 @@ static auto GetMemberMap(Process& process, uintptr_t StartAddress) {
 				uintptr_t pString = INT64(ScanResult) + 0x3 + 0x4 + IntValue;
 				wchar_t wString[0x100];
 
-				if (!process.GetValueWithSize(pString, wString, sizeof(wString))) {
+				if (!process.ReadProcessMemory(pString, wString, sizeof(wString))) {
 					dprintf("enum2");
 					break;
 				}
@@ -156,7 +157,7 @@ static auto GetMemberMap(Process& process, uintptr_t StartAddress) {
 				uintptr_t pString = INT64(ScanResult) + 0x9 + 0x4 + IntValue;
 				char szString[0x200];
 
-				if (!process.GetValueWithSize(pString, szString, sizeof(szString))) {
+				if (!process.ReadProcessMemory(pString, szString, sizeof(szString))) {
 					dprintf("s2");
 					break;
 				}

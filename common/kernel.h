@@ -1,12 +1,12 @@
 #pragma once
+#include "util.h"
+
 #include <Windows.h>
-#include <Psapi.h>
 #include <string>
 #include <stdio.h>
 #include <intrin.h>
 #pragma intrinsic(_enable)
 
-#include "util.h"
 #include "dbvm.h"
 #include "encrypt_string.h"
 #include "msrnames.h"
@@ -19,17 +19,26 @@ extern "C" void RunWithKernelStack(void* pFunc, void* pThis);
 
 class Kernel {
 private:
-	INITIALIZER_INCLASS(CommitAndLockPages) {
-		MEMORY_BASIC_INFORMATION MemInfo;
-		VirtualQuery(RunWithKernelStack, &MemInfo, sizeof(MemInfo));
-		const uintptr_t Base = (uintptr_t)MemInfo.AllocationBase & ~0xFFF;
-		const uintptr_t Size = (uintptr_t)MemInfo.BaseAddress - (uintptr_t)MemInfo.AllocationBase + MemInfo.RegionSize;
-		for (size_t i = 0; i < Size; i += 0x1000) {
-			void* Page = (void*)(Base + i);
-			uint8_t byte;
-			ReadProcessMemory((HANDLE)-1, Page, &byte, sizeof(byte), 0);
-			VirtualLock(Page, 0x1000);
-		}
+	INITIALIZER_INCLASS(CommitPages) {
+		const bool bSuccess = [&] {
+			MEMORY_BASIC_INFORMATION MemInfo;
+			if (!VirtualQuery(RunWithKernelStack, &MemInfo, sizeof(MemInfo)))
+				return false;
+
+			const uintptr_t Base = (uintptr_t)MemInfo.AllocationBase & ~0xFFF;
+			const uintptr_t Size = (uintptr_t)MemInfo.BaseAddress - (uintptr_t)MemInfo.AllocationBase + MemInfo.RegionSize;
+			for (size_t i = 0; i < Size; i += 0x1000) {
+				void* const Page = (void*)(Base + i);
+				uint8_t byte;
+				if (!ReadProcessMemory((HANDLE)-1, Page, &byte, sizeof(byte), 0))
+					return false;
+			}
+
+			return true;
+		}();
+
+		if (!bSuccess)
+			error("CommitPages"e);
 	};
 
 public:
@@ -40,9 +49,13 @@ public:
 		VirtualFree(MapPhysicalPDPTE, 0, MEM_RELEASE);
 	}
 
+	tReadProcessMemory<uintptr_t> ReadProcessMemoryWinAPI = [&](uintptr_t Address, void* Buffer, size_t Size) {
+		return ::ReadProcessMemory((HANDLE)-1, (const void*)Address, Buffer, Size, 0);
+	};
+
 private:
-	PML4E* const DirectoryTableBase = (PML4E*)VirtualAllocLock(0x1000, PAGE_READWRITE);
-	PDPTE* const MapPhysicalPDPTE = (PDPTE*)VirtualAllocLock(0x1000, PAGE_READWRITE);
+	PML4E* const DirectoryTableBase = (PML4E*)VirtualAllocVerified(0x1000, PAGE_READWRITE);
+	PDPTE* const MapPhysicalPDPTE = (PDPTE*)VirtualAllocVerified(0x1000, PAGE_READWRITE);
 	const PML4E CustomPML4E = { .Value = dbvm.GetPhysicalAddress((uintptr_t)MapPhysicalPDPTE, dbvm.GetCR3()) };
 	const CR3 CustomCR3 = [&] {
 		verify(CustomPML4E.Value);
@@ -199,43 +212,6 @@ public:
 
 	void SetCustomCR3() const { dbvm.SetCR3(CustomCR3); }
 	CR3 GetMappedProcessCR3() const { return mapCR3; }
-
-	static uintptr_t GetKernelModuleAddress(const char* szModule) {
-		void* Drivers[0x400];
-		DWORD cbNeeded;
-		if (!EnumDeviceDrivers(Drivers, sizeof(Drivers), &cbNeeded))
-			return 0;
-
-		for (auto Driver : Drivers) {
-			char szBaseName[MAX_PATH];
-			if (!GetDeviceDriverBaseNameA(Driver, szBaseName, sizeof(szBaseName)))
-				continue;
-			if (_stricmp(szBaseName, szModule) == 0)
-				return (uintptr_t)Driver;
-		}
-
-		return 0;
-	}
-
-	static uintptr_t GetKernelProcAddressVerified(const char* szModuleName, const char* szProcName) {
-		HMODULE hModule = LoadLibraryA(szModuleName);
-		uintptr_t hModuleKernel = GetKernelModuleAddress(szModuleName);
-		uintptr_t ProcAddr = (uintptr_t)GetProcAddress(hModule, szProcName);
-		if (!ProcAddr)
-			error(szModuleName, szProcName);
-		uintptr_t Result = ProcAddr + hModuleKernel - (uintptr_t)hModule;
-		FreeLibrary(hModule);
-		return Result;
-	}
-
-	static uintptr_t GetUserProcAddressVerified(const char* szModuleName, const char* szProcName) {
-		HMODULE hModule = LoadLibraryA(szModuleName);
-		uintptr_t Result = (uintptr_t)GetProcAddress(hModule, szProcName);
-		if (!Result)
-			error(szModuleName, szProcName);
-		FreeLibrary(hModule);
-		return Result;
-	}
 
 	static bool MemcpyWithExceptionHandler(void* Dst, const void* Src, size_t Size) {
 		return ExceptionHandler::TryExcept([&]() { memcpy(Dst, Src, Size); });

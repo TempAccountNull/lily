@@ -13,6 +13,23 @@ private:
 	HWND hWndSaved = 0;
 	DWORD PidSaved = 0;
 
+	bool LoadEntireImageToRam() const {
+		HANDLE hProcess = OpenProcess(PROCESS_VM_READ, false, PidSaved);
+		if (!hProcess)
+			return false;
+
+		bool bSuccess = true;
+		for (uintptr_t i = 0; i < SizeOfImage; i += 0x1000) {
+			uint8_t byte;
+			if (!::ReadProcessMemory(hProcess, (void*)(BaseAddress + i), &byte, 1, 0)) {
+				bSuccess = false;
+				break;
+			}
+		}
+		CloseHandle(hProcess);
+		return bSuccess;
+	}
+
 public:
 	KernelLily& kernel;
 
@@ -22,6 +39,25 @@ public:
 	uintptr_t GetSizeOfImage() const { return SizeOfImage; }
 	HWND GetHwnd() const { return hWndSaved; }
 	DWORD GetPid() const { return PidSaved; }
+
+	const tl::function<bool(uintptr_t Address, void* Buffer, uintptr_t Size)> ReadProcessMemory =
+		[&](uintptr_t Address, void* Buffer, uintptr_t Size) -> bool {
+		return kernel.RPM_Mapped(Address, Buffer, Size);
+	};
+	const tl::function<bool(uintptr_t Address, const void* Buffer, uintptr_t Size)> WriteProcessMemory =
+		[&](uintptr_t Address, const void* Buffer, uintptr_t Size) {
+		return kernel.WPM_Mapped(Address, Buffer, Size);
+	};
+
+	template <class T>
+	bool GetValue(uintptr_t Address, T* Buffer) const { return ReadProcessMemory(Address, Buffer, sizeof(T)); }
+	template <class T>
+	bool SetValue(uintptr_t Address, const T* Buffer) const { return WriteProcessMemory(Address, Buffer, sizeof(T)); }
+
+	template <class T>
+	bool GetBaseValue(uintptr_t Address, T* Buffer) const { return ReadProcessMemory(BaseAddress + Address, Buffer, sizeof(T)); }
+	template <class T>
+	bool SetBaseValue(uintptr_t Address, const T* Buffer) const { return WriteProcessMemory(BaseAddress + Address, Buffer, sizeof(T)); }
 
 	bool SetBaseDLL(const char* szDLLName = 0) {
 		wchar_t wDLLName[0x200] = { 0 };
@@ -40,7 +76,7 @@ public:
 				break;
 
 			wchar_t wBaseDLLName[0x200];
-			if (GetValueWithSize(ldr_entry.BaseDllName.Buffer, wBaseDLLName, ldr_entry.BaseDllName.Length * sizeof(wchar_t))) {
+			if (ReadProcessMemory(ldr_entry.BaseDllName.Buffer, wBaseDLLName, ldr_entry.BaseDllName.Length * sizeof(wchar_t))) {
 				if (szDLLName == 0 || _wcsicmp(wBaseDLLName, wDLLName) == 0) {
 					BaseAddress = ldr_entry.BaseAddress;
 					SizeOfImage = ldr_entry.SizeOfImage;
@@ -55,44 +91,13 @@ public:
 	}
 
 	uintptr_t AobscanRange(uintptr_t BaseAddress, size_t Len, const char* szPattern) const {
-		return PatternScan::Range(BaseAddress, Len, szPattern,
-			[&](uintptr_t Address, void* Buffer, size_t Size) {
-				return GetValueWithSize(Address, Buffer, Size);
-			});
+		return PatternScan::Range(BaseAddress, Len, szPattern, ReadProcessMemory);
 	}
 
 	uintptr_t AobscanCurrentDLL(const char* szPattern, const char* szSectionName = ".text"e) const {
-		HANDLE hProcess = OpenProcess(PROCESS_VM_READ, false, PidSaved);
-		if (hProcess) {
-			for (uintptr_t i = 0; i < SizeOfImage; i += 0x1000) {
-				uint8_t byte;
-				//Trigger paging
-				ReadProcessMemory(hProcess, (void*)(BaseAddress + i), &byte, 1, NULL);
-			}
-			CloseHandle(hProcess);
-		}
-		
-		return PatternScan::Module(BaseAddress, szSectionName, szPattern,
-			[&](uintptr_t Address, void* Buffer, size_t Size) {
-				return GetValueWithSize(Address, Buffer, Size);
-			});
+		LoadEntireImageToRam();
+		return PatternScan::Module(BaseAddress, szSectionName, szPattern, ReadProcessMemory);
 	}
-
-	bool GetValueWithSize(uintptr_t Address, void* Buffer, uintptr_t Size) const { return kernel.RPM_Mapped(Address, Buffer, Size); }
-	bool SetValueWithSize(uintptr_t Address, const void* Buffer, uintptr_t Size) const { return kernel.WPM_Mapped(Address, Buffer, Size); }
-
-	template <class T>
-	bool GetValue(uintptr_t Address, T* Buffer) const { return kernel.RPM_Mapped(Address, Buffer, sizeof(T)); }
-	template <class T>
-	bool SetValue(uintptr_t Address, const T* Buffer) const { return kernel.WPM_Mapped(Address, Buffer, sizeof(T)); }
-
-	bool GetBaseValueWithSize(uintptr_t Address, void* Buffer, uintptr_t Size) const { return kernel.RPM_Mapped(BaseAddress + Address, Buffer, Size); }
-	bool SetBaseValueWithSize(uintptr_t Address, const void* Buffer, uintptr_t Size) const { return kernel.WPM_Mapped(BaseAddress + Address, Buffer, Size); }
-
-	template <class T>
-	bool GetBaseValue(uintptr_t Address, T* Buffer) const { return kernel.RPM_Mapped(BaseAddress + Address, Buffer, sizeof(T)); }
-	template <class T>
-	bool SetBaseValue(uintptr_t Address, const T* Buffer) const { return kernel.WPM_Mapped(BaseAddress + Address, Buffer, sizeof(T)); }
 
 	bool OpenProcessWithPid(DWORD Pid, const char* szDLLName = 0) {
 		PidSaved = Pid;

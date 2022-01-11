@@ -58,7 +58,7 @@ public:
 		if (!Ptr)
 			return false;
 
-		if (!gXenuine->process.GetValueWithSize(Ptr + offsetof(FNameEntry, AnsiName), szBuf, std::min(SizeMax, NAME_SIZE)))
+		if (!gXenuine->process.ReadProcessMemory(Ptr + offsetof(FNameEntry, AnsiName), szBuf, std::min(SizeMax, NAME_SIZE)))
 			return false;
 
 		return true;

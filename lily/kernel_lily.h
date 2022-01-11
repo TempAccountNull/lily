@@ -44,13 +44,13 @@ public:
 	const KernelFunction<BOOL(PPPROP pProp, ATOM nAtom, HANDLE hValue, DWORD dwFlag)> RealInternalSetProp = {
 		reinterpret_cast<BOOL(*)(PPPROP pProp, ATOM nAtom, HANDLE hValue, DWORD dwFlag)>
 		(GetKernelProcAddressVerified("win32kbase.sys"e, "RealInternalSetProp"e)), *this };
-		
+
 	const UserFunction<tagWND* (HWND hWnd)> UserValidateHwnd = [&] {
-		const uintptr_t ScanResult = PatternScan::Range((uintptr_t)IsChild, 0x30, "48 8B CA E8"e, RPM_dbvm);
+		const uintptr_t ScanResult = PatternScan::Range((uintptr_t)IsChild, 0x30, "48 8B CA E8"e, ReadProcessMemoryWinAPI);
 		verify(ScanResult);
 		const auto p = PatternScan::GetJumpAddress(ScanResult + 0x3, RPM_dbvm);
 		verify(p);
-		return reinterpret_cast<tagWND * (*)(HWND hWnd)>(p);
+		return decltype(UserValidateHwnd)(reinterpret_cast<tagWND * (*)(HWND hWnd)>(p));
 	}();
 
 private:

@@ -1,8 +1,9 @@
 #pragma once
+#include "util.h"
+
 #include <d3d9.h>
 
 #include "dbvm.h"
-#include "util.h"
 #include "encrypt_string.h"
 #include "imgui.h"
 #include "imgui_impl_dx9.h"
