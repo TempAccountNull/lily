@@ -2,32 +2,94 @@
 #include <windows.h>
 #include "function_ref.hpp"
 
-class PhysicalAddress {
-private:
-    //Maximum ram 1TB
-    constexpr static uintptr_t MAXPHYADDRMASK = ~- 0x10000000000;
-    /*
-    INITIALIZER(
-        int Info[4];
-        __cpuid(Info, 0x80000008);
-        BYTE MAXPHYADDR = Info[0] & 0xff;
-        MAXPHYADDRMASK = -1;
-        MAXPHYADDRMASK = MAXPHYADDRMASK >> MAXPHYADDR;
-        MAXPHYADDRMASK = ~(MAXPHYADDRMASK << MAXPHYADDR);
-    )
-    */
-public:
-    uintptr_t PA;
-    constexpr uintptr_t Get() const { return PA & MAXPHYADDRMASK; }
-    constexpr operator uintptr_t() const { return Get(); }
-    constexpr PhysicalAddress& operator =(uintptr_t NewPA) {
-        PA = NewPA & MAXPHYADDRMASK;
-        return *this;
-    }
-    constexpr PhysicalAddress(uintptr_t NewPA = 0) { *this = NewPA; }
-};
+static_assert(sizeof(uintptr_t) == 8, "Size mismatch, only 64-bit supported.");
 
-typedef struct _PTE
+struct CR3
+{
+    union
+    {
+        struct
+        {
+            uintptr_t Ignored : 3;
+            uintptr_t PWT : 1;
+            uintptr_t PCD : 1;
+            uintptr_t Ignored2 : 7;
+            uintptr_t PageFrameNumber : 36;
+            uintptr_t Reserved : 16;
+        };
+        uintptr_t Value = 0;
+    };
+};
+struct PML4E
+{
+    union
+    {
+        struct
+        {
+            uintptr_t Present : 1;              // Must be 1, region invalid if 0.
+            uintptr_t ReadWrite : 1;            // If 0, writes not allowed.
+            uintptr_t UserSupervisor : 1;       // If 0, user-mode accesses not allowed.
+            uintptr_t PageWriteThrough : 1;     // Determines the memory type used to access PDPT.
+            uintptr_t PageCacheDisable : 1;     // Determines the memory type used to access PDPT.
+            uintptr_t Accessed : 1;             // If 0, this entry has not been used for translation.
+            uintptr_t Ignored1 : 1;
+            uintptr_t PageSize : 1;             // Must be 0 for PML4E.
+            uintptr_t Ignored2 : 4;
+            uintptr_t PageFrameNumber : 36;     // The page frame number of the PDPT of this PML4E.
+            uintptr_t Reserved : 4;
+            uintptr_t Ignored3 : 11;
+            uintptr_t ExecuteDisable : 1;       // If 1, instruction fetches not allowed.
+        };
+        uintptr_t Value = 0;
+    };
+};
+struct PDPTE
+{
+    union
+    {
+        struct
+        {
+            uintptr_t Present : 1;              // Must be 1, region invalid if 0.
+            uintptr_t ReadWrite : 1;            // If 0, writes not allowed.
+            uintptr_t UserSupervisor : 1;       // If 0, user-mode accesses not allowed.
+            uintptr_t PageWriteThrough : 1;     // Determines the memory type used to access PD.
+            uintptr_t PageCacheDisable : 1;     // Determines the memory type used to access PD.
+            uintptr_t Accessed : 1;             // If 0, this entry has not been used for translation.
+            uintptr_t Ignored1 : 1;
+            uintptr_t PageSize : 1;             // If 1, this entry maps a 1GB page.
+            uintptr_t Ignored2 : 4;
+            uintptr_t PageFrameNumber : 36;     // The page frame number of the PD of this PDPTE.
+            uintptr_t Reserved : 4;
+            uintptr_t Ignored3 : 11;
+            uintptr_t ExecuteDisable : 1;       // If 1, instruction fetches not allowed.
+        };
+        uintptr_t Value = 0;
+    };
+};
+struct PDE
+{
+    union
+    {
+        struct
+        {
+            uintptr_t Present : 1;              // Must be 1, region invalid if 0.
+            uintptr_t ReadWrite : 1;            // If 0, writes not allowed.
+            uintptr_t UserSupervisor : 1;       // If 0, user-mode accesses not allowed.
+            uintptr_t PageWriteThrough : 1;     // Determines the memory type used to access PT.
+            uintptr_t PageCacheDisable : 1;     // Determines the memory type used to access PT.
+            uintptr_t Accessed : 1;             // If 0, this entry has not been used for translation.
+            uintptr_t Ignored1 : 1;
+            uintptr_t PageSize : 1;             // If 1, this entry maps a 2MB page.
+            uintptr_t Ignored2 : 4;
+            uintptr_t PageFrameNumber : 36;     // The page frame number of the PT of this PDE.
+            uintptr_t Reserved : 4;
+            uintptr_t Ignored3 : 11;
+            uintptr_t ExecuteDisable : 1;       // If 1, instruction fetches not allowed.
+        };
+        uintptr_t Value = 0;
+    };
+};
+struct PTE
 {
     union
     {
@@ -51,101 +113,30 @@ typedef struct _PTE
         };
         uintptr_t Value = 0;
     };
-} PTE, * PPTE;
-static_assert(sizeof(PTE) == sizeof(PVOID), "Size mismatch, only 64-bit supported.");
+};
 
-typedef struct _PDE
-{
-    union
-    {
-        struct
-        {
-            uintptr_t Present : 1;              // Must be 1, region invalid if 0.
-            uintptr_t ReadWrite : 1;            // If 0, writes not allowed.
-            uintptr_t UserSupervisor : 1;       // If 0, user-mode accesses not allowed.
-            uintptr_t PageWriteThrough : 1;     // Determines the memory type used to access PT.
-            uintptr_t PageCacheDisable : 1;     // Determines the memory type used to access PT.
-            uintptr_t Accessed : 1;             // If 0, this entry has not been used for translation.
-            uintptr_t Ignored1 : 1;
-            uintptr_t PageSize : 1;             // If 1, this entry maps a 2MB page.
-            uintptr_t Ignored2 : 4;
-            uintptr_t PageFrameNumber : 36;     // The page frame number of the PT of this PDE.
-            uintptr_t Reserved : 4;
-            uintptr_t Ignored3 : 11;
-            uintptr_t ExecuteDisable : 1;       // If 1, instruction fetches not allowed.
-        };
-        uintptr_t Value = 0;
-    };
-} PDE, * PPDE;
-static_assert(sizeof(PDE) == sizeof(PVOID), "Size mismatch, only 64-bit supported.");
-
-typedef struct _PDPTE
-{
-    union
-    {
-        struct
-        {
-            uintptr_t Present : 1;              // Must be 1, region invalid if 0.
-            uintptr_t ReadWrite : 1;            // If 0, writes not allowed.
-            uintptr_t UserSupervisor : 1;       // If 0, user-mode accesses not allowed.
-            uintptr_t PageWriteThrough : 1;     // Determines the memory type used to access PD.
-            uintptr_t PageCacheDisable : 1;     // Determines the memory type used to access PD.
-            uintptr_t Accessed : 1;             // If 0, this entry has not been used for translation.
-            uintptr_t Ignored1 : 1;
-            uintptr_t PageSize : 1;             // If 1, this entry maps a 1GB page.
-            uintptr_t Ignored2 : 4;
-            uintptr_t PageFrameNumber : 36;     // The page frame number of the PD of this PDPTE.
-            uintptr_t Reserved : 4;
-            uintptr_t Ignored3 : 11;
-            uintptr_t ExecuteDisable : 1;       // If 1, instruction fetches not allowed.
-        };
-        uintptr_t Value = 0;
-    };
-} PDPTE, * PPDPTE;
-static_assert(sizeof(PDPTE) == sizeof(PVOID), "Size mismatch, only 64-bit supported.");
-
-typedef struct _PML4E
-{
-    union
-    {
-        struct
-        {
-            uintptr_t Present : 1;              // Must be 1, region invalid if 0.
-            uintptr_t ReadWrite : 1;            // If 0, writes not allowed.
-            uintptr_t UserSupervisor : 1;       // If 0, user-mode accesses not allowed.
-            uintptr_t PageWriteThrough : 1;     // Determines the memory type used to access PDPT.
-            uintptr_t PageCacheDisable : 1;     // Determines the memory type used to access PDPT.
-            uintptr_t Accessed : 1;             // If 0, this entry has not been used for translation.
-            uintptr_t Ignored1 : 1;
-            uintptr_t PageSize : 1;             // Must be 0 for PML4E.
-            uintptr_t Ignored2 : 4;
-            uintptr_t PageFrameNumber : 36;     // The page frame number of the PDPT of this PML4E.
-            uintptr_t Reserved : 4;
-            uintptr_t Ignored3 : 11;
-            uintptr_t ExecuteDisable : 1;       // If 1, instruction fetches not allowed.
-        };
-        uintptr_t Value = 0;
-    };
-} PML4E, * PPML4E;
-static_assert(sizeof(PML4E) == sizeof(PVOID), "Size mismatch, only 64-bit supported.");
-
-typedef struct _CR3
-{
-    union
-    {
-        struct
-        {
-            uintptr_t Ignored : 3;
-            uintptr_t PWT : 1;
-            uintptr_t PCD : 1;
-            uintptr_t Ignored2 : 7;
-            uintptr_t PageFrameNumber : 36;
-            uintptr_t Reserved : 16;
-        };
-        uintptr_t Value = 0;
-    };
-} CR3, *PCR3;
-static_assert(sizeof(_CR3) == sizeof(PVOID), "Size mismatch, only 64-bit supported.");
+class PhysicalAddress {
+private:
+    //Maximum ram 1TB
+    constexpr static uintptr_t MAXPHYADDRMASK = ~- 0x10000000000;
+    //INITIALIZER(
+    //    int Info[4];
+    //    __cpuid(Info, 0x80000008);
+    //    BYTE MAXPHYADDR = Info[0] & 0xff;
+    //    MAXPHYADDRMASK = -1;
+    //    MAXPHYADDRMASK = MAXPHYADDRMASK >> MAXPHYADDR;
+    //    MAXPHYADDRMASK = ~(MAXPHYADDRMASK << MAXPHYADDR);
+    //)
+public:
+    uintptr_t PA;
+    constexpr uintptr_t Get() const { return PA & MAXPHYADDRMASK; }
+    constexpr operator uintptr_t() const { return Get(); }
+    constexpr PhysicalAddress& operator =(uintptr_t NewPA) {
+        PA = NewPA & MAXPHYADDRMASK;
+        return *this;
+    }
+    constexpr PhysicalAddress(uintptr_t NewPA = 0) { *this = NewPA; }
+};
 
 using tWritePhysicalMemory = tl::function_ref<bool(PhysicalAddress PA, const void* Buffer, size_t Size)>;
 using tReadPhysicalMemory = tl::function_ref<bool(PhysicalAddress PA, void* Buffer, size_t Size)>;

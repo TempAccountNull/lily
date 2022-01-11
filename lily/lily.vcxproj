@@ -99,6 +99,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <DebugInformationFormat>None</DebugInformationFormat>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -125,12 +126,12 @@
     <ClInclude Include="..\common\encrypt_string.h" />
     <ClInclude Include="..\common\exception.h" />
     <ClInclude Include="..\common\fixed_string.hpp" />
+    <ClInclude Include="..\common\function_ref.hpp" />
     <ClInclude Include="..\common\harderror.h" />
     <ClInclude Include="..\common\hash_switch.h" />
     <ClInclude Include="..\common\ida_defs.h" />
     <ClInclude Include="..\common\initializer.h" />
     <ClInclude Include="..\common\kernel.h" />
-    <ClInclude Include="..\common\function_ref.hpp" />
     <ClInclude Include="..\common\util.h" />
     <ClInclude Include="..\common\msrnames.h" />
     <ClInclude Include="..\common\obcallback.h" />

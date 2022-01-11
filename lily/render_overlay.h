@@ -197,8 +197,7 @@ private:
 				return false;
 
 			//Move window to re-create "Intermediate D3D Window"
-			ShowWindow(hESPWnd, SW_NORMAL);
-			MoveWindow(hESPWnd, 1, 1, ScreenWidth - 1, ScreenHeight - 1, false);
+			SetWindowPos(hESPWnd, HWND_BOTTOM, 1, 1, ScreenWidth - 1, ScreenHeight - 1, SWP_SHOWWINDOW);
 			//Wait until "Intermediate D3D Window" created
 			while (!(hChild = FindWindowExA(hESPWnd, 0, "Intermediate D3D Window"e, 0)));
 			MoveWindow(hESPWnd, 0, 0, ScreenWidth, ScreenHeight, false);

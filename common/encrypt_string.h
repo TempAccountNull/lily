@@ -9,24 +9,24 @@
 static_assert(sizeof(char) == 1, "sizeof(char) must be 1");
 static_assert(sizeof(wchar_t) == 2, "sizeof(wchar_t) must be 2");
 
-template <class Type>
-__declspec(noinline) void DecryptString(Type* Dst, unsigned Seed) noexcept {
-	static_assert(sizeof(Type) <= 2, "Type must be character.");
+template <class tCallBack>
+__declspec(noinline) void DecryptString(tCallBack* Dst, unsigned Seed) noexcept {
+	static_assert(sizeof(tCallBack) <= 2, "Type must be character.");
 
 	unsigned i = 0;
 	do {
-		Dst[i] ^= (Type)CompileTime::Rand(Seed);
+		Dst[i] ^= (tCallBack)CompileTime::Rand(Seed);
 	} while (Dst[i++]);
 }
 
-template <class Type>
-__declspec(noinline) void DecryptStringWithCrtRand(Type* Dst, unsigned Seed) noexcept {
-	static_assert(sizeof(Type) <= 2, "Type must be character.");
+template <class tCallBack>
+__declspec(noinline) void DecryptStringWithCrtRand(tCallBack* Dst, unsigned Seed) noexcept {
+	static_assert(sizeof(tCallBack) <= 2, "Type must be character.");
 
 	unsigned i = 0;
 	srand(Seed);
 	do {
-		Dst[i] ^= (Type)rand();
+		Dst[i] ^= (tCallBack)rand();
 	} while (Dst[i++]);
 }
 
@@ -86,29 +86,29 @@ wchar_t* MovString(wchar_t* Dst) noexcept {
 	return Dst;
 }
 
-template <fixstr::basic_fixed_string Src, size_t N, class Type = decltype(Src)::value_type>
-Type* MovArray(Type(&Dst)[N]) noexcept {
+template <fixstr::basic_fixed_string Src, size_t N, class tCallBack = decltype(Src)::value_type>
+tCallBack* MovArray(tCallBack(&Dst)[N]) noexcept {
 	static_assert(N >= Src.size() + 1, "Array size is less than string.");
 	return MovString<Src>(Dst);
 }
 
-template <fixstr::basic_fixed_string Src, size_t N, class Type = decltype(Src)::value_type>
-std::array<Type, N>& MovStdArray(std::array<Type, N>& Dst) noexcept {
+template <fixstr::basic_fixed_string Src, size_t N, class tCallBack = decltype(Src)::value_type>
+std::array<tCallBack, N>& MovStdArray(std::array<tCallBack, N>& Dst) noexcept {
 	static_assert(N >= Src.size() + 1, "Array size is less than string.");
 	MovString<Src>(Dst.data());
 	return Dst;
 }
 
-template <fixstr::basic_fixed_string Src, class Type = decltype(Src)::value_type>
-std::basic_string<Type>& MovStdString(std::basic_string<Type>& Dst) noexcept {
+template <fixstr::basic_fixed_string Src, class tCallBack = decltype(Src)::value_type>
+std::basic_string<tCallBack>& MovStdString(std::basic_string<tCallBack>& Dst) noexcept {
 	Dst.resize(Src.size());
 	MovString<Src>(Dst.data());
 	return Dst;
 }
 
-template <fixstr::basic_fixed_string Src, class Type = decltype(Src)::value_type>
-const std::basic_string<Type> MakeStdString() noexcept {
-	std::basic_string<Type> Dst;
+template <fixstr::basic_fixed_string Src, class tCallBack = decltype(Src)::value_type>
+const std::basic_string<tCallBack> MakeStdString() noexcept {
+	std::basic_string<tCallBack> Dst;
 	Dst.resize(Src.size());
 	MovString<Src>(Dst.data());
 	return Dst;

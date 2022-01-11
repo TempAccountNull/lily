@@ -19,8 +19,6 @@ extern "C" void RunWithKernelStack(void* pFunc, void* pThis);
 
 class Kernel {
 private:
-	Kernel* const _this = this;
-
 	INITIALIZER_INCLASS(CommitAndLockPages) {
 		MEMORY_BASIC_INFORMATION MemInfo;
 		VirtualQuery(RunWithKernelStack, &MemInfo, sizeof(MemInfo));
@@ -43,8 +41,8 @@ public:
 	}
 
 private:
-	const PPML4E DirectoryTableBase = (PPML4E)VirtualAllocLock(0x1000, PAGE_READWRITE);
-	const PPDPTE MapPhysicalPDPTE = (PPDPTE)VirtualAllocLock(0x1000, PAGE_READWRITE);
+	PML4E* const DirectoryTableBase = (PML4E*)VirtualAllocLock(0x1000, PAGE_READWRITE);
+	PDPTE* const MapPhysicalPDPTE = (PDPTE*)VirtualAllocLock(0x1000, PAGE_READWRITE);
 	const PML4E CustomPML4E = { .Value = dbvm.GetPhysicalAddress((uintptr_t)MapPhysicalPDPTE, dbvm.GetCR3()) };
 	const CR3 CustomCR3 = [&] {
 		verify(CustomPML4E.Value);
@@ -55,14 +53,20 @@ private:
 	}();
 
 public:
-	AUTO_VARIABLE(const WPM_dbvm, std::bind(&DBVM::WPM, &dbvm, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, CustomCR3));
-	AUTO_VARIABLE(const RPM_dbvm, std::bind(&DBVM::RPM, &dbvm, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, CustomCR3));
+	const tl::function<bool(uintptr_t Address, void* Buffer, size_t Size)> RPM_dbvm =
+		[&](uintptr_t Address, void* Buffer, size_t Size) -> bool {
+		return dbvm.RPM(Address, Buffer, Size, CustomCR3);
+	};
+
+	const tl::function<bool(uintptr_t Address, const void* Buffer, size_t Size)> WPM_dbvm =
+		[&](uintptr_t Address, const void* Buffer, size_t Size) -> bool {
+		return dbvm.WPM(Address, Buffer, Size, CustomCR3);
+	};
 
 private:
-	
 	//EPROCESS Offset
 	const uintptr_t SystemProcess = [&] {
-		const uintptr_t PsInitialSystemProcess = GetKernelProcAddress("ntoskrnl.exe"e, "PsInitialSystemProcess"e);
+		const uintptr_t PsInitialSystemProcess = GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsInitialSystemProcess"e);
 		RPM_dbvm(PsInitialSystemProcess, (void*)&SystemProcess, sizeof(SystemProcess));
 		verify(SystemProcess);
 		return SystemProcess;
@@ -71,7 +75,7 @@ private:
 	const unsigned Offset_DirectoryTableBase = 0x28;
 
 	const unsigned Offset_UniqueProcessId = [&] {
-		uintptr_t PsGetProcessId = (uintptr_t)GetKernelProcAddress("ntoskrnl.exe"e, "PsGetProcessId"e);
+		uintptr_t PsGetProcessId = (uintptr_t)GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsGetProcessId"e);
 		RPM_dbvm(PsGetProcessId + 0x3, (void*)&Offset_UniqueProcessId, sizeof(Offset_UniqueProcessId));
 		verify(Offset_UniqueProcessId);
 		return Offset_UniqueProcessId;
@@ -80,7 +84,7 @@ private:
 	const unsigned Offset_ActiveProcessLinks = Offset_UniqueProcessId + 0x8;
 
 	const unsigned Offset_Peb = [&] {
-		uintptr_t PsGetProcessPeb = (uintptr_t)GetKernelProcAddress("ntoskrnl.exe"e, "PsGetProcessPeb"e);
+		uintptr_t PsGetProcessPeb = (uintptr_t)GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsGetProcessPeb"e);
 		RPM_dbvm(PsGetProcessPeb + 0x3, (void*)&Offset_Peb, sizeof(Offset_Peb));
 		verify(Offset_Peb);
 		return Offset_Peb;
@@ -152,21 +156,46 @@ private:
 	uint8_t mapLink[0x100] = { 0 };
 
 public:
-	void KernelExecute(tl::function_ref<void(void)> CallBack, bool bSetInterrupt = false) const {
+	void KernelExecute(bool bSetInterrupt, tl::function_ref<void(void)> CallBack) const {
 		dbvm.SwitchToKernelMode(0x10);
 		_stac();
 		if (bSetInterrupt) _enable();
 		__writecr3(CustomCR3.Value);
-		RunWithKernelStack(CallBack.callback_, CallBack.obj_);
+		RunWithKernelStack(CallBack.callback(), CallBack.obj());
 		dbvm.ReturnToUserMode();
 	}
 
-	template<class Type, class R = std::invoke_result_t<Type>, class = std::enable_if_t<!std::is_same_v<R, void>, Type>>
-	auto KernelExecute(Type CallBack, bool bSetInterrupt = false) const {
+	template<class tCallBack, class R = std::invoke_result_t<tCallBack>, class = std::enable_if_t<!std::is_same_v<R, void>, tCallBack>>
+	auto KernelExecute(bool bSetInterrupt, tCallBack CallBack) const {
 		R Result;
-		KernelExecute([&] { Result = CallBack(); }, bSetInterrupt);
+		KernelExecute(bSetInterrupt, [&] { Result = CallBack(); });
 		return Result;
 	}
+
+#ifdef TL_IGNORE_GUARD
+	template <class F>
+	class UserFunction;
+	template <class R, class... Args>
+	class UserFunction<R(Args...)> : public tl::function<R(Args...)> {};
+
+	template <class F>
+	class KernelFunction;
+	template <class R, class... Args>
+	class KernelFunction<R(Args...)> : public tl::function<R(Args...)> {
+		const Kernel& kernel;
+		const bool bSetInterrupt;
+	public:
+		using super = tl::function<R(Args...)>;
+
+		template<class FN>
+		KernelFunction(FN&& f, const Kernel& kernel, const bool bSetInterrupt = false) :
+			super(f), kernel(kernel), bSetInterrupt(bSetInterrupt) {}
+
+		R operator()(Args... args) const {
+			return kernel.KernelExecute(bSetInterrupt, [&] { return super::operator()(args...); });
+		}
+	};
+#endif
 
 	void SetCustomCR3() const { dbvm.SetCR3(CustomCR3); }
 	CR3 GetMappedProcessCR3() const { return mapCR3; }
@@ -188,20 +217,22 @@ public:
 		return 0;
 	}
 
-	static uintptr_t GetKernelProcAddress(const char* szModuleName, const char* szProcName) {
+	static uintptr_t GetKernelProcAddressVerified(const char* szModuleName, const char* szProcName) {
 		HMODULE hModule = LoadLibraryA(szModuleName);
 		uintptr_t hModuleKernel = GetKernelModuleAddress(szModuleName);
 		uintptr_t ProcAddr = (uintptr_t)GetProcAddress(hModule, szProcName);
 		if (!ProcAddr)
-			return 0;
+			error(szModuleName, szProcName);
 		uintptr_t Result = ProcAddr + hModuleKernel - (uintptr_t)hModule;
 		FreeLibrary(hModule);
 		return Result;
 	}
 
-	static uintptr_t GetUserProcAddress(const char* szModuleName, const char* szProcName) {
+	static uintptr_t GetUserProcAddressVerified(const char* szModuleName, const char* szProcName) {
 		HMODULE hModule = LoadLibraryA(szModuleName);
 		uintptr_t Result = (uintptr_t)GetProcAddress(hModule, szProcName);
+		if (!Result)
+			error(szModuleName, szProcName);
 		FreeLibrary(hModule);
 		return Result;
 	}
@@ -210,8 +241,8 @@ public:
 		return ExceptionHandler::TryExcept([&]() { memcpy(Dst, Src, Size); });
 	}
 
-private:
-	bool _WritePhysicalMemory(PhysicalAddress Address, const void* Buffer, size_t Size) const {
+	const tl::function<bool(PhysicalAddress Address, const void* Buffer, size_t Size)> WritePhysicalMemory = 
+		[&](PhysicalAddress Address, const void* Buffer, size_t Size) -> bool {
 		uintptr_t MappedAddress = GetMappedPhysicalAddress(Address);
 		if (!MappedAddress)
 			return false;
@@ -221,9 +252,10 @@ private:
 
 		SetCustomCR3();
 		return dbvm.WritePhysicalMemory(Address, Buffer, Size);
-	}
+	};
 
-	bool _ReadPhysicalMemory(PhysicalAddress Address, void* Buffer, size_t Size) const {
+	const tl::function<bool(PhysicalAddress Address, void* Buffer, size_t Size)> ReadPhysicalMemory = 
+		[&](PhysicalAddress Address, void* Buffer, size_t Size) -> bool {
 		uintptr_t MappedAddress = GetMappedPhysicalAddress(Address);
 		if (!MappedAddress)
 			return false;
@@ -233,12 +265,8 @@ private:
 
 		SetCustomCR3();
 		return dbvm.ReadPhysicalMemory(Address, Buffer, Size);
-	}
-
-public:
-	AUTO_VARIABLE(const WritePhysicalMemory, std::bind(&Kernel::_WritePhysicalMemory, _this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	AUTO_VARIABLE(const ReadPhysicalMemory, std::bind(&Kernel::_ReadPhysicalMemory, _this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-
+	};
+		
 	PhysicalAddress GetPhysicalAddress(uintptr_t VirtualAddress, CR3 cr3) const {
 		return GetPhysicalAddressByPhysicalMemoryAccess(VirtualAddress, cr3, ReadPhysicalMemory);
 	}
@@ -374,37 +402,4 @@ public:
 		mapPid = Pid;
 		return true;
 	}
-
-	template <class F>
-	class SafeCall;
-
-	template <class R, class... Args>
-	class SafeCall<R(Args...)> {
-		using Type = R(*)(Args...);
-		Type pFunc;
-	public:
-		SafeCall(auto p) : pFunc((Type)p) {}
-
-		SafeCall& operator=(auto p) {
-			return pFunc = (Type)p;
-		}
-
-		__declspec(guard(ignore)) R operator()(Args... args) const {
-			return pFunc(args...);
-		}
-	};
-
-	template <class F>
-	class KernelCall;
-
-	template <class R, class... Args>
-	class KernelCall<R(Args...)> : public SafeCall<R(Args...)> {
-		const Kernel& kernel;
-	public:
-		KernelCall(auto p, const Kernel& kernel) : SafeCall<R(Args...)>(p), kernel(kernel) {}
-
-		R operator()(Args... args) const {
-			return kernel.KernelExecute([&] { return (*(const SafeCall<R(Args...)>*)this)(args...); });
-		}
-	};
 };

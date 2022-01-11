@@ -1,11 +1,10 @@
 #pragma once
 #include <Windows.h>
 #include <intrin.h>
-#include <functional>
 #include "physicalmemory.h"
 #include "ida_defs.h"
 #include "exception.h"
-#include "util.h"
+#include "function_ref.hpp"
 
 extern "C" uintptr_t vmcall_intel(uint64_t Password3, uint64_t Password1, void* pVMCallInfo);
 extern "C" uintptr_t vmcall_amd(uint64_t Password3, uint64_t Password1, void* pVMCallInfo);
@@ -133,8 +132,6 @@ struct ChangeRegOnBPInfo {
 };
 
 class DBVM {
-private:
-	DBVM* const _this = this;
 public:
 	constexpr static uint64_t default_password1 = 0x76543210;
 	constexpr static uint32_t default_password2 = 0xfedcba98;
@@ -302,26 +299,17 @@ public:
 		return VMCall(VMCALL_GETMEM);
 	}
 
-	_CR3 GetCR3() const {
-		_CR3 CR3;
-		CR3.Value = VMCall(VMCALL_GETCR3);
-		return CR3;
-	}
-
-private:
-	bool _ReadPhysicalMemory(PhysicalAddress srcPA, void* dstVA, size_t size) const {
+	const tl::function<bool(PhysicalAddress srcPA, void* dstVA, size_t size)> ReadPhysicalMemory =
+		[&](PhysicalAddress srcPA, void* dstVA, size_t size) -> bool {
 		constexpr unsigned nopagefault = true;
 		return VMCall(VMCALL_READ_PHYSICAL_MEMORY, srcPA, (unsigned)size, dstVA, nopagefault) == 0;
-	}
+	};
 
-	bool _WritePhysicalMemory(PhysicalAddress dstPA, const void* srcVA, size_t size) const {
+	const tl::function<bool(PhysicalAddress dstPA, const void* srcVA, size_t size)> WritePhysicalMemory =
+		[&](PhysicalAddress dstPA, const void* srcVA, size_t size) -> bool {
 		constexpr unsigned nopagefault = true;
 		return VMCall(VMCALL_WRITE_PHYSICAL_MEMORY, dstPA, (unsigned)size, srcVA, nopagefault) == 0;
-	}
-
-public:
-	AUTO_VARIABLE(const ReadPhysicalMemory, std::bind(&DBVM::_ReadPhysicalMemory, _this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	AUTO_VARIABLE(const WritePhysicalMemory, std::bind(&DBVM::_WritePhysicalMemory, _this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	};
 
 	void SwitchToKernelMode(uint16_t newCS) const {
 		VMCall(VMCALL_KERNELMODE, newCS);
@@ -329,6 +317,12 @@ public:
 
 	void ReturnToUserMode() const {
 		VMCall(VMCALL_USERMODE);
+	}
+
+	CR3 GetCR3() const {
+		CR3 cr3;
+		cr3.Value = VMCall(VMCALL_GETCR3);
+		return cr3;
 	}
 
 	void SetCR3(CR3 cr3) const {

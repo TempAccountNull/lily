@@ -53,7 +53,7 @@ void realmain() {
 
 		//DumpAll(process);
 		//Dump(process);
-		//break;
+		//return;
 
 		hack.Loop(process);
 	}

@@ -17,54 +17,45 @@ class KernelLily : public Kernel {
 public:
 	KernelLily(const DBVM& dbvm) : Kernel(dbvm) {}
 
-	const KernelCall<PVOID(PVOID Process)> PsGetProcessWin32Process = [&]{
-		const auto p = GetKernelProcAddress("ntoskrnl.exe"e, "PsGetProcessWin32Process"e);
-		verify(p);
-		return decltype(PsGetProcessWin32Process)(p, *this);
-	}();
-	const KernelCall<NTSTATUS(PVOID Process, PVOID Win32Process, PVOID PrevWin32Process)> PsSetProcessWin32Process = [&] {
-		const auto p = GetKernelProcAddress("ntoskrnl.exe"e, "PsSetProcessWin32Process"e);
-		verify(p);
-		return decltype(PsSetProcessWin32Process)(p, *this);
-	}();
-	const KernelCall<PWND(HWND hWnd)> ValidateHwnd = [&] {
-		const auto p = GetKernelProcAddress("win32kbase.sys"e, "ValidateHwnd"e);
-		verify(p);
-		return decltype(ValidateHwnd)(p, *this);
-	}();
-	const KernelCall<PVOID(DWORD PoolType, SIZE_T NumberOfBytes)> ExAllocatePool = [&] {
-		const auto p = GetKernelProcAddress("ntoskrnl.exe"e, "ExAllocatePool"e);
-		verify(p);
-		return decltype(ExAllocatePool)(p, *this);
-	}();
-	const KernelCall<ATOM(PCWSTR AtomName)> UserFindAtom = [&] {
-		const auto p = GetKernelProcAddress("win32kbase.sys"e, "UserFindAtom"e);
-		verify(p);
-		return decltype(UserFindAtom)(p, *this);
-	}();
-	const KernelCall<HANDLE(PPROP pProp, ATOM nAtom, DWORD dwFlag)> RealGetProp = [&] {
-		const auto p = GetKernelProcAddress("win32kbase.sys"e, "RealGetProp"e);
-		verify(p);
-		return decltype(RealGetProp)(p, *this);
-	}();
-	const KernelCall<BOOL(PPPROP pProp, ATOM nAtom, HANDLE hValue, DWORD dwFlag)> RealInternalSetProp = [&] {
-		const auto p = GetKernelProcAddress("win32kbase.sys"e, "RealInternalSetProp"e);
-		verify(p);
-		return decltype(RealInternalSetProp)(p, *this);
-	}();
-	const SafeCall<tagWND* (HWND hWnd)> UserValidateHwnd = [&] {
+	const KernelFunction<PVOID(PVOID Process)> PsGetProcessWin32Process = {
+		reinterpret_cast<PVOID(*)(PVOID Process)>
+		(GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsGetProcessWin32Process"e)), *this };
+
+	const KernelFunction<NTSTATUS(PVOID Process, PVOID Win32Process, PVOID PrevWin32Process)> PsSetProcessWin32Process = {
+		reinterpret_cast<NTSTATUS(*)(PVOID Process, PVOID Win32Process, PVOID PrevWin32Process)>
+		(GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsSetProcessWin32Process"e)), *this };
+
+	const KernelFunction<PWND(HWND hWnd)> ValidateHwnd = {
+		reinterpret_cast<PWND(*)(HWND hWnd)>
+		(GetKernelProcAddressVerified("win32kbase.sys"e, "ValidateHwnd"e)), *this };
+		
+	const KernelFunction<PVOID(DWORD PoolType, SIZE_T NumberOfBytes)> ExAllocatePool = {
+		reinterpret_cast<PVOID(*)(DWORD PoolType, SIZE_T NumberOfBytes)>
+		(GetKernelProcAddressVerified("ntoskrnl.exe"e, "ExAllocatePool"e)), *this };
+		
+	const KernelFunction<ATOM(PCWSTR AtomName)> UserFindAtom = {
+		reinterpret_cast<ATOM(*)(PCWSTR AtomName)>
+		(GetKernelProcAddressVerified("win32kbase.sys"e, "UserFindAtom"e)), *this };
+
+	const KernelFunction<HANDLE(PPROP pProp, ATOM nAtom, DWORD dwFlag)> RealGetProp = {
+		reinterpret_cast<HANDLE(*)(PPROP pProp, ATOM nAtom, DWORD dwFlag)>
+		(GetKernelProcAddressVerified("win32kbase.sys"e, "RealGetProp"e)), *this };
+
+	const KernelFunction<BOOL(PPPROP pProp, ATOM nAtom, HANDLE hValue, DWORD dwFlag)> RealInternalSetProp = {
+		reinterpret_cast<BOOL(*)(PPPROP pProp, ATOM nAtom, HANDLE hValue, DWORD dwFlag)>
+		(GetKernelProcAddressVerified("win32kbase.sys"e, "RealInternalSetProp"e)), *this };
+		
+	const UserFunction<tagWND* (HWND hWnd)> UserValidateHwnd = [&] {
 		const uintptr_t ScanResult = PatternScan::Range((uintptr_t)IsChild, 0x30, "48 8B CA E8"e, RPM_dbvm);
 		verify(ScanResult);
 		const auto p = PatternScan::GetJumpAddress(ScanResult + 0x3, RPM_dbvm);
 		verify(p);
-		return p;
+		return reinterpret_cast<tagWND * (*)(HWND hWnd)>(p);
 	}();
 
 private:
 	const uint32_t OffsetProp = [&] {
-		const uintptr_t pNtUserGetProp = GetKernelProcAddress("win32kfull.sys"e, "NtUserGetProp"e);
-		verify(pNtUserGetProp);
-
+		const uintptr_t pNtUserGetProp = GetKernelProcAddressVerified("win32kfull.sys"e, "NtUserGetProp"e);
 		const uintptr_t ScanResult = PatternScan::Range(pNtUserGetProp, 0x100, "48 8B ? ? ? 00 00 48 FF 15"e, RPM_dbvm);
 		verify(ScanResult);
 
@@ -74,9 +65,7 @@ private:
 	}();
 
 	const uintptr_t pPsProcessType = [&] {
-		const uintptr_t ppPsProcessType = GetKernelProcAddress("ntoskrnl.exe"e, "PsProcessType"e);
-		verify(ppPsProcessType);
-
+		const uintptr_t ppPsProcessType = GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsProcessType"e);
 		RPM_dbvm(ppPsProcessType, (void*)&pPsProcessType, sizeof(pPsProcessType));
 		verify(pPsProcessType);
 		return pPsProcessType;

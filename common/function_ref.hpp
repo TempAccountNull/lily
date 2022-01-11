@@ -52,11 +52,13 @@
      defined(TL_FUNCTION_REF_GCC49)) &&                                        \
     !defined(TL_FUNCTION_REF_GCC54)
 /// \exclude
-#define TL_FUNCTION_REF_11_CONSTEXPR
+#define TL_11_CONSTEXPR
 #else
 /// \exclude
-#define TL_FUNCTION_REF_11_CONSTEXPR constexpr
+#define TL_11_CONSTEXPR constexpr
 #endif
+
+#define TL_IGNORE_GUARD __declspec(guard(ignore))
 
 #include <functional>
 #include <utility>
@@ -79,6 +81,7 @@ namespace tl {
             template <typename Fn, typename... Args,
                 typename = enable_if_t<std::is_member_pointer<decay_t<Fn>>::value>,
                 int = 0>
+                TL_IGNORE_GUARD
                 constexpr auto invoke(Fn&& f, Args &&... args) noexcept(
                     noexcept(std::mem_fn(f)(std::forward<Args>(args)...)))
                 -> decltype(std::mem_fn(f)(std::forward<Args>(args)...)) {
@@ -87,6 +90,7 @@ namespace tl {
 
             template <typename Fn, typename... Args,
                 typename = enable_if_t < !std::is_member_pointer<decay_t<Fn>>{} >>
+                TL_IGNORE_GUARD
                 constexpr auto invoke(Fn&& f, Args &&... args) noexcept(
                     noexcept(std::forward<Fn>(f)(std::forward<Args>(args)...)))
                 -> decltype(std::forward<Fn>(f)(std::forward<Args>(args)...)) {
@@ -150,17 +154,17 @@ namespace tl {
             detail::fnref::enable_if_t<
             !std::is_same<detail::fnref::decay_t<F>, function_ref>::value&&
             detail::fnref::is_invocable_r<R, F&&, Args...>::value>* = nullptr>
-            TL_FUNCTION_REF_11_CONSTEXPR function_ref(F&& f) noexcept
-            : obj_(const_cast<void*>(reinterpret_cast<const void*>(std::addressof(f)))), 
-            callback_([](void* obj, Args... args) -> R {
-            return detail::fnref::invoke(
-                *reinterpret_cast<typename std::add_pointer<F>::type>(obj),
-                std::forward<Args>(args)...);
-                })
-        {}
+            TL_11_CONSTEXPR function_ref(F&& f) noexcept {
+            obj_ = const_cast<void*>(reinterpret_cast<const void*>(std::addressof(f)));
+            callback_ = [](void* obj, Args... args) -> R {
+                return detail::fnref::invoke(
+                    *reinterpret_cast<typename std::add_pointer<F>::type>(obj),
+                    std::forward<Args>(args)...);
+            };
+        }
 
         /// Makes `*this` refer to the same callable as `rhs`.
-        TL_FUNCTION_REF_11_CONSTEXPR function_ref<R(Args...)>&
+        TL_11_CONSTEXPR function_ref<R(Args...)>&
             operator=(const function_ref<R(Args...)>& rhs) noexcept = default;
 
         /// Makes `*this` refer to `f`.
@@ -169,7 +173,7 @@ namespace tl {
         template <typename F,
             detail::fnref::enable_if_t<detail::fnref::is_invocable_r<R, F&&, Args...>::value>
             * = nullptr>
-            TL_FUNCTION_REF_11_CONSTEXPR function_ref<R(Args...)>& operator=(F&& f) noexcept {
+            TL_11_CONSTEXPR function_ref<R(Args...)>& operator=(F&& f) noexcept {
             obj_ = reinterpret_cast<void*>(std::addressof(f));
             callback_ = [](void* obj, Args... args) {
                 return detail::fnref::invoke(
@@ -191,12 +195,12 @@ namespace tl {
             return callback_(obj_, std::forward<Args>(args)...);
         }
 
-    //private:
-    //    void* obj_ = nullptr;
-    //    R(*callback_)(void*, Args...) = nullptr;
+    private:
+        void* obj_ = nullptr;
+        R(*callback_)(void*, Args...) = nullptr;
     public:
-        void* const obj_ = nullptr;
-        R(* const callback_)(void*, Args...) = nullptr;
+        void* obj() const { return obj_; }
+        auto callback() const { return callback_; }
     };
 
     /// Swaps the referred callables of `lhs` and `rhs`.
@@ -213,6 +217,100 @@ namespace tl {
     // TODO, will require some kind of callable traits
     // template <typename F>
     // function_ref(F) -> function_ref</* deduced if possible */>;
+#endif
+
+    /// A lightweight owning reference to a callable.
+    ///
+    /// Example usage:
+    ///
+    /// ```cpp
+    /// void foo (function<int(int)> func) {
+    ///     std::cout << "Result is " << func(21); //42
+    /// }
+    ///
+    /// foo([](int i) { return i*2; });
+    template <class F> class function;
+
+    /// Specialization for function types.
+    template <class R, class... Args> class function<R(Args...)> {
+    public:
+        constexpr function() noexcept = delete;
+
+        /// Creates a `function` which refers to the same callable as `rhs`.
+        constexpr function(const function<R(Args...)>& rhs) noexcept = default;
+
+        /// Constructs a `function` referring to `f`.
+        ///
+        /// \synopsis template <typename F> constexpr function(F &&f) noexcept
+        template <typename F,
+            detail::fnref::enable_if_t<
+            !std::is_same<detail::fnref::decay_t<F>, function>::value&&
+            detail::fnref::is_invocable_r<R, F&&, Args...>::value>* = nullptr>
+            TL_11_CONSTEXPR function(F&& f) noexcept {
+            void* const pobj = const_cast<void*>(reinterpret_cast<const void*>(std::addressof(f)));
+            obj_ = std::vector<uint8_t>((uint8_t*)pobj, (uint8_t*)pobj + sizeof(f));
+            callback_ = [](void* obj, Args... args) -> R {
+                return detail::fnref::invoke(
+                    *reinterpret_cast<typename std::add_pointer<F>::type>(obj),
+                    std::forward<Args>(args)...);
+            };
+        }
+
+        /// Makes `*this` refer to the same callable as `rhs`.
+        TL_11_CONSTEXPR function<R(Args...)>&
+            operator=(const function<R(Args...)>& rhs) noexcept = default;
+
+        /// Makes `*this` refer to `f`.
+        ///
+        /// \synopsis template <typename F> constexpr function &operator=(F &&f) noexcept;
+        template <typename F,
+            detail::fnref::enable_if_t<detail::fnref::is_invocable_r<R, F&&, Args...>::value>
+            * = nullptr>
+            TL_11_CONSTEXPR function<R(Args...)>& operator=(F&& f) noexcept {
+            void* const pobj = reinterpret_cast<void*>(std::addressof(f));
+            obj_ = std::vector<uint8_t>((uint8_t*)pobj, (uint8_t*)pobj + sizeof(f));
+            callback_ = [](void* obj, Args... args) {
+                return detail::fnref::invoke(
+                    *reinterpret_cast<typename std::add_pointer<F>::type>(obj),
+                    std::forward<Args>(args)...);
+            };
+
+            return *this;
+        }
+
+        /// Swaps the referred callables of `*this` and `rhs`.
+        constexpr void swap(function<R(Args...)>& rhs) noexcept {
+            std::swap(obj_, rhs.obj_);
+            std::swap(callback_, rhs.callback_);
+        }
+
+        /// Call the stored callable with the given arguments.
+        R operator()(Args... args) const {
+            return callback_((void*)obj_.data(), std::forward<Args>(args)...);
+        }
+
+    private:
+        std::vector<uint8_t> obj_;
+        R(*callback_)(void*, Args...) = nullptr;
+    public:
+        void* obj() const { return (void*)obj_.data(); }
+        auto callback() const { return callback_; }
+    };
+
+    /// Swaps the referred callables of `lhs` and `rhs`.
+    template <typename R, typename... Args>
+    constexpr void swap(function<R(Args...)>& lhs,
+        function<R(Args...)>& rhs) noexcept {
+        lhs.swap(rhs);
+    }
+
+#if __cplusplus >= 201703L
+    template <typename R, typename... Args>
+    function(R(*)(Args...))->function<R(Args...)>;
+
+    // TODO, will require some kind of callable traits
+    // template <typename F>
+    // function(F) -> function</* deduced if possible */>;
 #endif
 } // namespace tl
 
