@@ -3,7 +3,7 @@
 #include <Windows.h>
 
 #include "ida_defs.h"
-#include "xenuine.h"
+#include "pubg_process.h"
 #include "pubg_struct.h"
 
 class TNameEntryArray;
@@ -11,7 +11,7 @@ class TNameEntryArray;
 class UObject
 {
 private:
-	BYTE pad[0x40];
+	uint8_t pad[0x40];
 public:
 	//DWORD64 GetClass() {
 	//	__int64 a1 = (__int64)this;
@@ -30,13 +30,13 @@ public:
 		__int64 v37;
 		char result;
 
-		v1 = *(_DWORD*)(a1 + 0x38) ^ 0xDAED6428;
-		v2 = __ROL4__(*(_DWORD*)(a1 + 0x34) ^ 0x54AF9111, 4);
-		v3 = v2 ^ (v2 << 0x10) ^ 0xBEC56428;
+		v1 = *(_DWORD*)(a1 + 0xC) ^ 0x5C2C3CAD;
+		v2 = __ROL4__(*(_DWORD*)(a1 + 8) ^ 0x8D440C24, 0xB);
+		v3 = v2 ^ (v2 << 0x10) ^ 0x60813CAD;
 		LODWORD(v37) = v3;
-		v4 = __ROR4__(v1, 4);
-		result = v4 ^ 0x11;
-		HIDWORD(v37) = v4 ^ (v4 << 0x10) ^ 0xC5BE9111;
+		v4 = __ROR4__(v1, 0xD);
+		result = v4 ^ 0x24;
+		HIDWORD(v37) = v4 ^ (v4 << 0x10) ^ 0x81600C24;
 
 		FName name;
 		name.ComparisonIndex = LODWORD(v37);
@@ -73,39 +73,38 @@ public:
 
 class FUObjectItem
 {
-public:
-	char Padding[0x8];
-	DWORD64 ObjectPtr;
-	char Padding2[0x20];
+private:	uint8_t Pad1[0x8];
+public:		uintptr_t ObjectPtr;
+private:	uint8_t Pad2[0x20];
 };
 
 class FUObjectArray
 {
 private:
-	static constexpr DWORD64 ADDRESS_GOBJECTS = 0x8D45178;
+	static constexpr uintptr_t ADDRESS_GOBJECTS = 0x8D763C8;
 
-	DWORD64 BaseAddress;
-	DWORD NumElements;
+	uintptr_t BaseAddress;
+	uint32_t NumElements;
 
 public:
 	FUObjectArray() {
-		EncryptedObjectPtr<DWORD64> P;
-		gXenuine->process.GetBaseValue(ADDRESS_GOBJECTS + 0x18, &P);
+		EncryptedPtr<uintptr_t> P;
+		g_Pubg->ReadBase(ADDRESS_GOBJECTS + 0x18, &P);
 		BaseAddress = P;
-		gXenuine->process.GetBaseValue(ADDRESS_GOBJECTS + 0x28, &NumElements);
+		g_Pubg->ReadBase(ADDRESS_GOBJECTS + 0x28, &NumElements);
 	}
 
-	ObjectPtr<UObject> GetObjectPtrById(DWORD Index) const {
+	NativePtr<UObject> GetNativePtrById(size_t Index) const {
 		if (Index >= NumElements)
 			return 0;
 
 		FUObjectItem ObjectItem;
-		if (gXenuine->process.GetValue(BaseAddress + Index * sizeof(ObjectItem), &ObjectItem) == 0)
+		if (g_Pubg->Read(BaseAddress + Index * sizeof(ObjectItem), &ObjectItem) == 0)
 			return 0;
 
 		return ObjectItem.ObjectPtr;
 	}
 
-	DWORD GetNumElements() const { return NumElements; }
+	size_t GetNumElements() const { return NumElements; }
 	void DumpObject(const TNameEntryArray& NameArr) const;
 };

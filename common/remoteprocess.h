@@ -53,7 +53,7 @@ public:
 	}
 
 	bool WriteProcessMemoryCloakWrapper(void* pRemoteAddress, const void* pBuffer, size_t Size, auto f) const {
-		verify(cr3.Value);
+		verify(cr3);
 		//if (!TriggerCOW(pRemoteAddress, Size))
 		//	return false;
 
@@ -71,7 +71,7 @@ public:
 	}
 
 	bool WriteProcessMemoryWrapper(void* pRemoteAddress, const void* pBuffer, size_t Size, auto f) const {
-		if (cr3.Value)
+		if (cr3)
 			return WriteProcessMemoryCloakWrapper(pRemoteAddress, pBuffer, Size, f);
 		return WriteProcessMemoryWinAPIWrapper(pRemoteAddress, pBuffer, Size, f);
 	}
@@ -185,7 +185,7 @@ public:
 	}
 
 	bool RemoveNXBit(void* pRemoteAddress, size_t Size) const {
-		verify(cr3.Value);
+		verify(cr3);
 
 		DWORD dwOldProtect;
 		if (!RemoteVirtualProtect(pRemoteAddress, Size, PAGE_EXECUTE_READWRITE, &dwOldProtect) ||

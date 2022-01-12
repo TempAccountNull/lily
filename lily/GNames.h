@@ -3,7 +3,7 @@
 #include <Windows.h>
 #include <string>
 
-#include "xenuine.h"
+#include "pubg_process.h"
 #include "pubg_struct.h"
 #include "compiletime.h"
 #include "pubg_class.h"
@@ -11,13 +11,13 @@
 class TNameEntryArray
 {
 private:
-	static constexpr DWORD64 ADDRESS_GNAMES = 0x8D402C8;
-	static constexpr UINT32 ElementsPerChunk = 0x4134;
+	static constexpr uintptr_t ADDRESS_GNAMES = 0x8D71538;
+	static constexpr UINT32 ElementsPerChunk = 0x3E28;
 
 	//NumElements can be increased when name added to list
 	//Don't use this for check index range -> "if(ID.ComparisonIndex >= NumElements)"
 	//DWORD64 NumElements;
-	DWORD64 BasePtr;
+	uintptr_t BasePtr;
 
 	static constexpr size_t NAME_SIZE = 0x200;
 	struct FNameEntry
@@ -32,13 +32,13 @@ private:
 	};
 public:
 	TNameEntryArray() {
-		EncryptedObjectPtr<DWORD64> P;
-		gXenuine->process.GetBaseValue(ADDRESS_GNAMES, &P);
-		gXenuine->process.GetValue(P, &P);
-		gXenuine->process.GetValue(P, &P);
+		EncryptedPtr<uintptr_t> P;
+		g_Pubg->ReadBase(ADDRESS_GNAMES, &P);
+		g_Pubg->Read(P, &P);
+		g_Pubg->Read(P, &P);
 		//////////////////////////////////////////////////////////////////
-		EncryptedObjectPtr<DWORD64> P2;
-		gXenuine->process.GetValue(P + 0, &P2); BasePtr = P2;
+		EncryptedPtr<uintptr_t> P2;
+		g_Pubg->Read(P + 0, &P2); BasePtr = P2;
 		//gXenuine->process.GetValue(P + 8, &P2); NumElements = P2;
 	}
 
@@ -48,17 +48,17 @@ public:
 		if (ID.ComparisonIndex <= 0)
 			return false;
 
-		DWORD64 Ptr = BasePtr + sizeof(UINT_PTR) * (ID.ComparisonIndex / ElementsPerChunk);
-		gXenuine->process.GetValue(Ptr, &Ptr);
+		uintptr_t Ptr = BasePtr + sizeof(UINT_PTR) * (ID.ComparisonIndex / ElementsPerChunk);
+		g_Pubg->Read(Ptr, &Ptr);
 		if (!Ptr)
 			return false;
 
 		Ptr = Ptr + sizeof(UINT_PTR) * (ID.ComparisonIndex % ElementsPerChunk);
-		gXenuine->process.GetValue(Ptr, &Ptr);
+		g_Pubg->Read(Ptr, &Ptr);
 		if (!Ptr)
 			return false;
 
-		if (!gXenuine->process.ReadProcessMemory(Ptr + offsetof(FNameEntry, AnsiName), szBuf, std::min(SizeMax, NAME_SIZE)))
+		if (!g_Pubg->ReadProcessMemory(Ptr + offsetof(FNameEntry, AnsiName), szBuf, std::min(SizeMax, NAME_SIZE)))
 			return false;
 
 		return true;
@@ -71,7 +71,7 @@ public:
 		return CompileTime::Hash(szBuf);
 	}
 
-	unsigned GetNameHashByObject(ObjectPtr<UObject> Ptr) const {
+	unsigned GetNameHashByObject(NativePtr<UObject> Ptr) const {
 		UObject Obj;
 		if (!Ptr.Read(Obj))
 			return 0;

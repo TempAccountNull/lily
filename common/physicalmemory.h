@@ -17,8 +17,12 @@ struct CR3
             uintptr_t PageFrameNumber : 36;
             uintptr_t Reserved : 16;
         };
-        uintptr_t Value = 0;
+        uintptr_t Value;
     };
+    bool IsValid() const { return Value != 0; }
+    operator uintptr_t() const { return Value; }
+    CR3& operator=(uintptr_t Val) { Value = Val; return *this; }
+    CR3(uintptr_t Val = 0) : Value(Val) {}
 };
 struct PML4E
 {
@@ -40,8 +44,12 @@ struct PML4E
             uintptr_t Ignored3 : 11;
             uintptr_t ExecuteDisable : 1;       // If 1, instruction fetches not allowed.
         };
-        uintptr_t Value = 0;
+        uintptr_t Value;
     };
+    bool IsValid() const { return Value != 0; }
+    operator uintptr_t() const { return Value; }
+    PML4E& operator=(uintptr_t Val) { Value = Val; return *this; }
+    PML4E(uintptr_t Val = 0) : Value(Val) {}
 };
 struct PDPTE
 {
@@ -63,8 +71,12 @@ struct PDPTE
             uintptr_t Ignored3 : 11;
             uintptr_t ExecuteDisable : 1;       // If 1, instruction fetches not allowed.
         };
-        uintptr_t Value = 0;
+        uintptr_t Value;
     };
+    bool IsValid() const { return Value != 0; }
+    operator uintptr_t() const { return Value; }
+    PDPTE& operator=(uintptr_t Val) { Value = Val; return *this; }
+    PDPTE(uintptr_t Val = 0) : Value(Val) {}
 };
 struct PDE
 {
@@ -86,8 +98,12 @@ struct PDE
             uintptr_t Ignored3 : 11;
             uintptr_t ExecuteDisable : 1;       // If 1, instruction fetches not allowed.
         };
-        uintptr_t Value = 0;
+        uintptr_t Value;
     };
+    bool IsValid() const { return Value != 0; }
+    operator uintptr_t() const { return Value; }
+    PDE& operator=(uintptr_t Val) { Value = Val; return *this; }
+    PDE(uintptr_t Val = 0) : Value(Val) {}
 };
 struct PTE
 {
@@ -111,167 +127,160 @@ struct PTE
             uintptr_t ProtectionKey : 4;         // If the PKE bit of CR4 is set, determines the protection key.
             uintptr_t ExecuteDisable : 1;       // If 1, instruction fetches not allowed.
         };
-        uintptr_t Value = 0;
+        uintptr_t Value;
     };
+    bool IsValid() const { return Value != 0; }
+    operator uintptr_t() const { return Value; }
+    PTE& operator=(uintptr_t Val) { Value = Val; return *this; }
+    PTE(uintptr_t Val = 0) : Value(Val) {}
 };
 
 class PhysicalAddress {
 private:
-    //Maximum ram 1TB
-    constexpr static uintptr_t MAXPHYADDRMASK = ~- 0x10000000000;
-    //INITIALIZER(
-    //    int Info[4];
-    //    __cpuid(Info, 0x80000008);
-    //    BYTE MAXPHYADDR = Info[0] & 0xff;
-    //    MAXPHYADDRMASK = -1;
-    //    MAXPHYADDRMASK = MAXPHYADDRMASK >> MAXPHYADDR;
-    //    MAXPHYADDRMASK = ~(MAXPHYADDRMASK << MAXPHYADDR);
-    //)
+    //Maximum Address 1TB
+    constexpr static size_t MAXPHYADDR_BITSIZE = 40;
+    union {
+        uintptr_t PA = 0;
+        uintptr_t _PA : MAXPHYADDR_BITSIZE;
+    };
 public:
-    uintptr_t PA;
-    constexpr uintptr_t Get() const { return PA & MAXPHYADDRMASK; }
-    constexpr operator uintptr_t() const { return Get(); }
-    constexpr PhysicalAddress& operator =(uintptr_t NewPA) {
-        PA = NewPA & MAXPHYADDRMASK;
-        return *this;
-    }
-    constexpr PhysicalAddress(uintptr_t NewPA = 0) { *this = NewPA; }
+    void MaskPA(uintptr_t NewPA) { PA = NewPA; PA = _PA; }
+    operator uintptr_t() const { return _PA; }
+    PhysicalAddress& operator =(uintptr_t NewPA) { MaskPA(NewPA); return *this; }
+    PhysicalAddress(uintptr_t NewPA) { MaskPA(NewPA); }
+    PhysicalAddress(const PhysicalAddress& rhs) { MaskPA(rhs.PA); }
 };
 
-using tWritePhysicalMemory = tl::function_ref<bool(PhysicalAddress PA, const void* Buffer, size_t Size)>;
-using tReadPhysicalMemory = tl::function_ref<bool(PhysicalAddress PA, void* Buffer, size_t Size)>;
+using tReadPhysicalMemory = tl::function<bool(PhysicalAddress PA, void* Buffer, size_t Size)>;
+using tWritePhysicalMemory = tl::function<bool(PhysicalAddress PA, const void* Buffer, size_t Size)>;
 
-static PhysicalAddress GetPTEAddressByPhysicalMemoryAccess(uintptr_t VirtualAddress, CR3 cr3, tReadPhysicalMemory ReadPhysicalMemory) {
-    const uintptr_t Address = VirtualAddress;
-    const uintptr_t IndexPML4 = (Address >> 39) & 0x1FF;
-    const uintptr_t IndexPageDirPtr = (Address >> 30) & 0x1FF;
-    const uintptr_t IndexPageDir = (Address >> 21) & 0x1FF;
-    const uintptr_t IndexPageTable = (Address >> 12) & 0x1FF;
+class PhysicalMemory {
+public:
+    static PhysicalAddress GetPTEAddress(uintptr_t VirtualAddress, CR3 cr3, tReadPhysicalMemory ReadPhysicalMemory) {
+        const uintptr_t Address = VirtualAddress;
+        const uintptr_t IndexPML4 = (Address >> 39) & 0x1FF;
+        const uintptr_t IndexPageDirPtr = (Address >> 30) & 0x1FF;
+        const uintptr_t IndexPageDir = (Address >> 21) & 0x1FF;
+        const uintptr_t IndexPageTable = (Address >> 12) & 0x1FF;
 
-    PML4E EntryPML4;
-    PDPTE EntryPageDirPtr;
-    PDE EntryPageDir;
+        PML4E EntryPML4;
+        PDPTE EntryPageDirPtr;
+        PDE EntryPageDir;
 
-    //does not check "Present" bit
-    if (!cr3.Value)
-        return 0;
+        if (!cr3.IsValid())
+            return 0;
 
-    if (!ReadPhysicalMemory(cr3.PageFrameNumber * 0x1000 + IndexPML4 * 8, &EntryPML4, 8))
-        return 0;
+        if (!ReadPhysicalMemory(cr3.PageFrameNumber * 0x1000 + IndexPML4 * 8, &EntryPML4, 8))
+            return 0;
 
-    if (!EntryPML4.Value)
-        return 0;
+        if (!EntryPML4.IsValid())
+            return 0;
 
-    if (!ReadPhysicalMemory(EntryPML4.PageFrameNumber * 0x1000 + IndexPageDirPtr * 8, &EntryPageDirPtr, 8))
-        return 0;
+        if (!ReadPhysicalMemory(EntryPML4.PageFrameNumber * 0x1000 + IndexPageDirPtr * 8, &EntryPageDirPtr, 8))
+            return 0;
 
-    if (!EntryPageDirPtr.Value)
-        return 0;
+        if (!EntryPageDirPtr.IsValid())
+            return 0;
 
-    if (EntryPageDirPtr.PageSize)
-        return 0;
+        if (EntryPageDirPtr.PageSize)
+            return 0;
 
-    if (!ReadPhysicalMemory(EntryPageDirPtr.PageFrameNumber * 0x1000 + IndexPageDir * 8, &EntryPageDir, 8))
-        return 0;
+        if (!ReadPhysicalMemory(EntryPageDirPtr.PageFrameNumber * 0x1000 + IndexPageDir * 8, &EntryPageDir, 8))
+            return 0;
 
-    if (!EntryPageDir.Value)
-        return 0;
+        if (!EntryPageDir.IsValid())
+            return 0;
 
-    if (EntryPageDir.PageSize)
-        return 0;
+        if (EntryPageDir.PageSize)
+            return 0;
 
-    return EntryPageDir.PageFrameNumber * 0x1000 + IndexPageTable * 8;
-}
-
-static PhysicalAddress GetPhysicalAddressByPhysicalMemoryAccess(uintptr_t VirtualAddress, CR3 cr3, tReadPhysicalMemory ReadPhysicalMemory) {
-    const uintptr_t Address = VirtualAddress;
-    const uintptr_t IndexPML4 = (Address >> 39) & 0x1FF;
-    const uintptr_t IndexPageDirPtr = (Address >> 30) & 0x1FF;
-    const uintptr_t IndexPageDir = (Address >> 21) & 0x1FF;
-    const uintptr_t IndexPageTable = (Address >> 12) & 0x1FF;
-
-    PML4E EntryPML4;
-    PDPTE EntryPageDirPtr;
-    PDE EntryPageDir;
-    PTE EntryPageTable;
-
-    //does not check "Present" bit
-    if (!cr3.Value)
-        return 0;
-
-    if (!ReadPhysicalMemory(cr3.PageFrameNumber * 0x1000 + IndexPML4 * 8, &EntryPML4, 8))
-        return 0;
-
-    if (!EntryPML4.Value)
-        return 0;
-
-    if (!ReadPhysicalMemory(EntryPML4.PageFrameNumber * 0x1000 + IndexPageDirPtr * 8, &EntryPageDirPtr, 8))
-        return 0;
-
-    if (!EntryPageDirPtr.Value)
-        return 0;
-
-    if (EntryPageDirPtr.PageSize)
-        return EntryPageDirPtr.PageFrameNumber * 0x1000 + (Address & 0x3FFFFFFF);
-
-    if (!ReadPhysicalMemory(EntryPageDirPtr.PageFrameNumber * 0x1000 + IndexPageDir * 8, &EntryPageDir, 8))
-        return 0;
-
-    if (!EntryPageDir.Value)
-        return 0;
-
-    if (EntryPageDir.PageSize)
-        return EntryPageDir.PageFrameNumber * 0x1000 + (Address & 0x1FFFFF);
-
-    if (!ReadPhysicalMemory(EntryPageDir.PageFrameNumber * 0x1000 + IndexPageTable * 8, &EntryPageTable, 8))
-        return 0;
-
-    if (!EntryPageTable.Value)
-        return 0;
-
-    return EntryPageTable.PageFrameNumber * 0x1000 + (Address & 0xFFF);
-}
-
-static bool ReadProcessMemoryByPhysicalMemoryAccess(uintptr_t Address, void* Buffer, size_t Size, CR3 cr3,
-    tReadPhysicalMemory ReadPhysicalMemory) {
-    while (Size > 0) {
-        size_t BlockSize = 0x1000 - (Address & 0xFFF);
-        if (BlockSize > Size)
-            BlockSize = Size;
-
-        PhysicalAddress PA = GetPhysicalAddressByPhysicalMemoryAccess(Address, cr3, ReadPhysicalMemory);
-        if (!PA)
-            return false;
-
-        if (!ReadPhysicalMemory(PA, Buffer, BlockSize))
-            return false;
-
-        Address += BlockSize;
-        Size -= BlockSize;
-        Buffer = (void*)(uintptr_t(Buffer) + BlockSize);
+        return EntryPageDir.PageFrameNumber * 0x1000 + IndexPageTable * 8;
     }
+    static PhysicalAddress GetPhysicalAddress(uintptr_t VirtualAddress, CR3 cr3, tReadPhysicalMemory ReadPhysicalMemory) {
+        const uintptr_t Address = VirtualAddress;
+        const uintptr_t IndexPML4 = (Address >> 39) & 0x1FF;
+        const uintptr_t IndexPageDirPtr = (Address >> 30) & 0x1FF;
+        const uintptr_t IndexPageDir = (Address >> 21) & 0x1FF;
+        const uintptr_t IndexPageTable = (Address >> 12) & 0x1FF;
 
-    return true;
-}
+        PML4E EntryPML4;
+        PDPTE EntryPageDirPtr;
+        PDE EntryPageDir;
+        PTE EntryPageTable;
 
-static bool WriteProcessMemoryByPhysicalMemoryAccess(uintptr_t Address, const void* Buffer, size_t Size, CR3 cr3, 
-    tReadPhysicalMemory ReadPhysicalMemory, tWritePhysicalMemory WritePhysicalMemory)  {
-    while (Size > 0) {
-        size_t BlockSize = 0x1000 - (Address & 0xFFF);
-        if (BlockSize > Size)
-            BlockSize = Size;
+        if (!cr3.IsValid())
+            return 0;
 
-        PhysicalAddress PA = GetPhysicalAddressByPhysicalMemoryAccess(Address, cr3, ReadPhysicalMemory);
-        if (!PA)
-            return false;
+        if (!ReadPhysicalMemory(cr3.PageFrameNumber * 0x1000 + IndexPML4 * 8, &EntryPML4, 8))
+            return 0;
 
-        if (!WritePhysicalMemory(PA, Buffer, BlockSize))
-            return false;
+        if (!EntryPML4.IsValid())
+            return 0;
 
-        Address += BlockSize;
-        Size -= BlockSize;
-        Buffer = (const void*)(uintptr_t(Buffer) + BlockSize);
+        if (!ReadPhysicalMemory(EntryPML4.PageFrameNumber * 0x1000 + IndexPageDirPtr * 8, &EntryPageDirPtr, 8))
+            return 0;
+
+        if (!EntryPageDirPtr.IsValid())
+            return 0;
+
+        if (EntryPageDirPtr.PageSize)
+            return EntryPageDirPtr.PageFrameNumber * 0x1000 + (Address & 0x3FFFFFFF);
+
+        if (!ReadPhysicalMemory(EntryPageDirPtr.PageFrameNumber * 0x1000 + IndexPageDir * 8, &EntryPageDir, 8))
+            return 0;
+
+        if (!EntryPageDir.IsValid())
+            return 0;
+
+        if (EntryPageDir.PageSize)
+            return EntryPageDir.PageFrameNumber * 0x1000 + (Address & 0x1FFFFF);
+
+        if (!ReadPhysicalMemory(EntryPageDir.PageFrameNumber * 0x1000 + IndexPageTable * 8, &EntryPageTable, 8))
+            return 0;
+
+        if (!EntryPageTable.IsValid())
+            return 0;
+
+        return EntryPageTable.PageFrameNumber * 0x1000 + (Address & 0xFFF);
     }
+    static bool ReadProcessMemory(uintptr_t Address, void* Buffer, size_t Size, CR3 cr3, tReadPhysicalMemory ReadPhysicalMemory) {
+        while (Size > 0) {
+            size_t BlockSize = 0x1000 - (Address & 0xFFF);
+            if (BlockSize > Size)
+                BlockSize = Size;
 
-    return true;
-}
+            PhysicalAddress PA = GetPhysicalAddress(Address, cr3, ReadPhysicalMemory);
+            if (!PA)
+                return false;
+
+            if (!ReadPhysicalMemory(PA, Buffer, BlockSize))
+                return false;
+
+            Address += BlockSize;
+            Size -= BlockSize;
+            Buffer = (void*)(uintptr_t(Buffer) + BlockSize);
+        }
+
+        return true;
+    }
+    static bool WriteProcessMemory(uintptr_t Address, const void* Buffer, size_t Size, CR3 cr3, tReadPhysicalMemory ReadPhysicalMemory, tWritePhysicalMemory WritePhysicalMemory) {
+        while (Size > 0) {
+            size_t BlockSize = 0x1000 - (Address & 0xFFF);
+            if (BlockSize > Size)
+                BlockSize = Size;
+
+            PhysicalAddress PA = GetPhysicalAddress(Address, cr3, ReadPhysicalMemory);
+            if (!PA)
+                return false;
+
+            if (!WritePhysicalMemory(PA, Buffer, BlockSize))
+                return false;
+
+            Address += BlockSize;
+            Size -= BlockSize;
+            Buffer = (const void*)(uintptr_t(Buffer) + BlockSize);
+        }
+
+        return true;
+    }
+};

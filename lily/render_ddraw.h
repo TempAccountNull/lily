@@ -2,22 +2,21 @@
 #include "render.h"
 
 #include <Windows.h>
+#include <d3d9.h>
 #include <ddraw.h> 
 #pragma comment(lib, "ddraw.lib")
 #pragma comment(lib, "dxguid.lib")
 
 class RenderDDraw : public Render {
 private:
-	int ScreenWidth, ScreenHeight;
+	LPDIRECTDRAWSURFACE7 pPrimarySurface = 0;
+	LPDIRECTDRAWSURFACE7 pOverlaySurface = 0;
+	LPDIRECTDRAWSURFACE7 pAttachedSurface = 0;
 
-	LPDIRECTDRAWSURFACE7 pPrimarySurface;
-	LPDIRECTDRAWSURFACE7 pOverlaySurface;
-	LPDIRECTDRAWSURFACE7 pAttachedSurface;
+	IDirect3DSurface9* pBackBufferSurface = 0;
+	IDirect3DSurface9* pOffscreenPlainSurface = 0;
 
-	IDirect3DSurface9* pBackBufferSurface;
-	IDirect3DSurface9* pOffscreenPlainSurface;
-
-	bool InitDirectDraw(int ScreenWidth, int ScreenHeight) {
+	bool InitDirectDraw() {
 		LPDIRECTDRAW7 pDirectDraw7;
 		HRESULT res = DirectDrawCreateEx(0, (void**)&pDirectDraw7, IID_IDirectDraw7, 0);
 		if (FAILED(res))
@@ -74,14 +73,12 @@ private:
 
 public:
 	RenderDDraw(IDirect3DDevice9Ex* pDirect3DDevice9Ex, IDirect3DSurface9* pBackBufferSurface, IDirect3DSurface9* pOffscreenPlainSurface, int ScreenWidth, int ScreenHeight) :
-		Render(pDirect3DDevice9Ex), pBackBufferSurface(pBackBufferSurface), pOffscreenPlainSurface(pOffscreenPlainSurface), ScreenWidth(ScreenWidth), ScreenHeight(ScreenHeight) {
-		verify(InitDirectDraw(ScreenWidth, ScreenHeight));
+		Render(pDirect3DDevice9Ex, ScreenWidth, ScreenHeight), pBackBufferSurface(pBackBufferSurface), pOffscreenPlainSurface(pOffscreenPlainSurface) {
+		verify(InitDirectDraw());
 		Clear();
 	}
 
-	virtual void Present(HWND hGameWnd) {
-		ImGuiRenderDrawData();
-
+	virtual void Present(HWND) const {
 		pDirect3DDevice9Ex->GetRenderTargetData(pBackBufferSurface, pOffscreenPlainSurface);
 
 		HDC hOffscreenPlainSurfaceDC, hAttachedSurfaceDC;

@@ -1,6 +1,9 @@
 #include "pubg_class.h"
 #include "transform.h"
 
+constexpr inline auto NAME_None = FName(0, 0);
+constexpr inline auto INDEX_NONE = -1;
+
 Vector WorldToScreen(const Vector& WorldLocation, const Matrix& RotationMatrix, const Vector& CameraLocation, float CameraFOV, float Width, float Height) {
 	Vector Screenlocation(0, 0, 0);
 
@@ -29,8 +32,8 @@ Vector WorldToScreen(const Vector& WorldLocation, const Matrix& RotationMatrix, 
 }
 
 bool UWorld::GetUWorld(UWorld& World) {
-	ObjectPtr<EncryptedObjectPtr<UWorld>> PP = gXenuine->process.GetBaseAddress() + UWORLDBASE;
-	EncryptedObjectPtr<UWorld> P;
+	NativePtr<EncryptedPtr<UWorld>> PP = g_Pubg->GetBaseAddress() + UWORLDBASE;
+	EncryptedPtr<UWorld> P;
 	return PP.Read(P) && P.Read(World);
 }
 

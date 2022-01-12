@@ -1,20 +1,16 @@
 #pragma once
-
 #include <windows.h>
 #include <vector>
 
 #include "ida_defs.h"
 #include "process.h"
 #include "mymath.h"
-#include "xenuine.h"
-
-#define ARRAY_MAX 0x2000
-#define INDEX_NONE -1
-#define NAME_None FName(0, 0)
+#include "pubg_process.h"
 
 template<class T>
 class TArray {
 protected:
+	constexpr static size_t ARRAY_MAX = 0x2000;
 	uintptr_t Data = 0;
 	uint32_t Count = 0;
 	uint32_t Max = 0;
@@ -27,20 +23,20 @@ public:
 
 	bool GetValue(int i, T& value) const {
 		if (i < 0 || i >= GetCount(ARRAY_MAX)) return false;
-		return gXenuine->process.GetValue(Data + sizeof(T) * i, &value);
+		return g_Pubg->Read(Data + sizeof(T) * i, &value);
 	}
 
 	bool SetValue(int i, const T& value) {
 		if (i < 0 || i >= GetCount(ARRAY_MAX)) return false;
-		return gXenuine->process.SetValue(Data + sizeof(T) * i, &value);
+		return g_Pubg->Write(Data + sizeof(T) * i, &value);
 	}
 
 	bool GetValues(T& value, size_t MaxSize = ARRAY_MAX) const {
-		return gXenuine->process.ReadProcessMemory(Data, &value, sizeof(T) * GetCount(MaxSize));
+		return g_Pubg->ReadProcessMemory(Data, &value, sizeof(T) * GetCount(MaxSize));
 	}
 
 	bool SetValues(const T& value, size_t MaxSize = ARRAY_MAX) const {
-		return gXenuine->process.WriteProcessMemory(Data, &value, sizeof(T) * GetCount(MaxSize));
+		return g_Pubg->WriteProcessMemory(Data, &value, sizeof(T) * GetCount(MaxSize));
 	}
 
 	std::vector<T> GetVector(size_t MaxSize = ARRAY_MAX) const {
@@ -80,34 +76,33 @@ struct TPair {
 template<class KeyType, class ValueType>
 class TMap : public TSet<TPair<KeyType, ValueType>> {};
 
-
-template<class ObjectType>
+template <class ObjectType, class PtrType>
 class ObjectPtr {
 private:
-	uintptr_t P;
+	PtrType P;
 public:
 	ObjectPtr(uintptr_t P = 0) : P(P) {}
 
 	operator uintptr_t() const { return P; }
 
 	template <class Type, class = std::enable_if_t<std::is_same_v<ObjectType, Type>, Type>>
-	bool Read(Type& Obj) const { return gXenuine->process.GetValue(P, &Obj); }
+	bool Read(Type& Obj) const { return g_Pubg->Read(P, &Obj); }
 
 	template <class Type, class = std::enable_if_t<std::is_same_v<ObjectType, Type>, Type>>
-	bool Write(Type& Obj) const { return gXenuine->process.SetValue(P, &Obj); }
+	bool Write(Type& Obj) const { return g_Pubg->Write(P, &Obj); }
 
 	template<class Type, class = std::enable_if_t<std::is_base_of_v<ObjectType, Type>, Type>>
-	bool ReadOtherType(Type Obj) const { return gXenuine->process.GetValue(P, &Obj); }
+	bool ReadOtherType(Type& Obj) const { return g_Pubg->Read(P, &Obj); }
 
 	template<class DataType>
-	bool WriteAtOffset(DataType& Data, size_t Offset) const { return gXenuine->process.SetValue(P + Offset, &Data); }
+	bool WriteAtOffset(const DataType& Data, size_t Offset) const { return g_Pubg->Write(P + Offset, &Data); }
 };
 
-template<class ObjectType>
-class EncryptedObjectPtr : public ObjectPtr<ObjectType> {
-public:
-	EncryptedObjectPtr(XenuinePtr P = 0) : ObjectPtr<ObjectType>(P) {}
-};
+template <class ObjectType>
+using NativePtr = ObjectPtr<ObjectType, uintptr_t>;
+
+template <class ObjectType>
+using EncryptedPtr = ObjectPtr<ObjectType, XenuinePtr>;
 
 // ScriptStruct CoreUObject.Vector
 // 0x000C
@@ -208,7 +203,7 @@ struct FWeaponTrajectoryConfig
 	int                                                HitDamage;                                                // 0x0004(0x0004) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
 	float                                              VehicleDamageScalar;                                      // 0x0008(0x0004) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
 	float                                              LowerClampDamage;                                         // 0x000C(0x0004) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
-	ObjectPtr<UCurveVector>                            BallisticCurve;                                           // 0x0010(0x0008) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
+	NativePtr<UCurveVector>                            BallisticCurve;                                           // 0x0010(0x0008) (CPF_Edit, CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
 	float                                              RangeModifier;                                            // 0x0018(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly, CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
 	float                                              ReferenceDistance;                                        // 0x001C(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly, CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)
 	float                                              TravelDistanceMax;                                        // 0x0020(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_BlueprintReadOnly, CPF_ZeroConstructor, CPF_DisableEditOnInstance, CPF_IsPlainOldData)

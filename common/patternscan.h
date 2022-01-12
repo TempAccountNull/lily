@@ -2,11 +2,11 @@
 #include <Windows.h>
 #include "function_ref.hpp"
 
-template<class Type>
-using tReadProcessMemory = tl::function_ref<bool(Type Address, void* Buffer, size_t Size)>;
-
 class PatternScan {
 private:
+	template<class Type>
+	using tReadProcessMemory = tl::function<bool(Type Address, void* Buffer, size_t Size)>;
+
 	constexpr static unsigned MAX_MASK_SIZE = 0x100;
 
 	static bool DataCompare(uint8_t* pData, uint8_t* bMask, uint8_t* vMask) {

@@ -2,19 +2,17 @@
 #include <windows.h>
 #include <tlhelp32.h>
 
-#include "kernel_lily.h"
+#include "kernel.h"
 #include "peb.h"
 
 class Process {
 private:
 	uintptr_t BaseAddress = 0;
 	uintptr_t SizeOfImage = 0;
-	PEB64 PebSaved = {0};
-	HWND hWndSaved = 0;
-	DWORD PidSaved = 0;
+	DWORD Pid = 0;
 
-	bool LoadEntireImageToRam() const {
-		HANDLE hProcess = OpenProcess(PROCESS_VM_READ, false, PidSaved);
+	bool LoadCurrentModuleToRam() const {
+		HANDLE hProcess = ::OpenProcess(PROCESS_VM_READ, false, Pid);
 		if (!hProcess)
 			return false;
 
@@ -29,55 +27,64 @@ private:
 		CloseHandle(hProcess);
 		return bSuccess;
 	}
-
+	
 public:
-	KernelLily& kernel;
+	Kernel& kernel;
 
-	Process(KernelLily& kernel) : kernel(kernel) {}
+	Process(Kernel& kernel, DWORD Pid, const char* szDLLName = 0) : kernel(kernel), Pid(Pid) {
+		if (!kernel.MapProcess(Pid))
+			throw;
+		if (!SetModule(szDLLName))
+			throw;
+	}
 
 	uintptr_t GetBaseAddress() const { return BaseAddress; }
 	uintptr_t GetSizeOfImage() const { return SizeOfImage; }
-	HWND GetHwnd() const { return hWndSaved; }
-	DWORD GetPid() const { return PidSaved; }
+	DWORD GetPid() const { return Pid; }
 
-	const tl::function<bool(uintptr_t Address, void* Buffer, uintptr_t Size)> ReadProcessMemory =
-		[&](uintptr_t Address, void* Buffer, uintptr_t Size) -> bool {
-		return kernel.RPM_Mapped(Address, Buffer, Size);
+	const tReadProcessMemory ReadProcessMemory = [&](uintptr_t Address, void* Buffer, uintptr_t Size) {
+		return kernel.ReadProcessMemoryFast(Address, Buffer, Size);
 	};
-	const tl::function<bool(uintptr_t Address, const void* Buffer, uintptr_t Size)> WriteProcessMemory =
-		[&](uintptr_t Address, const void* Buffer, uintptr_t Size) {
-		return kernel.WPM_Mapped(Address, Buffer, Size);
+	const tWriteProcessMemory WriteProcessMemory = [&](uintptr_t Address, const void* Buffer, uintptr_t Size) {
+		return kernel.WriteProcessMemoryFast(Address, Buffer, Size);
 	};
 
 	template <class T>
-	bool GetValue(uintptr_t Address, T* Buffer) const { return ReadProcessMemory(Address, Buffer, sizeof(T)); }
+	bool Read(uintptr_t Address, T* Buffer) const { return ReadProcessMemory(Address, Buffer, sizeof(T)); }
 	template <class T>
-	bool SetValue(uintptr_t Address, const T* Buffer) const { return WriteProcessMemory(Address, Buffer, sizeof(T)); }
+	bool Write(uintptr_t Address, const T* Buffer) const { return WriteProcessMemory(Address, Buffer, sizeof(T)); }
 
 	template <class T>
-	bool GetBaseValue(uintptr_t Address, T* Buffer) const { return ReadProcessMemory(BaseAddress + Address, Buffer, sizeof(T)); }
+	bool ReadBase(uintptr_t Address, T* Buffer) const { return Read(BaseAddress + Address, Buffer); }
 	template <class T>
-	bool SetBaseValue(uintptr_t Address, const T* Buffer) const { return WriteProcessMemory(BaseAddress + Address, Buffer, sizeof(T)); }
+	bool WriteBase(uintptr_t Address, const T* Buffer) const { return Write(BaseAddress + Address, Buffer); }
 
-	bool SetBaseDLL(const char* szDLLName = 0) {
-		wchar_t wDLLName[0x200] = { 0 };
-		if (szDLLName)
-			mbstowcs(wDLLName, szDLLName, strlen(szDLLName));
+	bool SetModule(const char* szModuleName = 0) {
+		std::wstring wModuleName;
+		if (szModuleName)
+			wModuleName = std::wstring(szModuleName, szModuleName + strlen(szModuleName));
+	
+		const uintptr_t PebBaseAddress = kernel.GetPebAddress(Pid);
+		if (!PebBaseAddress)
+			return false;
+
+		PEB64 Peb64;
+		if (!Read(PebBaseAddress, &Peb64))
+			return false;
 
 		PEB_LDR_DATA64 ldr_data;
-		if (GetValue(PebSaved.LoaderData, &ldr_data) == 0)
+		if (!Read(Peb64.LoaderData, &ldr_data))
 			return false;
 
 		uintptr_t pldr = ldr_data.InLoadOrderModuleList.Flink;
-
 		do {
 			LDR_DATA_TABLE_ENTRY64 ldr_entry;
-			if (!GetValue(pldr, &ldr_entry))
+			if (!Read(pldr, &ldr_entry))
 				break;
 
-			wchar_t wBaseDLLName[0x200];
-			if (ReadProcessMemory(ldr_entry.BaseDllName.Buffer, wBaseDLLName, ldr_entry.BaseDllName.Length * sizeof(wchar_t))) {
-				if (szDLLName == 0 || _wcsicmp(wBaseDLLName, wDLLName) == 0) {
+			wchar_t wBaseModuleName[0x100] = { 0 };
+			if (ReadProcessMemory(ldr_entry.BaseDllName.Buffer, wBaseModuleName, ldr_entry.BaseDllName.Length * sizeof(wchar_t))) {
+				if (wModuleName.size() == 0 || wModuleName == wBaseModuleName) {
 					BaseAddress = ldr_entry.BaseAddress;
 					SizeOfImage = ldr_entry.SizeOfImage;
 					return true;
@@ -90,56 +97,12 @@ public:
 		return false;
 	}
 
-	uintptr_t AobscanRange(uintptr_t BaseAddress, size_t Len, const char* szPattern) const {
+	uintptr_t ScanRange(uintptr_t BaseAddress, size_t Len, const char* szPattern) const {
 		return PatternScan::Range(BaseAddress, Len, szPattern, ReadProcessMemory);
 	}
 
-	uintptr_t AobscanCurrentDLL(const char* szPattern, const char* szSectionName = ".text"e) const {
-		LoadEntireImageToRam();
+	uintptr_t ScanCurrentModule(const char* szPattern, const char* szSectionName = ".text"e) const {
+		LoadCurrentModuleToRam();
 		return PatternScan::Module(BaseAddress, szSectionName, szPattern, ReadProcessMemory);
-	}
-
-	bool OpenProcessWithPid(DWORD Pid, const char* szDLLName = 0) {
-		PidSaved = Pid;
-
-		uintptr_t PebBaseAddress = kernel.GetPebAddress(PidSaved);
-		if (!PebBaseAddress)
-			return false;
-
-		if (!kernel.MapProcess(PidSaved))
-			return false;
-
-		if (!GetValue(PebBaseAddress, &PebSaved))
-			return false;
-
-		return SetBaseDLL(szDLLName);
-	}
-
-	bool OpenProcessWithName(const char* szProcName, const char* szDLLName = 0) {
-		PidSaved = 0;
-		HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-
-		PROCESSENTRY32 pe32 = { 0 };
-		pe32.dwSize = sizeof(pe32);
-
-		if (Process32First(hSnapshot, &pe32)) {
-			do {
-				if (_stricmp(pe32.szExeFile, szProcName) == 0) {
-					PidSaved = pe32.th32ProcessID;
-					break;
-				}
-			} while (Process32Next(hSnapshot, &pe32));
-		}
-
-		CloseHandle(hSnapshot);
-		return OpenProcessWithPid(PidSaved, szDLLName);
-	}
-
-	bool OpenProcessWithHWND(HWND hWnd, const char* szDLLName = 0) {
-		hWndSaved = hWnd;
-		if (!GetWindowThreadProcessId(hWndSaved, &PidSaved))
-			return false;
-
-		return OpenProcessWithPid(PidSaved, szDLLName);
 	}
 };

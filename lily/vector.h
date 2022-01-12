@@ -1,9 +1,8 @@
 #pragma once
-
-#include "mYmath.h"
+#include "mymath.h"
 #include "pubg_struct.h"
 
-#include "matriX.h"
+#include "matrix.h"
 #include "rotator.h"
 
 class Vector

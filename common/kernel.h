@@ -15,6 +15,9 @@
 #include "patternscan.h"
 #include "function_ref.hpp"
 
+using tReadProcessMemory = tl::function<bool(uintptr_t Address, void* Buffer, size_t Size)>;
+using tWriteProcessMemory = tl::function<bool(uintptr_t Address, const void* Buffer, size_t Size)>;
+
 extern "C" void RunWithKernelStack(void* pFunc, void* pThis);
 
 class Kernel {
@@ -49,30 +52,35 @@ public:
 		VirtualFree(MapPhysicalPDPTE, 0, MEM_RELEASE);
 	}
 
-	tReadProcessMemory<uintptr_t> ReadProcessMemoryWinAPI = [&](uintptr_t Address, void* Buffer, size_t Size) {
+	Kernel() = delete;
+	Kernel(const Kernel&) = delete;
+	Kernel& operator=(const Kernel&) = delete;
+
+	const tReadProcessMemory ReadProcessMemoryWinAPI = [&](uintptr_t Address, void* Buffer, size_t Size) {
 		return ::ReadProcessMemory((HANDLE)-1, (const void*)Address, Buffer, Size, 0);
+	};
+	const tWriteProcessMemory WriteProcessMemoryWinAPI = [&](uintptr_t Address, const void* Buffer, size_t Size) {
+		return ::WriteProcessMemory((HANDLE)-1, (void*)Address, Buffer, Size, 0);
 	};
 
 private:
 	PML4E* const DirectoryTableBase = (PML4E*)VirtualAllocVerified(0x1000, PAGE_READWRITE);
 	PDPTE* const MapPhysicalPDPTE = (PDPTE*)VirtualAllocVerified(0x1000, PAGE_READWRITE);
-	const PML4E CustomPML4E = { .Value = dbvm.GetPhysicalAddress((uintptr_t)MapPhysicalPDPTE, dbvm.GetCR3()) };
+	const PML4E CustomPML4E = (uintptr_t)dbvm.GetPhysicalAddress((uintptr_t)MapPhysicalPDPTE, dbvm.GetCR3());
 	const CR3 CustomCR3 = [&] {
-		verify(CustomPML4E.Value);
-		GetReadyToUseCustomCR3();
-		CR3 cr3 = { .Value = dbvm.GetPhysicalAddress((uintptr_t)DirectoryTableBase, dbvm.GetCR3()) };
-		verify(cr3.Value);
+		verify(CustomPML4E);
+		ResetCustomCR3();
+		CR3 cr3 = (uintptr_t)dbvm.GetPhysicalAddress((uintptr_t)DirectoryTableBase, dbvm.GetCR3());
+		verify(cr3);
 		return cr3;
 	}();
 
 public:
-	const tl::function<bool(uintptr_t Address, void* Buffer, size_t Size)> RPM_dbvm =
-		[&](uintptr_t Address, void* Buffer, size_t Size) -> bool {
+	const tReadProcessMemory ReadProcessMemoryDBVM = [&](uintptr_t Address, void* Buffer, size_t Size) {
 		return dbvm.RPM(Address, Buffer, Size, CustomCR3);
 	};
 
-	const tl::function<bool(uintptr_t Address, const void* Buffer, size_t Size)> WPM_dbvm =
-		[&](uintptr_t Address, const void* Buffer, size_t Size) -> bool {
+	const tWriteProcessMemory WriteProcessMemoryDBVM = [&](uintptr_t Address, const void* Buffer, size_t Size) {
 		return dbvm.WPM(Address, Buffer, Size, CustomCR3);
 	};
 
@@ -80,7 +88,7 @@ private:
 	//EPROCESS Offset
 	const uintptr_t SystemProcess = [&] {
 		const uintptr_t PsInitialSystemProcess = GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsInitialSystemProcess"e);
-		RPM_dbvm(PsInitialSystemProcess, (void*)&SystemProcess, sizeof(SystemProcess));
+		ReadProcessMemoryDBVM(PsInitialSystemProcess, (void*)&SystemProcess, sizeof(SystemProcess));
 		verify(SystemProcess);
 		return SystemProcess;
 	}();
@@ -89,7 +97,7 @@ private:
 
 	const unsigned Offset_UniqueProcessId = [&] {
 		uintptr_t PsGetProcessId = (uintptr_t)GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsGetProcessId"e);
-		RPM_dbvm(PsGetProcessId + 0x3, (void*)&Offset_UniqueProcessId, sizeof(Offset_UniqueProcessId));
+		ReadProcessMemoryDBVM(PsGetProcessId + 0x3, (void*)&Offset_UniqueProcessId, sizeof(Offset_UniqueProcessId));
 		verify(Offset_UniqueProcessId);
 		return Offset_UniqueProcessId;
 	}();
@@ -98,7 +106,7 @@ private:
 
 	const unsigned Offset_Peb = [&] {
 		uintptr_t PsGetProcessPeb = (uintptr_t)GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsGetProcessPeb"e);
-		RPM_dbvm(PsGetProcessPeb + 0x3, (void*)&Offset_Peb, sizeof(Offset_Peb));
+		ReadProcessMemoryDBVM(PsGetProcessPeb + 0x3, (void*)&Offset_Peb, sizeof(Offset_Peb));
 		verify(Offset_Peb);
 		return Offset_Peb;
 	}();
@@ -109,57 +117,47 @@ private:
 	void MapPhysicalAddressSpaceToCustomCR3() {
 		//Map 512GB(few computer that has ram over 512GB)
 		for (uintptr_t i = 0; i < 0x200; i++) {
-			PDPTE a;
-			a.Value = i * 0x40000000;
-			a.Present = 1;
-			a.ReadWrite = 1;
-			a.UserSupervisor = 1;
-			a.PageSize = 1;
-			MapPhysicalPDPTE[i].Value = a.Value;
+			PDPTE pdpte = i * 0x40000000;
+			pdpte.Present = 1;
+			pdpte.ReadWrite = 1;
+			pdpte.UserSupervisor = 1;
+			pdpte.PageSize = 1;
+			MapPhysicalPDPTE[i] = pdpte;
 		}
 
-		for (mapLinkPhysical = 0x80; DirectoryTableBase[mapLinkPhysical].Value && mapLinkPhysical < 0x100; mapLinkPhysical++);
+		for (mapLinkPhysical = 0x80; DirectoryTableBase[mapLinkPhysical] && mapLinkPhysical < 0xFF; mapLinkPhysical++);
+		verify(mapLinkPhysical < 0xFF);
 
-		PML4E _PML4E;
-		_PML4E.Value = CustomPML4E.Value;
-		_PML4E.Present = 1;
-		_PML4E.ReadWrite = 1;
-		_PML4E.UserSupervisor = 1;
-
-		DirectoryTableBase[mapLinkPhysical].Value = _PML4E.Value;
+		PML4E pml4e = CustomPML4E;
+		pml4e.Present = 1;
+		pml4e.ReadWrite = 1;
+		pml4e.UserSupervisor = 1;
+		DirectoryTableBase[mapLinkPhysical] = pml4e;
 	}
 
-	void GetReadyToUseCustomCR3() {
-		CR3 userCR3 = dbvm.GetCR3();
-		CR3 krnlCR3 = { 0 };
+	void ResetCustomCR3() {
+		const bool bSuccess = [&] {
+			const uintptr_t GsBase = dbvm.ReadMSR(IA32_KERNEL_GS_BASE_MSR);
+			const CR3 userCR3 = dbvm.GetCR3();
+			CR3 krnlCR3 = 0;
 
-		dbvm.SwitchToKernelMode(0x10);
-		uintptr_t GsBase = __readmsr(IA32_KERNEL_GS_BASE_MSR);
-		dbvm.ReturnToUserMode();
+			//The process is not kva-shadowed.
+			if (dbvm.GetPhysicalAddress(GsBase, userCR3))
+				return dbvm.ReadPhysicalMemory(userCR3.PageFrameNumber * 0x1000, &DirectoryTableBase[0x000], 0x1000);
 
-		//Get first accessible gs offset
-		//if kva shadowed, only a page are accessible
-		//in windows 7,  gs:[0x6000~0x6FFF] region is accessible and other regions are hidden.
-		//in windows 10, gs:[0x7000~0x7FFF] region is accessible and other regions are hidden.
-		if (!dbvm.GetPhysicalAddress(GsBase, userCR3)) {
-			//The process is kva shadowed.
-			for (unsigned i = 0x1000; i < 0x10000; i += 0x1000) {
-				//Find CR3 offset
-				if (dbvm.RPM(GsBase + i, &krnlCR3, sizeof(krnlCR3), userCR3)) {
-					break;
-				}
-			}
-			verify(krnlCR3.Value);
-		}
+			//Finding KernelDirectoryBase...
+			for (size_t Offset = 0x1000; Offset < 0x10000 &&
+				!dbvm.RPM(GsBase + Offset, &krnlCR3, sizeof(krnlCR3), userCR3); Offset += 0x1000);
 
-		if (krnlCR3.Value) {
-			//KernelDirectoryTableBase(if kva shadowed)
-			//User page marked No-Execute Enable in windows 10 kva shadowed
-			dbvm.ReadPhysicalMemory(userCR3.PageFrameNumber * 0x1000 + 0x000, &DirectoryTableBase[0x000], 0x800);
-			dbvm.ReadPhysicalMemory(krnlCR3.PageFrameNumber * 0x1000 + 0x800, &DirectoryTableBase[0x100], 0x800);
-		}
-		else dbvm.ReadPhysicalMemory(userCR3.PageFrameNumber * 0x1000, &DirectoryTableBase[0x000], 0x1000);
+			if (!krnlCR3)
+				return false;
 
+			return
+				dbvm.ReadPhysicalMemory(userCR3.PageFrameNumber * 0x1000 + 0x000, &DirectoryTableBase[0x000], 0x800) &&
+				dbvm.ReadPhysicalMemory(krnlCR3.PageFrameNumber * 0x1000 + 0x800, &DirectoryTableBase[0x100], 0x800);
+		}();
+
+		verify(bSuccess);
 		MapPhysicalAddressSpaceToCustomCR3();
 	}
 
@@ -169,20 +167,21 @@ private:
 	uint8_t mapLink[0x100] = { 0 };
 
 public:
-	void KernelExecute(bool bSetInterrupt, tl::function_ref<void(void)> CallBack) const {
+	template<class R>
+	R KernelExecute(bool bSetInterrupt, tl::function<R(void)> CallBack) const {
+		R Result;
+		KernelExecute<void>(bSetInterrupt, [&] { Result = CallBack(); });
+		return Result;
+	}
+
+	template<>
+	void KernelExecute(bool bSetInterrupt, tl::function<void(void)> CallBack) const {
 		dbvm.SwitchToKernelMode(0x10);
 		_stac();
 		if (bSetInterrupt) _enable();
-		__writecr3(CustomCR3.Value);
+		__writecr3(CustomCR3);
 		RunWithKernelStack(CallBack.callback(), CallBack.obj());
 		dbvm.ReturnToUserMode();
-	}
-
-	template<class tCallBack, class R = std::invoke_result_t<tCallBack>, class = std::enable_if_t<!std::is_same_v<R, void>, tCallBack>>
-	auto KernelExecute(bool bSetInterrupt, tCallBack CallBack) const {
-		R Result;
-		KernelExecute(bSetInterrupt, [&] { Result = CallBack(); });
-		return Result;
 	}
 
 #ifdef TL_IGNORE_GUARD
@@ -205,33 +204,21 @@ public:
 			super(f), kernel(kernel), bSetInterrupt(bSetInterrupt) {}
 
 		R operator()(Args... args) const {
-			return kernel.KernelExecute(bSetInterrupt, [&] { return super::operator()(args...); });
+			return kernel.KernelExecute<R>(bSetInterrupt, [&] { return super::operator()(args...); });
 		}
 	};
 #endif
 
 	void SetCustomCR3() const { dbvm.SetCR3(CustomCR3); }
-	CR3 GetMappedProcessCR3() const { return mapCR3; }
+	CR3 GetMapCR3() const { return mapCR3; }
 
 	static bool MemcpyWithExceptionHandler(void* Dst, const void* Src, size_t Size) {
 		return ExceptionHandler::TryExcept([&]() { memcpy(Dst, Src, Size); });
 	}
 
-	const tl::function<bool(PhysicalAddress Address, const void* Buffer, size_t Size)> WritePhysicalMemory = 
-		[&](PhysicalAddress Address, const void* Buffer, size_t Size) -> bool {
-		uintptr_t MappedAddress = GetMappedPhysicalAddress(Address);
-		if (!MappedAddress)
-			return false;
-
-		if (MemcpyWithExceptionHandler((void*)MappedAddress, Buffer, Size))
-			return true;
-
-		SetCustomCR3();
-		return dbvm.WritePhysicalMemory(Address, Buffer, Size);
-	};
-
-	const tl::function<bool(PhysicalAddress Address, void* Buffer, size_t Size)> ReadPhysicalMemory = 
-		[&](PhysicalAddress Address, void* Buffer, size_t Size) -> bool {
+private:
+	const tReadPhysicalMemory ReadPhysicalMemory =
+		[&](PhysicalAddress Address, void* Buffer, size_t Size) {
 		uintptr_t MappedAddress = GetMappedPhysicalAddress(Address);
 		if (!MappedAddress)
 			return false;
@@ -242,32 +229,10 @@ public:
 		SetCustomCR3();
 		return dbvm.ReadPhysicalMemory(Address, Buffer, Size);
 	};
-		
-	PhysicalAddress GetPhysicalAddress(uintptr_t VirtualAddress, CR3 cr3) const {
-		return GetPhysicalAddressByPhysicalMemoryAccess(VirtualAddress, cr3, ReadPhysicalMemory);
-	}
 
-	bool WPM_Physical(uintptr_t Address, const void* Buffer, size_t Size, CR3 cr3) const {
-		return WriteProcessMemoryByPhysicalMemoryAccess(Address, Buffer, Size, cr3, ReadPhysicalMemory, WritePhysicalMemory);
-	}
-
-	bool RPM_Physical(uintptr_t Address, void* Buffer, size_t Size, CR3 cr3) const {
-		return ReadProcessMemoryByPhysicalMemoryAccess(Address, Buffer, Size, cr3, ReadPhysicalMemory);
-	}
-
-	bool WPM_Physical(uintptr_t Address, const void* Buffer, size_t Size) const {
-		return WPM_Physical(Address, Buffer, Size, mapCR3);
-	}
-
-	bool RPM_Physical(uintptr_t Address, void* Buffer, size_t Size) const {
-		return RPM_Physical(Address, Buffer, Size, mapCR3);
-	}
-
-	//Be carefull with system calls, exceptions, interrupts and memory commit when KVA shadowed.(CR3 change)
-	//no CR3 Change when the program run with "administrator privileges".
-	//WPM_Mapped can not access kernel memory space.
-	bool WPM_Mapped(uintptr_t Address, const void* Buffer, size_t Size) const {
-		uintptr_t MappedAddress = GetMappedAddress(Address);
+	const tWritePhysicalMemory WritePhysicalMemory =
+		[&](PhysicalAddress Address, const void* Buffer, size_t Size) {
+		uintptr_t MappedAddress = GetMappedPhysicalAddress(Address);
 		if (!MappedAddress)
 			return false;
 
@@ -275,13 +240,35 @@ public:
 			return true;
 
 		SetCustomCR3();
-		return WPM_Physical(Address, Buffer, Size, mapCR3);
+		return dbvm.WritePhysicalMemory(Address, Buffer, Size);
+	};
+		
+	PhysicalAddress GetPhysicalAddress(uintptr_t VirtualAddress, CR3 cr3) const {
+		return PhysicalMemory::GetPhysicalAddress(VirtualAddress, cr3, ReadPhysicalMemory);
 	}
 
+	bool WriteProcessMemoryCR3(uintptr_t Address, const void* Buffer, size_t Size, CR3 cr3) const {
+		return PhysicalMemory::WriteProcessMemory(Address, Buffer, Size, cr3, ReadPhysicalMemory, WritePhysicalMemory);
+	}
+
+	bool ReadProcessMemoryCR3(uintptr_t Address, void* Buffer, size_t Size, CR3 cr3) const {
+		return PhysicalMemory::ReadProcessMemory(Address, Buffer, Size, cr3, ReadPhysicalMemory);
+	}
+
+public:
 	//Be carefull with system calls, exceptions, interrupts and memory commit when KVA shadowed.(CR3 change)
 	//no CR3 Change when the program run with "administrator privileges".
-	//RPM_Mapped can not access kernel memory space.
-	bool RPM_Mapped(uintptr_t Address, void* Buffer, size_t Size) const {
+	//WPM_Mapped can not access kernel memory space.
+
+	const tReadProcessMemory ReadProcessMemory = [&](uintptr_t Address, void* Buffer, size_t Size) {
+		return ReadProcessMemoryCR3(Address, Buffer, Size, mapCR3);
+	};
+
+	const tWriteProcessMemory WriteProcessMemory = [&](uintptr_t Address, const void* Buffer, size_t Size) {
+		return WriteProcessMemoryCR3(Address, Buffer, Size, mapCR3);
+	};
+
+	const tReadProcessMemory ReadProcessMemoryFast = [&](uintptr_t Address, void* Buffer, size_t Size) {
 		uintptr_t MappedAddress = GetMappedAddress(Address);
 		if (!MappedAddress)
 			return false;
@@ -290,21 +277,33 @@ public:
 			return true;
 
 		SetCustomCR3();
-		return RPM_Physical(Address, Buffer, Size, mapCR3);
-	}
+		return ReadProcessMemory(Address, Buffer, Size);
+	};
+
+	const tWriteProcessMemory WriteProcessMemoryFast = [&](uintptr_t Address, const void* Buffer, size_t Size) {
+		uintptr_t MappedAddress = GetMappedAddress(Address);
+		if (!MappedAddress)
+			return false;
+
+		if (MemcpyWithExceptionHandler((void*)MappedAddress, Buffer, Size))
+			return true;
+
+		SetCustomCR3();
+		return WriteProcessMemory(Address, Buffer, Size);
+	};
 
 	uintptr_t GetEPROCESS(DWORD Pid) const {
 		uintptr_t pProcess = SystemProcess;
 		do {
 			DWORD UniqueProcessId;
-			if (!RPM_Physical(pProcess + Offset_UniqueProcessId, &UniqueProcessId, sizeof(UniqueProcessId), CustomCR3))
+			if (!ReadProcessMemoryDBVM(pProcess + Offset_UniqueProcessId, &UniqueProcessId, sizeof(UniqueProcessId)))
 				break;
 
 			if (UniqueProcessId == Pid)
 				return pProcess;
 
 			LIST_ENTRY ListEntry;
-			if (!RPM_Physical(pProcess + Offset_ActiveProcessLinks, &ListEntry, sizeof(ListEntry), CustomCR3))
+			if (!ReadProcessMemoryDBVM(pProcess + Offset_ActiveProcessLinks, &ListEntry, sizeof(ListEntry)))
 				break;
 
 			pProcess = (uintptr_t)ListEntry.Flink - Offset_ActiveProcessLinks;
@@ -318,7 +317,7 @@ public:
 
 		uintptr_t pProcess = GetEPROCESS(Pid);
 		if (pProcess)
-			RPM_Physical(pProcess + Offset_DirectoryTableBase, &cr3, sizeof(cr3), CustomCR3);
+			ReadProcessMemoryDBVM(pProcess + Offset_DirectoryTableBase, &cr3, sizeof(cr3));
 
 		return cr3;
 	}
@@ -329,7 +328,7 @@ public:
 			return 0;
 
 		uintptr_t PebAddress;
-		if (!RPM_Physical(pProcess + Offset_Peb, &PebAddress, sizeof(PebAddress), CustomCR3))
+		if (!ReadProcessMemoryDBVM(pProcess + Offset_Peb, &PebAddress, sizeof(PebAddress)))
 			return 0;
 
 		return PebAddress;
@@ -341,7 +340,7 @@ public:
 	}
 
 	uintptr_t GetMappedAddress(uintptr_t Address) const {
-		if (!mapCR3.Value) return 0;
+		if (!mapCR3) return 0;
 		if (!Address) return 0;
 		if (Address >= 0x800000000000) return 0;
 		if (!mapLink[Address / 0x8000000000]) return 0;
@@ -349,12 +348,13 @@ public:
 	}
 
 	bool MapProcess(DWORD Pid) {
-		mapCR3.Value = mapPid = 0;
+		mapCR3 = 0;
+		mapPid = 0;
 		CR3 cr3 = GetKernelCR3(Pid);
-		if (!cr3.Value)
+		if (!cr3)
 			return false;
 
-		GetReadyToUseCustomCR3();
+		ResetCustomCR3();
 
 		PML4E mapPML4E[0x100];
 		dbvm.ReadPhysicalMemory(cr3.PageFrameNumber * 0x1000, mapPML4E, sizeof(mapPML4E));
@@ -362,15 +362,15 @@ public:
 		int j = 0x80;
 		for (int i = 0; i < 0x100; i++) {
 			mapLink[i] = 0;
-			if (!mapPML4E[i].Value)
+			if (!mapPML4E[i])
 				continue;
 
 			//find empty entry
-			while (DirectoryTableBase[j].Value && j < 0x100) j++;
+			while (DirectoryTableBase[j] && j < 0x100) j++;
 			if (j >= 0x100)
 				return false;
 			mapPML4E[i].ExecuteDisable = 0;
-			DirectoryTableBase[j].Value = mapPML4E[i].Value;
+			DirectoryTableBase[j] = mapPML4E[i];
 			mapLink[i] = j++;
 		}
 

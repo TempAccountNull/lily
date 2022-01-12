@@ -1,7 +1,5 @@
-#include "hack.h"
-#include "vector.h"
-#include "encrypt_string.h"
 #include "render.h"
+#include "encrypt_string.h"
 
 void AddText(const ImFont* font, float font_size, const ImVec2& pos, ImU32 col, const char* szText, float wrap_width = 0.0f, const ImVec4* cpu_fine_clip_rect = 0) {
 	ImGui::GetWindowDrawList()->AddText(font, font_size, pos, col, szText, 0, wrap_width, cpu_fine_clip_rect);
@@ -15,27 +13,13 @@ void AddTextOutlined(const ImFont* font, float font_size, const ImVec2& pos, ImU
 	AddText(font, font_size, pos, col, szText, wrap_width, cpu_fine_clip_rect);
 }
 
-ImVec2 Hack::GetTextSize(const char* szText) {
+ImVec2 Render::GetTextSize(float FontSize, const char* szText) {
 	const ImFont* pFont = ImGui::GetIO().Fonts->Fonts[0];
-	return pFont->CalcTextSizeA(FONTSIZE_SMALL, FLT_MAX, 0.0f, szText, 0, 0);
+	return pFont->CalcTextSizeA(FontSize, FLT_MAX, 0.0f, szText, 0, 0);
 }
 
-void Hack::InsertMouseInfo() const {
-	if (!bESP) return;
-
-	ImGuiIO& io = ImGui::GetIO();
-	io.MouseDown[0] = IsKeyPushing(VK_LBUTTON);
-	io.MouseDown[1] = IsKeyPushing(VK_RBUTTON);
-	io.MouseDown[2] = IsKeyPushing(VK_MBUTTON);
-
-	POINT CursorPos;
-	GetCursorPos(&CursorPos);
-	io.MousePos.x = (float)CursorPos.x - PosX;
-	io.MousePos.y = (float)CursorPos.y - PosY;
-}
-
-void Hack::DrawString(const Vector& Pos, float Margin, const char* szText, float Size, ImU32 Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const {
-	if (!bESP) return;
+void Render::DrawString(const Vector& Pos, float Margin, const char* szText, float Size, ImU32 Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const {
+	if (!bRender) return;
 
 	if (Pos.Z < 0.0f && !bShowAlways)
 		return;
@@ -93,58 +77,22 @@ void Hack::DrawString(const Vector& Pos, float Margin, const char* szText, float
 	}
 }
 
-void Hack::DrawString(const Vector& pos, const char* szText, ImU32 Color, bool bShowAlways) const {
-	if (!bESP) return;
-
-	DrawString(pos, MARGIN, szText, FONTSIZE_SMALL, Color, true, true, bShowAlways);
-}
-
-void Hack::DrawNotice(const char* szText, ImU32 Color) const {
-	if (!bESP) return;
-
-	DrawString({ 30.0f, 30.0f , 0.0f }, MARGIN, szText, FONTSIZE_NORMAL, Color, false, false, true);
-}
-
-void Hack::DrawFPS(unsigned FPS, ImU32 Color) const {
-	if (!bESP) return;
-
-	float Width = ImGui::GetMainViewport()->WorkSize.x;
-	sprintf(szBuf, "FPS : %d"e, FPS);
-	DrawString({ Width * 0.6f, 0.0f , 0.0f }, MARGIN, szBuf, FONTSIZE_SMALL, Color, true, true, true);
-}
-
-void Hack::DrawZeroingDistance(float ZeroingDistance, ImU32 Color) const {
-	if (!bESP) return;
-
-	float Width = ImGui::GetMainViewport()->WorkSize.x;
-	sprintf(szBuf, "Zero : %.0f"e, ZeroingDistance);
-	DrawString({ Width * 0.5f, 0.0f , 0.0f }, MARGIN, szBuf, FONTSIZE_SMALL, Color, true, true, true);
-}
-
-void Hack::DrawSpectatedCount(unsigned SpectatedCount, ImU32 Color) const {
-	if (!bESP) return;
-
-	float Width = ImGui::GetMainViewport()->WorkSize.x;
-	sprintf(szBuf, "Spectators : %d"e, SpectatedCount);
-	DrawString({ Width * 0.4f, 0.0f , 0.0f }, MARGIN, szBuf, FONTSIZE_SMALL, Color, true, true, true);
-}
-
-void Hack::DrawRectOutlined(const Vector& from, const Vector& to, ImU32 Color, float rounding, ImDrawFlags flags, float thickness) const {
-	if (!bESP) return;
+void Render::DrawRectOutlined(const Vector& from, const Vector& to, ImU32 Color, float rounding, ImDrawFlags flags, float thickness) const {
+	if (!bRender) return;
 
 	if (from.Z < 0.0f) return;
 	ImGui::GetWindowDrawList()->AddRect({ from.X, from.Y }, { to.X, to.Y }, Color, rounding, flags, thickness);
 }
 
-void Hack::DrawRectFilled(const Vector& from, const Vector& to, ImU32 Color, float rounding, ImDrawFlags flags) const {
-	if (!bESP) return;
+void Render::DrawRectFilled(const Vector& from, const Vector& to, ImU32 Color, float rounding, ImDrawFlags flags) const {
+	if (!bRender) return;
 
 	if (from.Z < 0.0f) return;
 	ImGui::GetWindowDrawList()->AddRectFilled({ from.X, from.Y }, { to.X, to.Y }, Color, rounding, flags);
 }
 
-void Hack::DrawRatioBox(const Vector& from, const Vector& to, float Ratio, ImU32 ColorRemain, ImU32 ColorDamaged, ImU32 ColorEdge) const {
-	if (!bESP) return;
+void Render::DrawRatioBox(const Vector& from, const Vector& to, float Ratio, ImU32 ColorRemain, ImU32 ColorDamaged, ImU32 ColorEdge) const {
+	if (!bRender) return;
 
 	if (from.Z < 0.0f) return;
 
@@ -162,15 +110,30 @@ void Hack::DrawRatioBox(const Vector& from, const Vector& to, float Ratio, ImU32
 	DrawRectOutlined(from, to, ColorEdge);
 }
 
-void Hack::DrawLine(const Vector& from, const Vector& to, ImU32 Color, float thickness) const {
-	if (!bESP) return;
+void Render::DrawLine(const Vector& from, const Vector& to, ImU32 Color, float thickness) const {
+	if (!bRender) return;
 
 	if (from.Z < 0.0f) return;
 	ImGui::GetWindowDrawList()->AddLine({ from.X, from.Y }, { to.X, to.Y }, Color, thickness);
 }
 
-void Hack::DrawCircle(const ImVec2& center, float radius, ImU32 Color, int num_segments, float thickness) const {
-	if (!bESP) return;
+void Render::DrawCircle(const ImVec2& center, float radius, ImU32 Color, int num_segments, float thickness) const {
+	if (!bRender) return;
 
 	ImGui::GetWindowDrawList()->AddCircle(center, radius, Color, num_segments, thickness);
+}
+
+#include <d3d9.h>
+#pragma comment(lib, "d3d9.lib")
+
+void Render::ImGuiRenderDrawData() const {
+	pDirect3DDevice9Ex->SetRenderState(D3DRS_ZENABLE, 0);
+	pDirect3DDevice9Ex->SetRenderState(D3DRS_ALPHABLENDENABLE, 0);
+	pDirect3DDevice9Ex->SetRenderState(D3DRS_SCISSORTESTENABLE, 0);
+	pDirect3DDevice9Ex->Clear(0, 0, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, COLOR_CLEAR, 1.0f, 0);
+	if (pDirect3DDevice9Ex->BeginScene() >= 0) {
+		ImGui::Render();
+		ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+		pDirect3DDevice9Ex->EndScene();
+	}
 }

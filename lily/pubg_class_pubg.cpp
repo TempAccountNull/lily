@@ -34,7 +34,7 @@ void SimulateWeaponTrajectory(Vector Direction, float Distance, float Trajectory
 
 std::pair<float, float> GetBulletDropAndTravelTime(const Vector& GunLocation, const Rotator& GunRotation, const Vector& TargetPos,
 	float ZeroingDistance, float BulletDropAdd, float InitialSpeed, float TrajectoryGravityZ, float BallisticDragScale,
-	float BallisticDropScale, float BDS, float SimulationSubstepTime, float VDragCoefficient, ObjectPtr<UCurveVector> BallisticCurve)
+	float BallisticDropScale, float BDS, float SimulationSubstepTime, float VDragCoefficient, NativePtr<UCurveVector> BallisticCurve)
 {
 	const float ZDistanceToTarget = TargetPos.Z - GunLocation.Z;				//= 0.0f;
 	const float DistanceToTarget = GunLocation.Distance(TargetPos) / 100.0f;
@@ -100,7 +100,7 @@ float ATslWeapon_Trajectory::GetZeroingDistance() const {
 	return ZeroingDistance;
 }
 
-ObjectPtr<UStaticMeshComponent> UWeaponMeshComponent::GetStaticMeshComponentScopeType() const {
+NativePtr<UStaticMeshComponent> UWeaponMeshComponent::GetStaticMeshComponentScopeType() const {
 	for (const auto& Element : AttachedStaticComponentMap.GetVector()) {
 		if (Element.Value.Key == EWeaponAttachmentSlotID::UpperRail) {
 			return Element.Value.Value;
@@ -135,7 +135,7 @@ bool ATslCharacter::GetTslWeapon(ATslWeapon_Trajectory& OutTslWeapon) const {
 	if (WeaponIndex < 0 || WeaponIndex >= 3)
 		return false;
 
-	ObjectPtr<ATslWeapon> TslWeaponPtr;
+	NativePtr<ATslWeapon> TslWeaponPtr;
 	if (!WeaponProcessorComponent.EquippedWeapons.GetValue(WeaponIndex, TslWeaponPtr))
 		return false;
 
@@ -151,7 +151,7 @@ bool ATslCharacter::GetTslWeapon(ATslWeapon_Trajectory& OutTslWeapon) const {
 //	MemberAtOffsetZero(TArray<ABulletInfo>, BulletInfo, 0x0)
 //,)
 //
-//MemberAtOffset(EncryptedObjectPtr<ABulletTable>, BulletTable, 0xEC0)
+//MemberAtOffset(EncryptedPtr<ABulletTable>, BulletTable, 0xEC0)
 ////BulletTable
 //[&] {
 //	if (!IsWeaponed || !bHitScan)

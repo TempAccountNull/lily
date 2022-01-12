@@ -135,28 +135,9 @@ bool StartDriver(const char* szServiceName, const char* szFilePath) {
 	return bSuccess || (dwError == ERROR_SERVICE_ALREADY_RUNNING);
 }
 
-DWORD GetPIDByName(const char* szProcName) {
-	DWORD Result = 0;
-	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-
-	PROCESSENTRY32 pe32 = { 0 };
-	pe32.dwSize = sizeof(pe32);
-	if (Process32First(hSnapShot, &pe32)) {
-		do {
-			if (_stricmp(pe32.szExeFile, szProcName) == 0) {
-				Result = pe32.th32ProcessID;
-				break;
-			}
-		} while (Process32Next(hSnapShot, &pe32));
-	}
-
-	CloseHandle(hSnapShot);
-	return Result;
-}
-
 DWORD GetPID(char* szProcessName, bool bCreateProcess) {
 	if (!bCreateProcess)
-		return GetPIDByName(szProcessName);
+		return GetPIDByProcessName(szProcessName);
 
 	STARTUPINFO StartupInfo = { .cb = sizeof(StartupInfo) };
 	PROCESS_INFORMATION ProcessInfo = {};

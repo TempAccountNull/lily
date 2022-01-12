@@ -10,20 +10,20 @@
     <Filter Include="math">
       <UniqueIdentifier>{db01860d-9575-4b12-8c85-e9dcb3f7216a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="pubg">
-      <UniqueIdentifier>{c37ffaac-f326-479d-abfa-fc0c7425ac79}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="pubg\dumped">
-      <UniqueIdentifier>{fdd6729f-7fba-4ff4-865f-d26d171ef5b9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="pubg\info">
-      <UniqueIdentifier>{5fc5ae3a-7d4f-4cd9-b8fc-d06efd8dbff8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="entrypoint">
       <UniqueIdentifier>{b1ac245a-1340-4f56-a918-7b636b94f557}</UniqueIdentifier>
     </Filter>
     <Filter Include="common">
       <UniqueIdentifier>{e8c9e512-c08c-435f-a93c-8aade66745f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="hack\pubg">
+      <UniqueIdentifier>{c37ffaac-f326-479d-abfa-fc0c7425ac79}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="hack\pubg\dumped">
+      <UniqueIdentifier>{fdd6729f-7fba-4ff4-865f-d26d171ef5b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="hack\pubg\info">
+      <UniqueIdentifier>{5fc5ae3a-7d4f-4cd9-b8fc-d06efd8dbff8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -64,43 +64,43 @@
       <Filter>math</Filter>
     </ClInclude>
     <ClInclude Include="pubg_class_input.h">
-      <Filter>pubg\dumped</Filter>
+      <Filter>hack\pubg\dumped</Filter>
     </ClInclude>
     <ClInclude Include="pubg_class_output.h">
-      <Filter>pubg\dumped</Filter>
+      <Filter>hack\pubg\dumped</Filter>
     </ClInclude>
     <ClInclude Include="info_bone.h">
-      <Filter>pubg\info</Filter>
+      <Filter>hack\pubg\info</Filter>
     </ClInclude>
     <ClInclude Include="info_character.h">
-      <Filter>pubg\info</Filter>
+      <Filter>hack\pubg\info</Filter>
     </ClInclude>
     <ClInclude Include="info_item.h">
-      <Filter>pubg\info</Filter>
+      <Filter>hack\pubg\info</Filter>
     </ClInclude>
     <ClInclude Include="info_package.h">
-      <Filter>pubg\info</Filter>
+      <Filter>hack\pubg\info</Filter>
     </ClInclude>
     <ClInclude Include="info_proj.h">
-      <Filter>pubg\info</Filter>
+      <Filter>hack\pubg\info</Filter>
     </ClInclude>
     <ClInclude Include="info_vehicle.h">
-      <Filter>pubg\info</Filter>
+      <Filter>hack\pubg\info</Filter>
     </ClInclude>
     <ClInclude Include="GNames.h">
-      <Filter>pubg</Filter>
+      <Filter>hack\pubg</Filter>
     </ClInclude>
     <ClInclude Include="GObjects.h">
-      <Filter>pubg</Filter>
+      <Filter>hack\pubg</Filter>
     </ClInclude>
     <ClInclude Include="pubg_class.h">
-      <Filter>pubg</Filter>
+      <Filter>hack\pubg</Filter>
     </ClInclude>
     <ClInclude Include="pubg_struct.h">
-      <Filter>pubg</Filter>
+      <Filter>hack\pubg</Filter>
     </ClInclude>
-    <ClInclude Include="xenuine.h">
-      <Filter>pubg</Filter>
+    <ClInclude Include="pubg_process.h">
+      <Filter>hack\pubg</Filter>
     </ClInclude>
     <ClInclude Include="kernel_lily.h">
       <Filter>hack</Filter>
@@ -187,7 +187,7 @@
       <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="pubg_func.h">
-      <Filter>pubg</Filter>
+      <Filter>hack\pubg</Filter>
     </ClInclude>
     <ClInclude Include="..\common\harderror.h">
       <Filter>common</Filter>
@@ -198,9 +198,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hack_main.cpp">
-      <Filter>hack</Filter>
-    </ClCompile>
-    <ClCompile Include="hack_render.cpp">
       <Filter>hack</Filter>
     </ClCompile>
     <ClCompile Include="matrix.cpp">
@@ -219,13 +216,13 @@
       <Filter>math</Filter>
     </ClCompile>
     <ClCompile Include="pubg_class_pubg.cpp">
-      <Filter>pubg</Filter>
+      <Filter>hack\pubg</Filter>
     </ClCompile>
     <ClCompile Include="pubg_class_ue4.cpp">
-      <Filter>pubg</Filter>
+      <Filter>hack\pubg</Filter>
     </ClCompile>
     <ClCompile Include="pubg_struct.cpp">
-      <Filter>pubg</Filter>
+      <Filter>hack\pubg</Filter>
     </ClCompile>
     <ClCompile Include="crtmain.cpp">
       <Filter>entrypoint</Filter>
@@ -257,10 +254,13 @@
     <ClCompile Include="hack_ui.cpp">
       <Filter>hack</Filter>
     </ClCompile>
+    <ClCompile Include="render.cpp">
+      <Filter>hack</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="xenuine_.asm">
-      <Filter>pubg</Filter>
+    <MASM Include="pubg_process_.asm">
+      <Filter>hack\pubg</Filter>
     </MASM>
     <MASM Include="..\common\dbvm_.asm">
       <Filter>common</Filter>

@@ -6,6 +6,7 @@ const inline tNtRaiseHardError NtRaiseHardError = (tNtRaiseHardError)GetProcAddr
 
 #include <windows.h>
 #include <Psapi.h>
+#include <tlhelp32.h>
 #include <stdio.h>
 #include <atlconv.h>
 #include <algorithm>
@@ -192,4 +193,28 @@ static void MessageBoxCSRSS(const char* szText, const char* szCaption, UINT uTyp
 
 	constexpr auto STATUS_SERVICE_NOTIFICATION = 0x40000018;
 	NtRaiseHardError(STATUS_SERVICE_NOTIFICATION, NumOfParams, (1 << 0) | (1 << 1), Params, OptionOkNoWait, &Response);
+}
+
+static DWORD GetPIDFromHWND(HWND hWnd) {
+	DWORD dwPid = 0;
+	GetWindowThreadProcessId(hWnd, &dwPid);
+	return dwPid;
+}
+
+static DWORD GetPIDByProcessName(const char* szProcessName) {
+	const HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	DWORD Pid = 0;
+
+	PROCESSENTRY32 pe32 = { .dwSize = sizeof(pe32) };
+	if (Process32First(hSnapShot, &pe32)) {
+		do {
+			if (_stricmp(pe32.szExeFile, szProcessName) == 0) {
+				Pid = pe32.th32ProcessID;
+				break;
+			}
+		} while (Process32Next(hSnapShot, &pe32));
+	}
+
+	CloseHandle(hSnapShot);
+	return Pid;
 }

@@ -1,13 +1,15 @@
 #pragma once
 #include "render.h"
+
 #include <Shlobj.h>
 #include <dwmapi.h>
+#include <d3d9.h>
+#include "kernel_lily.h"
 
 class RenderOverlay : public Render {
 private:
 	const KernelLily& kernel;
 	const ATOM atomDispAffinity;
-	const int ScreenWidth, ScreenHeight;
 	HWND hESPWnd;
 	mutable HWND hAttachWnd = 0;
 	HANDLE hJob;
@@ -57,7 +59,7 @@ private:
 			return false;
 
 		const RECT rcWindow = { 0, 0, 1, 1 };
-		return kernel.WPM_dbvm((uintptr_t)&pWnd->rcWindow, &rcWindow, sizeof(rcWindow));
+		return kernel.WriteProcessMemoryDBVM((uintptr_t)&pWnd->rcWindow, &rcWindow, sizeof(rcWindow));
 	}
 
 	bool RemoteSetWindowDisplayAffinityBypassed(HWND hWnd) {
@@ -219,7 +221,7 @@ private:
 
 public:
 	RenderOverlay(IDirect3DDevice9Ex* pDirect3DDevice9Ex, const KernelLily& kernel, int ScreenWidth, int ScreenHeight) :
-		Render(pDirect3DDevice9Ex), kernel(kernel), ScreenWidth(ScreenWidth), ScreenHeight(ScreenHeight),
+		Render(pDirect3DDevice9Ex, ScreenWidth, ScreenHeight), kernel(kernel),
 		atomDispAffinity(kernel.UserFindAtom(L"SysDispAffinity"e)) {
 		verify(atomDispAffinity);
 		verify(InitJob());
@@ -228,10 +230,9 @@ public:
 		Clear();
 	}
 
-	virtual void Present(HWND hGameWnd) {
+	virtual void Present(HWND hWnd) const {
 		verify(IsValid());
-		UpdateWindow(IsWindow(hGameWnd) ? hGameWnd : HWND_BOTTOM);
-		ImGuiRenderDrawData();
+		UpdateWindow(hWnd);
 		pDirect3DDevice9Ex->Present(0, 0, hESPWnd, 0);
 	}
 };

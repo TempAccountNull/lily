@@ -48,7 +48,7 @@ void Hack::DrawHotkey() const {
 	strcat(szBuf, "Current Rnage (+-) : "e);
 	strcat(szBuf, std::to_string(nRange).c_str());
 	strcat(szBuf, "M"e);
-	DrawNotice(szBuf, COLOR_TEAL);
+	DrawNotice(szBuf, Render::COLOR_TEAL);
 }
 
 void Hack::ProcessImGui() {
@@ -60,8 +60,8 @@ void Hack::ProcessImGui() {
 	const float MenuSizeX = 320.0f;
 	const float MenuSizeY = 450.0f;
 
-	const float MenuPosX = Width - MenuSizeX - MARGIN;
-	const float MenuPosY = Height / 2.0f - MenuSizeY / 2.0f;
+	const float MenuPosX = render.GetWidth() - MenuSizeX - Render::MARGIN;
+	const float MenuPosY = render.GetHeight() / 2.0f - MenuSizeY / 2.0f;
 
 	ImGui::SetNextWindowBgAlpha(0.4f);
 	ImGui::SetNextWindowPos({ MenuPosX, MenuPosY }, ImGuiCond_Once);

@@ -15,45 +15,44 @@
 
 #include "render.h"
 
-void Hack::Loop(Process& process) {
+void Hack::Loop() {
 	dbvm.CloakReset();
 
-	const HWND hGameWnd = process.GetHwnd();
-	const CR3 mapCR3 = kernel.GetMappedProcessCR3();
-	const Xenuine xenuine(process);
+	const HWND hGameWnd = pubg.GetHwnd();
+	const CR3 mapCR3 = kernel.GetMapCR3();
 	const TNameEntryArray NameArr;
 	//FUObjectArray ObjectArr;
 	//NameArr.DumpAllNames();
 	//ObjectArr.DumpObject(NameArr);
 
-	constexpr uintptr_t HookBaseAddress = 0x12c776F;
-	const uintptr_t AimHookAddressVA = process.GetBaseAddress() + HookBaseAddress;
+	//f3 0f 11 ? ? ? ? ? ? f3 0f 11 ? ? ? ? ? ? f3 44 0f ? ? ? ? ? ? ? f3 0f 10 ? ? ? ? ? e9
+	constexpr uintptr_t HookBaseAddress = 0x11E392B;
+	const uintptr_t AimHookAddressVA = pubg.GetBaseAddress() + HookBaseAddress;
 	const PhysicalAddress AimHookAddressPA = dbvm.GetPhysicalAddress(AimHookAddressVA, mapCR3);
 	verify(AimHookAddressPA);
 
 	int PrevMouseX = 0, PrevMouseY = 0;
 
-	ObjectPtr<ATslCharacter> CachedMyTslCharacterPtr = 0;
-	ObjectPtr<ATslCharacter> PrevTargetPtr = 0;
+	NativePtr<ATslCharacter> CachedMyTslCharacterPtr = 0;
+	NativePtr<ATslCharacter> PrevTargetPtr = 0;
 
 	while (IsWindow(hGameWnd)) {
-		UpdateGameClientRect();
-		float TimeDelta = ProcessTimeDelta();
-
-		if (GetForegroundWindow() == hGameWnd) {
-			InsertMouseInfo();
+		if (hGameWnd == GetForegroundWindow())
 			ProcessHotkey();
-		}
 
-		RenderArea([&]() {
+		const float TimeDelta = ProcessTimeDelta();
+		const float Width = render.GetWidth();
+		const float Height = render.GetHeight();
+
+		render.RenderArea(hGameWnd, [&]() {
 			ProcessImGui();
 			DrawHotkey();
-			DrawFPS(FPS, COLOR_TEAL);
+			DrawFPS(FPS, Render::COLOR_TEAL);
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			bool IsNeedToHookAim = false;
-			TArray<ObjectPtr<AActor>> Actors;
-			ObjectPtr<APlayerController> PlayerContollerPtr = 0;
+			TArray<NativePtr<AActor>> Actors;
+			NativePtr<APlayerController> PlayerContollerPtr = 0;
 
 			Vector CameraLocation(0.0f, 0.0f, 0.0f);
 			Rotator CameraRotation(0.0f, 0.0f, 0.0f);
@@ -66,7 +65,7 @@ void Hack::Loop(Process& process) {
 			constexpr float BallisticDragScale = 1.0f;
 			constexpr float BallisticDropScale = 1.0f;
 
-			ObjectPtr<UObject> MyPawnPtr = 0;
+			NativePtr<UObject> MyPawnPtr = 0;
 
 			[&] {
 				UWorld World;
@@ -84,7 +83,7 @@ void Hack::Loop(Process& process) {
 				if (!World.GameInstance.Read(GameInstance))
 					return;
 
-				EncryptedObjectPtr<ULocalPlayer> LocalPlayerPtr;
+				EncryptedPtr<ULocalPlayer> LocalPlayerPtr;
 				if (!GameInstance.LocalPlayers.GetValue(0, LocalPlayerPtr))
 					return;
 
@@ -159,7 +158,7 @@ void Hack::Loop(Process& process) {
 				ScreenLengthY = std::min(ScreenLengthY, 6.0f);
 				ScreenLengthY = std::max(ScreenLengthY, 5.0f);
 
-				DrawRatioBox(
+				render.DrawRatioBox(
 					{ ScreenPos.X - ScreenLengthX / 2.0f, ScreenPos.Y - ScreenLengthY / 2.0f, ScreenPos.Z },
 					{ ScreenPos.X + ScreenLengthX / 2.0f, ScreenPos.Y + ScreenLengthY / 2.0f, ScreenPos.Z },
 					Ratio, ColorRemain, ColorDamaged, ColorEdge);
@@ -179,7 +178,7 @@ void Hack::Loop(Process& process) {
 			bool IsScoping = false;
 
 			float ZeroingDistance = FLT_MIN;
-			ObjectPtr<UCurveVector> BallisticCurve = 0;
+			NativePtr<UCurveVector> BallisticCurve = 0;
 			float Gravity = -9.8f;
 			float BDS = 1.0f;
 			float VDragCoefficient = 1.0f;
@@ -284,14 +283,14 @@ void Hack::Loop(Process& process) {
 				}
 			}();
 
-			ObjectPtr<ATslCharacter> CurrentTargetPtr = 0;
+			NativePtr<ATslCharacter> CurrentTargetPtr = 0;
 			bool bFoundTarget = false;
 			Vector TargetPos(0.0f, 0.0f, 0.0f);
 			Vector TargetVelocity(0.0f, 0.0f, 0.0f);
 
 			//Actor loop
 			for (const auto& ActorPtr : Actors.GetVector()) {
-				TSet<ObjectPtr<UActorComponent>> OwnedComponents;
+				TSet<NativePtr<UActorComponent>> OwnedComponents;
 				Vector ActorVelocity(0.0f, 0.0f, 0.0f);
 				Vector ActorLocation(0.0f, 0.0f, 0.0f);
 				Vector ActorLocationScreen(0.0f, 0.0f, 0.0f);
@@ -330,7 +329,7 @@ void Hack::Loop(Process& process) {
 					if (bDebug) {
 						Vector v2_DebugLoc = ActorLocationScreen;
 						v2_DebugLoc.Y += 15.0;
-						DrawString(v2_DebugLoc, szBuf, COLOR_WHITE, false);
+						DrawString(v2_DebugLoc, szBuf, Render::COLOR_WHITE, false);
 					}
 
 					return true;
@@ -348,7 +347,7 @@ void Hack::Loop(Process& process) {
 						return;
 
 					sprintf(szBuf, "%s\n%.0fM"e, szBuf, DistanceToActor);
-					DrawString(ActorLocationScreen, szBuf, COLOR_RED, false);
+					DrawString(ActorLocationScreen, szBuf, Render::COLOR_RED, false);
 				}();
 
 				//DrawVehicle
@@ -358,7 +357,7 @@ void Hack::Loop(Process& process) {
 
 					if (ActorNameHash == "BP_VehicleDrop_BRDM_C"h) {
 						sprintf(szBuf, "BRDM\n%.0fM"e, DistanceToActor);
-						DrawString(ActorLocationScreen, szBuf, COLOR_TEAL, false);
+						DrawString(ActorLocationScreen, szBuf, Render::COLOR_TEAL, false);
 						return;
 					}
 
@@ -411,11 +410,11 @@ void Hack::Loop(Process& process) {
 
 					bool IsDestructible = (std::get<1>(VehicleInfo) == VehicleType2::Destructible);
 
-					ImU32 Color = COLOR_BLUE;
+					ImU32 Color = Render::COLOR_BLUE;
 					if (std::get<2>(VehicleInfo) == VehicleType3::Special)
-						Color = COLOR_TEAL;
+						Color = Render::COLOR_TEAL;
 					if (Health <= 0.0f || Fuel <= 0.0f)
-						Color = COLOR_GRAY;
+						Color = Render::COLOR_GRAY;
 
 					sprintf(szBuf, "%s\n%.0fM"e, szBuf, DistanceToActor);
 					DrawString(ActorLocationScreen, szBuf, Color, false);
@@ -426,18 +425,20 @@ void Hack::Loop(Process& process) {
 							return;
 
 						Vector VehicleBarScreenPos = ActorLocationScreen;
-						VehicleBarScreenPos.Y += GetTextSize(szBuf).y / 2.0f + 4.0f;
+						VehicleBarScreenPos.Y += render.GetTextSize(FONTSIZE, szBuf).y / 2.0f + 4.0f;
 						const float CameraDistance = CameraLocation.Distance(ActorLocation) / 100.0f;
 						if (Health <= 0.0f)
 							return;
 
-						float HealthBarScreenLengthY = DrawRatioBoxWrapper(VehicleBarScreenPos, CameraDistance, 1.0f, Health / HealthMax, COLOR_GREEN, COLOR_RED, COLOR_BLACK).second;
+						const float HealthBarScreenLengthY = DrawRatioBoxWrapper(VehicleBarScreenPos, CameraDistance, 1.0f, 
+							Health / HealthMax, Render::COLOR_GREEN, Render::COLOR_RED, Render::COLOR_BLACK).second;
 						VehicleBarScreenPos.Y += HealthBarScreenLengthY - 1.0f;
-						DrawRatioBoxWrapper(VehicleBarScreenPos, CameraDistance, 1.0f, Fuel / FuelMax, COLOR_BLUE, COLOR_GRAY, COLOR_BLACK).second;
+						DrawRatioBoxWrapper(VehicleBarScreenPos, CameraDistance, 1.0f, 
+							Fuel / FuelMax, Render::COLOR_BLUE, Render::COLOR_GRAY, Render::COLOR_BLACK).second;
 					}();
 				}();
 
-				auto DrawItem = [&](ObjectPtr<UItem> ItemPtr, Vector ItemLocation) {
+				auto DrawItem = [&](NativePtr<UItem> ItemPtr, Vector ItemLocation) {
 					UItem Item;
 					if (!ItemPtr.Read(Item))
 						return false;
@@ -452,7 +453,7 @@ void Hack::Loop(Process& process) {
 					if (ItemPriority >= nItem)
 						DrawString(ItemLocation, szBuf, Color, false);
 					else if (bDebug)
-						DrawString(ItemLocation, szBuf, COLOR_WHITE, false);
+						DrawString(ItemLocation, szBuf, Render::COLOR_WHITE, false);
 					else
 						return false;
 					return true;
@@ -468,7 +469,7 @@ void Hack::Loop(Process& process) {
 						return;
 
 					sprintf(szBuf, "%s\n%.0fM"e, szBuf, DistanceToActor);
-					DrawString(ActorLocationScreen, szBuf, COLOR_TEAL, false);
+					DrawString(ActorLocationScreen, szBuf, Render::COLOR_TEAL, false);
 
 					//DrawBoxContents
 					[&] {
@@ -481,7 +482,7 @@ void Hack::Loop(Process& process) {
 
 						Vector PackageLocationScreen = ActorLocationScreen;
 
-						const float TextLineHeight = GetTextSize(""e).y;
+						const float TextLineHeight = render.GetTextSize(FONTSIZE, ""e).y;
 						PackageLocationScreen.Y += TextLineHeight * 1.5f;
 
 						for (const auto& ItemPtr : ItemPackage.Items.GetVector()) {
@@ -604,14 +605,14 @@ void Hack::Loop(Process& process) {
 						v.X = (Width * (0.9807f + 0.8474f) / 2.0f) + (RadarX / 200.0f * Width * (0.9807f - 0.8474f) / 2.0f);
 						v.Y = (Height * (0.9722f + 0.7361f) / 2.0f) + (RadarY / 200.0f * Height * (0.9722f - 0.7361f) / 2.0f);
 
-						ImU32 Color = COLOR_RED;
+						ImU32 Color = Render::COLOR_RED;
 
 						if (IsInVehicle)
-							Color = COLOR_BLUE;
+							Color = Render::COLOR_BLUE;
 						if (GroggyHealth > 0.0f && Health <= 0.0f)
-							Color = COLOR_GRAY;
+							Color = Render::COLOR_GRAY;
 
-						DrawRectFilled({ v.X - 3.0f, v.Y - 3.0f, 0.0 }, { v.X + 3.0f, v.Y + 3.0f, 0.0f }, Color);
+						render.DrawRectFilled({ v.X - 3.0f, v.Y - 3.0f, 0.0 }, { v.X + 3.0f, v.Y + 3.0f, 0.0f }, Color);
 					}();
 
 					//DrawSkeleton, Aimbot
@@ -644,9 +645,11 @@ void Hack::Loop(Process& process) {
 						const float CameraDistance = CameraLocation.Distance(HealthBarPos) / 100.0f;
 						float HealthBarScreenLengthY = 0.0f;
 						if (Health > 0.0)
-							HealthBarScreenLengthY = DrawRatioBoxWrapper(HealthBarScreenPos, CameraDistance, 0.7f, Health / HealthMax, COLOR_GREEN, COLOR_RED, COLOR_BLACK).second;
+							HealthBarScreenLengthY = DrawRatioBoxWrapper(HealthBarScreenPos, CameraDistance, 0.7f, 
+								Health / HealthMax, Render::COLOR_GREEN, Render::COLOR_RED, Render::COLOR_BLACK).second;
 						else if (GroggyHealth > 0.0)
-							HealthBarScreenLengthY = DrawRatioBoxWrapper(HealthBarScreenPos, CameraDistance, 0.7f, GroggyHealth / GroggyHealthMax, COLOR_RED, COLOR_GRAY, COLOR_BLACK).second;
+							HealthBarScreenLengthY = DrawRatioBoxWrapper(HealthBarScreenPos, CameraDistance, 0.7f, 
+								GroggyHealth / GroggyHealthMax, Render::COLOR_RED, Render::COLOR_GRAY, Render::COLOR_BLACK).second;
 
 						bool IsInCircle = false;
 						//Aimbot
@@ -694,22 +697,22 @@ void Hack::Loop(Process& process) {
 							//GetColor
 							ImU32 Color = [&] {
 								if (ActorPtr == PrevTargetPtr)
-									return COLOR_RED;
+									return Render::COLOR_RED;
 								if (TslCharacter.LastTeamNum == MyTeamNum)
-									return COLOR_GREEN;
+									return Render::COLOR_GREEN;
 								if (IsInCircle)
-									return COLOR_YELLOW;
+									return Render::COLOR_YELLOW;
 								if (IsInVehicle)
-									return COLOR_BLUE;
+									return Render::COLOR_BLUE;
 								if (Health <= 0.0f)
-									return COLOR_GRAY;
+									return Render::COLOR_GRAY;
 								if (IsAICharacter(ActorNameHash))
-									return COLOR_TEAL;
-								return (DamageDealtOnEnemy > 510.0) ? COLOR_RED : IM_COL32(255, 255 - int(DamageDealtOnEnemy / 2), 255 - int(DamageDealtOnEnemy / 2), 255);
+									return Render::COLOR_TEAL;
+								return (DamageDealtOnEnemy > 510.0) ? Render::COLOR_RED : IM_COL32(255, 255 - int(DamageDealtOnEnemy / 2), 255 - int(DamageDealtOnEnemy / 2), 255);
 							}();
 
 							for (auto DrawPair : GetDrawPairArray())
-								DrawLine(BonesScreenPos[DrawPair.first], BonesScreenPos[DrawPair.second], Color);
+								render.DrawLine(BonesScreenPos[DrawPair.first], BonesScreenPos[DrawPair.second], Color);
 
 							wchar_t PlayerName[0x100];
 							TslCharacter.CharacterName.GetValues(*PlayerName, 0x100);
@@ -722,7 +725,7 @@ void Hack::Loop(Process& process) {
 							}
 
 							DrawString(
-								{ HealthBarScreenPos.X, HealthBarScreenPos.Y - HealthBarScreenLengthY - GetTextSize(szBuf).y / 2.0f, HealthBarScreenPos.Z },
+								{ HealthBarScreenPos.X, HealthBarScreenPos.Y - HealthBarScreenLengthY - render.GetTextSize(FONTSIZE, szBuf).y / 2.0f, HealthBarScreenPos.Z },
 								szBuf, Color, true);
 						}();
 					}();
@@ -755,7 +758,7 @@ void Hack::Loop(Process& process) {
 
 				Vector TargetScreenPos = WorldToScreen(TargetPos, CameraRotationMatrix, CameraLocation, CameraFOV);
 				Vector AimScreenPos = WorldToScreen(PredictedPos, CameraRotationMatrix, CameraLocation, CameraFOV);
-				DrawLine(TargetScreenPos, AimScreenPos, COLOR_RED);
+				render.DrawLine(TargetScreenPos, AimScreenPos, Render::COLOR_RED);
 
 				if (!IsWeaponed || !bPushingMouseM)
 					return;
@@ -799,11 +802,11 @@ void Hack::Loop(Process& process) {
 					DirectionInput.Normalize();
 
 					ChangeRegOnBPInfo Info = {0};
-					Info.changeXMM6 = 1;
 					Info.changeXMM7 = 1;
+					Info.changeXMM6 = 1;
 					Info.changeXMM8 = 1;
-					*(float*)&Info.XMM6 = DirectionInput.X;
-					*(float*)&Info.XMM7 = DirectionInput.Y;
+					*(float*)&Info.XMM7 = DirectionInput.X;
+					*(float*)&Info.XMM6 = DirectionInput.Y;
 					*(float*)&Info.XMM8 = DirectionInput.Z;
 					dbvm.ChangeRegisterOnBP(AimHookAddressPA, Info);
 					IsNeedToHookAim = true;
@@ -814,13 +817,13 @@ void Hack::Loop(Process& process) {
 				dbvm.RemoveChangeRegisterOnBP(AimHookAddressPA);
 
 			if (SpectatedCount > 0)
-				DrawSpectatedCount(SpectatedCount, COLOR_RED);
+				DrawSpectatedCount(SpectatedCount, Render::COLOR_RED);
 
 			if (!IsNearlyZero(ZeroingDistance))
-				DrawZeroingDistance(ZeroingDistance, COLOR_TEAL);
+				DrawZeroingDistance(ZeroingDistance, Render::COLOR_TEAL);
 
 			if (IsWeaponed)
-				DrawCircle({ Width / 2.0f, Height / 2.0f }, AimbotCircleSize, COLOR_WHITE);
+				render.DrawCircle({ Width / 2.0f, Height / 2.0f }, AimbotCircleSize, Render::COLOR_WHITE);
 
 			if (bTurnBack) {
 				bTurnBack = false;
@@ -829,14 +832,12 @@ void Hack::Loop(Process& process) {
 			}
 		});
 	}
-
-	render.Clear();
 }
 
 void FUObjectArray::DumpObject(const TNameEntryArray& NameArr) const {
 	for (unsigned i = 0; i < GetNumElements(); i++) {
 		UObject obj;
-		auto Ptr = GetObjectPtrById(i);
+		auto Ptr = GetNativePtrById(i);
 		if (!Ptr.Read(obj))
 			continue;
 

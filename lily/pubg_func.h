@@ -6,4 +6,4 @@ Vector WorldToScreen(const Vector& WorldLocation, const Matrix& RotationMatrix, 
 
 std::pair<float, float> GetBulletDropAndTravelTime(const Vector& GunLocation, const Rotator& GunRotation, const Vector& TargetPos,
 	float ZeroingDistance, float BulletDropAdd, float InitialSpeed, float TrajectoryGravityZ, float BallisticDragScale,
-	float BallisticDropScale, float BDS, float SimulationSubstepTime, float VDragCoefficient, ObjectPtr<UCurveVector> BallisticCurve);
+	float BallisticDropScale, float BDS, float SimulationSubstepTime, float VDragCoefficient, NativePtr<UCurveVector> BallisticCurve);

@@ -1,5 +1,4 @@
 #pragma once
-
 #include "pubg_struct.h"
 
 #include "vector.h"

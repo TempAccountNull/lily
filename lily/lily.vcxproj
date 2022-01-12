@@ -117,7 +117,7 @@
   <ItemGroup>
     <MASM Include="..\common\dbvm_.asm" />
     <MASM Include="..\common\kernel_.asm" />
-    <MASM Include="xenuine_.asm" />
+    <MASM Include="pubg_process_.asm" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\compiletime.h" />
@@ -175,7 +175,7 @@
     <ClInclude Include="transform.h" />
     <ClInclude Include="vector.h" />
     <ClInclude Include="kernel_lily.h" />
-    <ClInclude Include="xenuine.h" />
+    <ClInclude Include="pubg_process.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\imgui\imgui.cpp" />
@@ -191,7 +191,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="hack_main.cpp" />
-    <ClCompile Include="hack_render.cpp" />
     <ClCompile Include="hack_ui.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="matrix.cpp" />
@@ -199,6 +198,7 @@
     <ClCompile Include="pubg_class_ue4.cpp" />
     <ClCompile Include="pubg_struct.cpp" />
     <ClCompile Include="quat.cpp" />
+    <ClCompile Include="render.cpp" />
     <ClCompile Include="rotator.cpp" />
     <ClCompile Include="transform.cpp" />
     <ClCompile Include="vector.cpp" />

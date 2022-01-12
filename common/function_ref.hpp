@@ -237,7 +237,7 @@ namespace tl {
         constexpr function() noexcept = delete;
 
         /// Creates a `function` which refers to the same callable as `rhs`.
-        constexpr function(const function<R(Args...)>& rhs) noexcept = default;
+        constexpr function(const function<R(Args...)>& rhs) noexcept { *this = rhs; }
 
         /// Constructs a `function` referring to `f`.
         ///
@@ -247,8 +247,8 @@ namespace tl {
             !std::is_same<detail::fnref::decay_t<F>, function>::value&&
             detail::fnref::is_invocable_r<R, F&&, Args...>::value>* = nullptr>
             TL_11_CONSTEXPR function(F&& f) noexcept {
-            void* const pobj = const_cast<void*>(reinterpret_cast<const void*>(std::addressof(f)));
-            obj_ = std::vector<uint8_t>((uint8_t*)pobj, (uint8_t*)pobj + sizeof(f));
+            uint8_t* const pobj = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(std::addressof(f)));
+            obj_ = std::vector<uint8_t>(pobj, pobj + sizeof(f));
             callback_ = [](void* obj, Args... args) -> R {
                 return detail::fnref::invoke(
                     *reinterpret_cast<typename std::add_pointer<F>::type>(obj),
@@ -258,7 +258,11 @@ namespace tl {
 
         /// Makes `*this` refer to the same callable as `rhs`.
         TL_11_CONSTEXPR function<R(Args...)>&
-            operator=(const function<R(Args...)>& rhs) noexcept = default;
+            operator=(const function<R(Args...)>& rhs) noexcept { 
+            obj_ = rhs.obj_; 
+            callback_ = rhs.callback_; 
+            return *this; 
+        }
 
         /// Makes `*this` refer to `f`.
         ///
@@ -267,8 +271,8 @@ namespace tl {
             detail::fnref::enable_if_t<detail::fnref::is_invocable_r<R, F&&, Args...>::value>
             * = nullptr>
             TL_11_CONSTEXPR function<R(Args...)>& operator=(F&& f) noexcept {
-            void* const pobj = reinterpret_cast<void*>(std::addressof(f));
-            obj_ = std::vector<uint8_t>((uint8_t*)pobj, (uint8_t*)pobj + sizeof(f));
+            uint8_t* const pobj = reinterpret_cast<uint8_t*>(std::addressof(f));
+            obj_ = std::vector<uint8_t>(pobj, pobj + sizeof(f));
             callback_ = [](void* obj, Args... args) {
                 return detail::fnref::invoke(
                     *reinterpret_cast<typename std::add_pointer<F>::type>(obj),

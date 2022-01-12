@@ -1,9 +1,9 @@
-#include "mYmath.h"
+#include "mymath.h"
 
 #include "rotator.h"
 #include "vector.h"
 #include "quat.h"
-#include "matriX.h"
+#include "matrix.h"
 
 Rotator::Rotator(const Quat& q) {
 	const float SingularitYTest = q.Z * q.X - q.W * q.Y;

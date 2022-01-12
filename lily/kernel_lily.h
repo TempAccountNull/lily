@@ -48,7 +48,7 @@ public:
 	const UserFunction<tagWND* (HWND hWnd)> UserValidateHwnd = [&] {
 		const uintptr_t ScanResult = PatternScan::Range((uintptr_t)IsChild, 0x30, "48 8B CA E8"e, ReadProcessMemoryWinAPI);
 		verify(ScanResult);
-		const auto p = PatternScan::GetJumpAddress(ScanResult + 0x3, RPM_dbvm);
+		const auto p = PatternScan::GetJumpAddress(ScanResult + 0x3, ReadProcessMemoryDBVM);
 		verify(p);
 		return decltype(UserValidateHwnd)(reinterpret_cast<tagWND * (*)(HWND hWnd)>(p));
 	}();
@@ -56,39 +56,39 @@ public:
 private:
 	const uint32_t OffsetProp = [&] {
 		const uintptr_t pNtUserGetProp = GetKernelProcAddressVerified("win32kfull.sys"e, "NtUserGetProp"e);
-		const uintptr_t ScanResult = PatternScan::Range(pNtUserGetProp, 0x100, "48 8B ? ? ? 00 00 48 FF 15"e, RPM_dbvm);
+		const uintptr_t ScanResult = PatternScan::Range(pNtUserGetProp, 0x100, "48 8B ? ? ? 00 00 48 FF 15"e, ReadProcessMemoryDBVM);
 		verify(ScanResult);
 
-		RPM_dbvm(ScanResult + 0x3, (void*)&OffsetProp, sizeof(OffsetProp));
+		ReadProcessMemoryDBVM(ScanResult + 0x3, (void*)&OffsetProp, sizeof(OffsetProp));
 		verify(OffsetProp);
 		return OffsetProp;
 	}();
 
 	const uintptr_t pPsProcessType = [&] {
 		const uintptr_t ppPsProcessType = GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsProcessType"e);
-		RPM_dbvm(ppPsProcessType, (void*)&pPsProcessType, sizeof(pPsProcessType));
+		ReadProcessMemoryDBVM(ppPsProcessType, (void*)&pPsProcessType, sizeof(pPsProcessType));
 		verify(pPsProcessType);
 		return pPsProcessType;
 	}();
 	
 	uintptr_t GetCallbackEntryItemWithAltitude(const wchar_t* wAltitude) const {
 		OBJECT_TYPE PsProcessType;
-		if (!RPM_dbvm(pPsProcessType, &PsProcessType, sizeof(PsProcessType)))
+		if (!ReadProcessMemoryDBVM(pPsProcessType, &PsProcessType, sizeof(PsProcessType)))
 			return 0;
 
 		const uintptr_t pStartCallback = (uintptr_t)PsProcessType.CallbackList.Flink;
 		uintptr_t pCallback = pStartCallback;
 		do {
 			CALLBACK_ENTRY_ITEM CallbackEntryItem;
-			if (!RPM_dbvm(pCallback, &CallbackEntryItem, sizeof(CallbackEntryItem)))
+			if (!ReadProcessMemoryDBVM(pCallback, &CallbackEntryItem, sizeof(CallbackEntryItem)))
 				break;
 
 			CALLBACK_ENTRY CallBackEntry;
-			if (!RPM_dbvm((uintptr_t)CallbackEntryItem.CallbackEntry, &CallBackEntry, sizeof(CallBackEntry)))
+			if (!ReadProcessMemoryDBVM((uintptr_t)CallbackEntryItem.CallbackEntry, &CallBackEntry, sizeof(CallBackEntry)))
 				break;
 
 			wchar_t wCallbackAltitude[0x100] = { 0 };
-			if (!RPM_dbvm((uintptr_t)CallBackEntry.Altitude.Buffer, &wCallbackAltitude,
+			if (!ReadProcessMemoryDBVM((uintptr_t)CallBackEntry.Altitude.Buffer, &wCallbackAltitude,
 				std::min(sizeof(wCallbackAltitude), (size_t)CallBackEntry.Altitude.Length)))
 				break;
 
@@ -107,7 +107,7 @@ private:
 
 	PPROP GetPProp(PWND pWnd) const {
 		PPROP pProp = 0;
-		RPM_dbvm((uintptr_t)GetPPProp(pWnd), &pProp, sizeof(pProp));
+		ReadProcessMemoryDBVM((uintptr_t)GetPPProp(pWnd), &pProp, sizeof(pProp));
 		return pProp;
 	}
 

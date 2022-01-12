@@ -9,6 +9,7 @@
 #include <map>
 #include <fstream>
 #include <iostream>
+#include <array>
 
 #include "process.h"
 
@@ -33,32 +34,32 @@ static auto GetStructMap(Process& process) {
 
 	for (uintptr_t ScanAddress = process.GetBaseAddress(); true; ScanAddress++) {
 		uintptr_t RemainSize = process.GetSizeOfImage() - (ScanAddress - process.GetBaseAddress());
-		ScanAddress = process.AobscanRange(ScanAddress, RemainSize, szPatternAllStruct);
+		ScanAddress = process.ScanRange(ScanAddress, RemainSize, szPatternAllStruct);
 		if (!ScanAddress)
 			break;
 
 		int IntValue;
-		if (!process.GetValue(ScanAddress + 0x3, &IntValue)) {
+		if (!process.Read(ScanAddress + 0x3, &IntValue)) {
 			dprintf("struct1");
 			continue;
 		}
 
 		uintptr_t NamePtr = (INT64)ScanAddress + 0x3 + 0x4 + IntValue;
 
-		wchar_t wStructName[0x100];
-		if (!process.ReadProcessMemory(NamePtr, wStructName, sizeof(wStructName))) {
+		std::array<wchar_t, 0x100> wStructName;
+		if (!process.Read(NamePtr, &wStructName)) {
 			dprintf("struct2");
 			continue;
 		}
 
-		if (!process.GetValue(ScanAddress + 0xd, &IntValue)) {
+		if (!process.Read(ScanAddress + 0xd, &IntValue)) {
 			dprintf("struct3");
 			continue;
 		}
 
 		uintptr_t FuncStartAddress = (INT64)ScanAddress + 0xd + 0x4 + IntValue;
 
-		StructMap[wStructName] = FuncStartAddress;
+		StructMap[wStructName.data()] = FuncStartAddress;
 	}
 
 	return StructMap;
@@ -69,32 +70,32 @@ static auto GetClassMap(Process& process) {
 
 	for (uintptr_t ScanAddress = process.GetBaseAddress(); true; ScanAddress++) {
 		uintptr_t RemainSize = process.GetSizeOfImage() - (ScanAddress - process.GetBaseAddress());
-		ScanAddress = process.AobscanRange(ScanAddress, RemainSize, szPatternAllClass);
+		ScanAddress = process.ScanRange(ScanAddress, RemainSize, szPatternAllClass);
 		if (!ScanAddress)
 			break;
 
 		int value;
-		if (!process.GetValue(ScanAddress + 0x3, &value)) {
+		if (!process.Read(ScanAddress + 0x3, &value)) {
 			dprintf("class1");
 			continue;
 		}
 
 		uintptr_t pClassName = (INT64)ScanAddress + 0x3 + 0x4 + value;
 
-		wchar_t wClassName[0x100];
-		if (!process.ReadProcessMemory(pClassName, wClassName, sizeof(wClassName))) {
+		std::array<wchar_t, 0x100> wClassName;
+		if (!process.Read(pClassName, &wClassName)) {
 			dprintf("class2");
 			continue;
 		}
 
-		if (!process.GetValue(ScanAddress + 0x1d, &value)) {
+		if (!process.Read(ScanAddress + 0x1d, &value)) {
 			dprintf("class3");
 			continue;
 		}
 
 		uintptr_t pFuncAddress = (INT64)ScanAddress + 0x1d + 0x4 + value;
 
-		ClassMap[wClassName] = pFuncAddress;
+		ClassMap[wClassName.data()] = pFuncAddress;
 		ScanAddress++;
 	}
 
@@ -106,7 +107,7 @@ static auto GetMemberMap(Process& process, uintptr_t StartAddress) {
 
 	for (uintptr_t CurrentAddress = StartAddress; true; CurrentAddress++) {
 		DWORD dwOpCode;
-		if (!process.GetValue(CurrentAddress, &dwOpCode))
+		if (!process.Read(CurrentAddress, &dwOpCode))
 			break;
 
 		//Detect function epilog
@@ -117,171 +118,171 @@ static auto GetMemberMap(Process& process, uintptr_t StartAddress) {
 		uintptr_t ScanResult;
 
 		//Detect enum
-		ScanResult = process.AobscanRange(CurrentAddress, 0x20, "48 8d 15 ? ? ? ? 48 8b ? ? ? ? ? ? e8 ? ? ? ? c7 84");
+		ScanResult = process.ScanRange(CurrentAddress, 0x20, "48 8d 15 ? ? ? ? 48 8b ? ? ? ? ? ? e8 ? ? ? ? c7 84");
 		if (ScanResult == CurrentAddress) {
 			do {
-				if (!process.GetValue(ScanResult + 0x3, &IntValue)) {
+				if (!process.Read(ScanResult + 0x3, &IntValue)) {
 					dprintf("enum1");
 					break;
 				}
 
 				uintptr_t pString = INT64(ScanResult) + 0x3 + 0x4 + IntValue;
-				wchar_t wString[0x100];
 
-				if (!process.ReadProcessMemory(pString, wString, sizeof(wString))) {
+				std::array<wchar_t, 0x100> wString;
+				if (!process.Read(pString, &wString)) {
 					dprintf("enum2");
 					break;
 				}
 
 				DWORD dwEnum;
-				if (!process.GetValue(ScanResult + 0x1B, &dwEnum)) {
+				if (!process.Read(ScanResult + 0x1B, &dwEnum)) {
 					dprintf("enum3");
 					break;
 				}
 
-				MemberMap[wString] = { Type::Enum, dwEnum - 1 };
+				MemberMap[wString.data()] = {Type::Enum, dwEnum - 1};
 			} while (0);
 
 			continue;
 		}
 
 		//Detect member or function
-		ScanResult = process.AobscanRange(CurrentAddress, 0x20, "41 b8 01 00 00 00 48 8d 15");
+		ScanResult = process.ScanRange(CurrentAddress, 0x20, "41 b8 01 00 00 00 48 8d 15");
 		if (ScanResult == CurrentAddress) {
 			do {
-				if (!process.GetValue(ScanResult + 0x9, &IntValue)) {
+				if (!process.Read(ScanResult + 0x9, &IntValue)) {
 					dprintf("s1");
 					break;
 				}
 
 				uintptr_t pString = INT64(ScanResult) + 0x9 + 0x4 + IntValue;
-				char szString[0x200];
 
-				if (!process.ReadProcessMemory(pString, szString, sizeof(szString))) {
+				std::array<char, 0x100> szString;
+				if (!process.Read(pString, &szString)) {
 					dprintf("s2");
 					break;
 				}
 
 				if (szString[1] == 0) {
 					//wchar detected -> this is member
-					wchar_t wString[0x100];
-					memcpy(wString, szString, sizeof(szString));
+					std::array<wchar_t, 0x100> wString;
+					memcpy(wString.data(), szString.data(), sizeof(szString));
 
 					do {
-						uintptr_t NextScanResult = process.AobscanRange(ScanResult + 1, 0x100, "41 b8 01 00 00 00 48 8d 15");
+						uintptr_t NextScanResult = process.ScanRange(ScanResult + 1, 0x100, "41 b8 01 00 00 00 48 8d 15");
 						if (!NextScanResult)
 							NextScanResult = ScanResult + 0x100;
 
 
-						uintptr_t BitFieldScanResult = process.AobscanRange(ScanResult - 0x100, 0x100, "e8 ? ? ? ? 48 8d 05 ? ? ? ? 48 89");
+						uintptr_t BitFieldScanResult = process.ScanRange(ScanResult - 0x100, 0x100, "e8 ? ? ? ? 48 8d 05 ? ? ? ? 48 89");
 						if (BitFieldScanResult && BitFieldScanResult < NextScanResult) {
-							if (!process.GetValue(BitFieldScanResult + 0x8, &IntValue)) {
+							if (!process.Read(BitFieldScanResult + 0x8, &IntValue)) {
 								dprintf("BitField0 1");
 								break;
 							}
 
 							uintptr_t FuncAddress = INT64(BitFieldScanResult) + 0x8 + 0x4 + IntValue;
-							if (!process.GetValue(FuncAddress, &FuncAddress)) {
+							if (!process.Read(FuncAddress, &FuncAddress)) {
 								dprintf("BitField0 2");
 								break;
 							}
 
-							uintptr_t Result = process.AobscanRange(FuncAddress, 0x60, "C3");
+							uintptr_t Result = process.ScanRange(FuncAddress, 0x60, "C3");
 							if (!Result) {
 								dprintf("BitField0 3");
 								break;
 							}
 
 							BYTE ByteOffset;
-							if (!process.GetValue(Result - 0x1, &ByteOffset)) {
+							if (!process.Read(Result - 0x1, &ByteOffset)) {
 								dprintf("BitField0 4");
 								break;
 							}
 
 							DWORD DwordOffset;
-							if (!process.GetValue(Result - 0x4, &DwordOffset)) {
+							if (!process.Read(Result - 0x4, &DwordOffset)) {
 								dprintf("BitField0 5");
 								break;
 							}
 
 							DWORD Offset = ByteOffset > 0 ? ByteOffset : DwordOffset;
 
-							MemberMap[wString] = { Type::Member, Offset };
+							MemberMap[wString.data()] = {Type::Member, Offset};
 							//MemberMap[std::wstring(wString) + L"_Bit"] = { Type::Member, Offset };
 							break;
 						}
 
-						BitFieldScanResult = process.AobscanRange(ScanResult - 0x100, 0x100, "e8 ? ? ? ? 48 8d ? ? ? ? 00 00 e8");
+						BitFieldScanResult = process.ScanRange(ScanResult - 0x100, 0x100, "e8 ? ? ? ? 48 8d ? ? ? ? 00 00 e8");
 						if (BitFieldScanResult && BitFieldScanResult < NextScanResult) {
-							if (!process.GetValue(BitFieldScanResult + 0xe, &IntValue)) {
+							if (!process.Read(BitFieldScanResult + 0xe, &IntValue)) {
 								dprintf("BitField1 1");
 								break;
 							}
 
 							uintptr_t FuncAddress = INT64(BitFieldScanResult) + 0xe + 0x4 + IntValue;
-							uintptr_t Result = process.AobscanRange(FuncAddress, 0x30, "48 8d ? ? ? ? ? 48");
+							uintptr_t Result = process.ScanRange(FuncAddress, 0x30, "48 8d ? ? ? ? ? 48");
 							if (!Result) {
 								dprintf("BitField1 3");
 								break;
 							}
 
-							if (!process.GetValue(Result + 0x3, &IntValue)) {
+							if (!process.Read(Result + 0x3, &IntValue)) {
 								dprintf("BitField1 4");
 								break;
 							}
 
 							Result = INT64(Result) + 0x7 + IntValue;
-							if (!process.GetValue(Result, &Result)) {
+							if (!process.Read(Result, &Result)) {
 								dprintf("BitField1 5");
 								break;
 							}
 
-							Result = process.AobscanRange(Result, 0x60, "C3");
+							Result = process.ScanRange(Result, 0x60, "C3");
 							if (!Result) {
 								dprintf("BitField1 6");
 								break;
 							}
 
 							BYTE ByteOffset;
-							if (!process.GetValue(Result - 0x1, &ByteOffset)) {
+							if (!process.Read(Result - 0x1, &ByteOffset)) {
 								dprintf("BitField1 7");
 								break;
 							}
 
 							DWORD DwordOffset;
-							if (!process.GetValue(Result - 0x4, &DwordOffset)) {
+							if (!process.Read(Result - 0x4, &DwordOffset)) {
 								dprintf("BitField1 8");
 								break;
 							}
 
 							DWORD Offset = ByteOffset > 0 ? ByteOffset : DwordOffset;
 
-							MemberMap[wString] = { Type::Member, Offset };
+							MemberMap[wString.data()] = { Type::Member, Offset };
 							//MemberMap[std::wstring(wString) + L"_Bit"] = { Type::Member, Offset };
 							break;
 						}
 
-						uintptr_t MemberScanResult = process.AobscanRange(ScanResult, 0xC0, "41 b9 ? ? 00 00 45 33 c0 48 8b");
+						uintptr_t MemberScanResult = process.ScanRange(ScanResult, 0xC0, "41 b9 ? ? 00 00 45 33 c0 48 8b");
 						if (MemberScanResult && MemberScanResult < NextScanResult) {
 							DWORD Offset;
-							if (!process.GetValue(MemberScanResult + 0x2, &Offset)) {
+							if (!process.Read(MemberScanResult + 0x2, &Offset)) {
 								dprintf("Member 1");
 								break;
 							}
 
-							if(MemberMap.find(wString) == MemberMap.end())
-								MemberMap[wString] = { Type::Member, Offset };
+							if (MemberMap.find(wString.data()) == MemberMap.end())
+								MemberMap[wString.data()] = { Type::Member, Offset };
 
 							break;
 						}
 
-						uintptr_t MemberZeroOffsetScanResult = process.AobscanRange(ScanResult, 0xC0, "45 33 c9 45 33 c0 48 8b");
+						uintptr_t MemberZeroOffsetScanResult = process.ScanRange(ScanResult, 0xC0, "45 33 c9 45 33 c0 48 8b");
 						if (MemberZeroOffsetScanResult && MemberZeroOffsetScanResult < NextScanResult) {
-							if (std::wstring(wString).find(L"_Key") == std::wstring::npos &&
-								std::wstring(wString) != L"UnderlyingType") {
+							if (std::wstring(wString.data()).find(L"_Key") == std::wstring::npos &&
+								std::wstring(wString.data()) != L"UnderlyingType") {
 
-								if (MemberMap.find(wString) == MemberMap.end())
-									MemberMap[wString] = { Type::Member, 0 };
+								if (MemberMap.find(wString.data()) == MemberMap.end())
+									MemberMap[wString.data()] = { Type::Member, 0 };
 							}
 
 							break;
@@ -292,46 +293,46 @@ static auto GetMemberMap(Process& process, uintptr_t StartAddress) {
 				else {
 					//char detected  -> this is function
 
-					uintptr_t Result = process.AobscanRange(ScanResult, 0x40, "e8 ? ? ? ? 48 8b");
+					uintptr_t Result = process.ScanRange(ScanResult, 0x40, "e8 ? ? ? ? 48 8b");
 					if (!Result) {
 						dprintf("Function 1");
 						break;
 					}
 
-					if (!process.GetValue(Result + 1, &IntValue)) {
+					if (!process.Read(Result + 1, &IntValue)) {
 						dprintf("Function 2");
 						break;
 					}
 
 					uintptr_t FuncAddress = (INT64)Result + 0x5 + IntValue;
 
-					Result = process.AobscanRange(FuncAddress, 0x60, "48 83 3d ? ? ? ? 00 0f 85");
+					Result = process.ScanRange(FuncAddress, 0x60, "48 83 3d ? ? ? ? 00 0f 85");
 					if (!Result) {
 						dprintf("Function 3");
 						break;
 					}
 
-					if (!process.GetValue(Result + 0x3, &IntValue)) {
+					if (!process.Read(Result + 0x3, &IntValue)) {
 						dprintf("Function 4");
 						break;
 					}
 
 					uintptr_t pObject = (INT64)Result + 0x8 + IntValue;
 
-					if (!process.GetValue(pObject, &pObject)) {
+					if (!process.Read(pObject, &pObject)) {
 						dprintf("Function 5");
 						break;
 					}
 
 					uintptr_t MemberFuncAddress;
-					if (!process.GetValue(pObject + UObjectFuncOffset, &MemberFuncAddress)) {
+					if (!process.Read(pObject + UObjectFuncOffset, &MemberFuncAddress)) {
 						dprintf("Function 6");
 						break;
 					}
 
 					MemberFuncAddress -= process.GetBaseAddress();
 
-					std::string stdString = szString;
+					std::string stdString = szString.data();
 					std::wstring wString(stdString.begin(), stdString.end());
 					//wString.append(stdString.begin(), stdString.end());
 
@@ -347,8 +348,8 @@ static auto GetMemberMap(Process& process, uintptr_t StartAddress) {
 }
 
 static void DumpAll(Process& process) {
-	uintptr_t ScanResult = process.AobscanCurrentDLL(szPatternFuncOffset);
-	if (!ScanResult || !process.GetValue(ScanResult + 0x3, &UObjectFuncOffset)) {
+	uintptr_t ScanResult = process.ScanCurrentModule(szPatternFuncOffset);
+	if (!ScanResult || !process.Read(ScanResult + 0x3, &UObjectFuncOffset)) {
 		dprintf("UObjectFuncOffset not found");
 		return;
 	}
@@ -373,17 +374,17 @@ static void DumpAll(Process& process) {
 
 		for (const auto& Member : MemberMap)
 			OrderedMap[Member.second.second] = { Member.second.first , Member.first };
-		
+
 		for (const auto& Member : OrderedMap) {
 			switch (Member.second.first) {
 			case Type::Member:
-				outfile << "Offset\t\t0x" << std::hex << Member.first   << "\t\t" << Member.second.second.c_str() << "\n";
+				outfile << "Offset\t\t0x" << std::hex << Member.first << "\t\t" << Member.second.second.c_str() << "\n";
 				break;
 			case Type::Function:
-				outfile << "Address\t\t0x" << std::hex << Member.first  << "\t" << Member.second.second.c_str() << "\n";
+				outfile << "Address\t\t0x" << std::hex << Member.first << "\t" << Member.second.second.c_str() << "\n";
 				break;
 			case Type::Enum:
-				outfile << "Enum\t\t0x" << std::hex << Member.first  << "\t\t" << Member.second.second.c_str() << "\n";
+				outfile << "Enum\t\t0x" << std::hex << Member.first << "\t\t" << Member.second.second.c_str() << "\n";
 				break;
 			}
 		}
@@ -420,8 +421,8 @@ static void DumpAll(Process& process) {
 }
 
 static bool Dump(Process& process) {
-	uintptr_t ScanResult = process.AobscanCurrentDLL(szPatternFuncOffset);
-	if (!ScanResult || !process.GetValue(ScanResult + 0x3, &UObjectFuncOffset)) {
+	uintptr_t ScanResult = process.ScanCurrentModule(szPatternFuncOffset);
+	if (!ScanResult || !process.Read(ScanResult + 0x3, &UObjectFuncOffset)) {
 		dprintf("UObjectFuncOffset not found");
 		return false;
 	}
@@ -431,7 +432,7 @@ static bool Dump(Process& process) {
 
 	std::wifstream infile("pubg_class_input.h");
 	verify(infile.is_open());
-	
+
 	std::wofstream outfile("pubg_class_output.h");
 	verify(outfile.is_open());
 
@@ -452,7 +453,7 @@ static bool Dump(Process& process) {
 
 		std::wstring wToken;
 		std::getline(ss, wToken, L' ');
-		
+
 		if (wToken == L"struct") {
 			std::getline(ss, wClass);
 			wClass = trim(wClass);
@@ -536,7 +537,7 @@ static bool Dump(Process& process) {
 				if (pos != std::string::npos) {
 					auto wStruct = trim(wToken.substr(0, pos));
 					auto wMember = trim(wToken.substr(pos + 1));
-					
+
 					if (!wStruct.size()) {
 						dprintf("no struct in file : %ws", wStruct.c_str());
 						return false;

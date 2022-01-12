@@ -300,13 +300,13 @@ public:
 	}
 
 	const tl::function<bool(PhysicalAddress srcPA, void* dstVA, size_t size)> ReadPhysicalMemory =
-		[&](PhysicalAddress srcPA, void* dstVA, size_t size) -> bool {
+		[&](PhysicalAddress srcPA, void* dstVA, size_t size) {
 		constexpr unsigned nopagefault = true;
 		return VMCall(VMCALL_READ_PHYSICAL_MEMORY, srcPA, (unsigned)size, dstVA, nopagefault) == 0;
 	};
 
 	const tl::function<bool(PhysicalAddress dstPA, const void* srcVA, size_t size)> WritePhysicalMemory =
-		[&](PhysicalAddress dstPA, const void* srcVA, size_t size) -> bool {
+		[&](PhysicalAddress dstPA, const void* srcVA, size_t size) {
 		constexpr unsigned nopagefault = true;
 		return VMCall(VMCALL_WRITE_PHYSICAL_MEMORY, dstPA, (unsigned)size, srcVA, nopagefault) == 0;
 	};
@@ -320,14 +320,12 @@ public:
 	}
 
 	CR3 GetCR3() const {
-		CR3 cr3;
-		cr3.Value = VMCall(VMCALL_GETCR3);
-		return cr3;
+		return VMCall(VMCALL_GETCR3);
 	}
 
 	void SetCR3(CR3 cr3) const {
 		SwitchToKernelMode(0x10);
-		__writecr3(cr3.Value);
+		__writecr3(cr3);
 		ReturnToUserMode();
 	}
 
@@ -398,23 +396,23 @@ public:
 	}
 
 	PhysicalAddress GetPTEAddress(uintptr_t VirtualAddress, CR3 cr3) const {
-		return GetPTEAddressByPhysicalMemoryAccess(VirtualAddress, cr3, ReadPhysicalMemory);
+		return PhysicalMemory::GetPTEAddress(VirtualAddress, cr3, ReadPhysicalMemory);
 	}
 
 	PhysicalAddress GetPhysicalAddress(uintptr_t VirtualAddress, CR3 cr3) const {
-		return GetPhysicalAddressByPhysicalMemoryAccess(VirtualAddress, cr3, ReadPhysicalMemory);
+		return PhysicalMemory::GetPhysicalAddress(VirtualAddress, cr3, ReadPhysicalMemory);
 	}
 
 	bool RPM(uintptr_t Address, void* Buffer, size_t Size, CR3 cr3) const {
-		return ReadProcessMemoryByPhysicalMemoryAccess(Address, Buffer, Size, cr3, ReadPhysicalMemory);
+		return PhysicalMemory::ReadProcessMemory(Address, Buffer, Size, cr3, ReadPhysicalMemory);
 	}
 
 	bool WPM(uintptr_t Address, const void* Buffer, size_t Size, CR3 cr3) const {
-		return WriteProcessMemoryByPhysicalMemoryAccess(Address, Buffer, Size, cr3, ReadPhysicalMemory, WritePhysicalMemory);
+		return PhysicalMemory::WriteProcessMemory(Address, Buffer, Size, cr3, ReadPhysicalMemory, WritePhysicalMemory);
 	}
 
 	bool WPMCloak(uintptr_t Address, const void* Buffer, size_t Size, CR3 cr3) const {
-		return WriteProcessMemoryByPhysicalMemoryAccess(Address, Buffer, Size, cr3, ReadPhysicalMemory,
+		return PhysicalMemory::WriteProcessMemory(Address, Buffer, Size, cr3, ReadPhysicalMemory,
 			[&](PhysicalAddress PA, const void* Buffer, size_t Size) {
 				PhysicalAddress PABase = PA & ~0xFFF;
 				CloakActivate(PABase, 0);
@@ -433,7 +431,7 @@ public:
 	}
 
 	bool RemoveCloak(uintptr_t Address, size_t Size, CR3 cr3) const {
-		return WriteProcessMemoryByPhysicalMemoryAccess(Address, 0, Size, cr3, ReadPhysicalMemory,
+		return PhysicalMemory::WriteProcessMemory(Address, 0, Size, cr3, ReadPhysicalMemory,
 			[&](PhysicalAddress PA, const void* Buffer, size_t Size) {
 				uintptr_t PABase = PA & ~0xFFF;
 				CloakDeactivate(PABase);
