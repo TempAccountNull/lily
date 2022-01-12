@@ -37,7 +37,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY64 {
 	LIST_ENTRY64 InInitializationOrderModuleList;
 	ULONGLONG BaseAddress;
 	ULONGLONG EntryPoint;
-	uintptr_t SizeOfImage;
+	DWORD64 SizeOfImage;
 	UNICODE_STRING64 FullDllName;
 	UNICODE_STRING64 BaseDllName;
 	ULONG Flags;
