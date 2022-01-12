@@ -71,13 +71,6 @@ private:
 		return true;
 	}
 
-public:
-	RenderDDraw(IDirect3DDevice9Ex* pDirect3DDevice9Ex, IDirect3DSurface9* pBackBufferSurface, IDirect3DSurface9* pOffscreenPlainSurface, int ScreenWidth, int ScreenHeight) :
-		Render(pDirect3DDevice9Ex, ScreenWidth, ScreenHeight), pBackBufferSurface(pBackBufferSurface), pOffscreenPlainSurface(pOffscreenPlainSurface) {
-		verify(InitDirectDraw());
-		Clear();
-	}
-
 	virtual void Present(HWND) const {
 		pDirect3DDevice9Ex->GetRenderTargetData(pBackBufferSurface, pOffscreenPlainSurface);
 
@@ -89,5 +82,12 @@ public:
 		pOffscreenPlainSurface->ReleaseDC(hOffscreenPlainSurfaceDC);
 
 		pOverlaySurface->Flip(0, DDFLIP_DONOTWAIT | DDFLIP_NOVSYNC);
+	}
+
+public:
+	RenderDDraw(IDirect3DDevice9Ex* pDirect3DDevice9Ex, IDirect3DSurface9* pBackBufferSurface, IDirect3DSurface9* pOffscreenPlainSurface, int ScreenWidth, int ScreenHeight) :
+		Render(pDirect3DDevice9Ex, ScreenWidth, ScreenHeight), pBackBufferSurface(pBackBufferSurface), pOffscreenPlainSurface(pOffscreenPlainSurface) {
+		verify(InitDirectDraw());
+		Clear();
 	}
 };

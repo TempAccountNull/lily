@@ -134,50 +134,44 @@ private:
 	}
 
 	void UpdateWindowPos(HWND hWndOver) const {
-		HWND hWndInsertAfter = 0;
-		UINT uFlags = SWP_NOACTIVATE | SWP_NOZORDER | SWP_SHOWWINDOW;
+		ShowWindow(hESPWnd, SW_NORMAL);
+		MoveWindow(hESPWnd, 0, 0, ScreenWidth, ScreenHeight, TRUE);
 
-		[&] {
-			if (hWndOver == 0 || hWndOver == hESPWnd)
-				return;
+		if (hWndOver == 0 || hWndOver == hESPWnd)
+			return;
 
-			for (HWND hWnd = GetWindow(hESPWnd, GW_HWNDFIRST); hWnd; hWnd = GetWindow(hWnd, GW_HWNDNEXT)) {
-				if (GetWindowLongA(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
-					continue;
+		for (HWND hWnd = GetWindow(hESPWnd, GW_HWNDFIRST); hWnd; hWnd = GetWindow(hWnd, GW_HWNDNEXT)) {
+			if (GetWindowLongA(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
+				continue;
 
-				if (hWnd == hESPWnd)
-					break;
+			if (hWnd == hESPWnd)
+				break;
 
-				if (hWnd != hWndOver)
-					continue;
+			if (hWnd != hWndOver)
+				continue;
 
-				hWndInsertAfter = HWND_TOP;
-				uFlags &= ~SWP_NOZORDER;
+			const HWND hForeWnd = GetForegroundWindow();
+			if (hAttachWnd != hForeWnd && AttachThreadInput(GetWindowThreadProcessId(hESPWnd, 0), GetWindowThreadProcessId(hForeWnd, 0), TRUE))
+				hAttachWnd = hForeWnd;
 
-				const HWND hForeWnd = GetForegroundWindow();
-				if (hAttachWnd == hForeWnd)
-					return;
-				if (AttachThreadInput(GetWindowThreadProcessId(hESPWnd, 0), GetWindowThreadProcessId(hForeWnd, 0), TRUE))
-					hAttachWnd = hForeWnd;
-				return;
-			}
-		}();
-		
-		SetWindowPos(hESPWnd, hWndInsertAfter, 0, 0, ScreenWidth, ScreenHeight, uFlags);
+			SetWindowPos(hESPWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE);
+			break;
+		}
 	}
 
 	void UpdateWindow(HWND hWndOver) const {
+		MakeWindowIgnoreHitTest();
+
 		const HDC hDC = GetDC(hESPWnd);
 		if (!hDC)
 			return;
 
-		bool IsVisible = PtVisible(hDC, 5, 5);
+		const bool IsVisible = PtVisible(hDC, 5, 5);
 		ReleaseDC(hESPWnd, hDC);
 		if (IsVisible)
 			return;
 
 		UpdateWindowPos(hWndOver);
-		MakeWindowIgnoreHitTest();
 	}
 
 	bool InitOverlay() {
@@ -219,6 +213,12 @@ private:
 		return bResult;
 	}
 
+	virtual void Present(HWND hWnd) const {
+		verify(IsValid());
+		UpdateWindow(hWnd);
+		pDirect3DDevice9Ex->Present(0, 0, hESPWnd, 0);
+	}
+
 public:
 	RenderOverlay(IDirect3DDevice9Ex* pDirect3DDevice9Ex, const KernelLily& kernel, int ScreenWidth, int ScreenHeight) :
 		Render(pDirect3DDevice9Ex, ScreenWidth, ScreenHeight), kernel(kernel),
@@ -228,11 +228,5 @@ public:
 		verify(InitOverlay());
 		verify(IsValid());
 		Clear();
-	}
-
-	virtual void Present(HWND hWnd) const {
-		verify(IsValid());
-		UpdateWindow(hWnd);
-		pDirect3DDevice9Ex->Present(0, 0, hESPWnd, 0);
 	}
 };
