@@ -154,7 +154,7 @@ private:
 			if (hAttachWnd != hForeWnd && AttachThreadInput(GetWindowThreadProcessId(hESPWnd, 0), GetWindowThreadProcessId(hForeWnd, 0), TRUE))
 				hAttachWnd = hForeWnd;
 
-			SetWindowPos(hESPWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE);
+			BringWindowToTop(hESPWnd);
 			break;
 		}
 	}
@@ -193,10 +193,10 @@ private:
 				return false;
 
 			//Move window to re-create "Intermediate D3D Window"
-			SetWindowPos(hESPWnd, HWND_BOTTOM, 1, 1, ScreenWidth - 1, ScreenHeight - 1, SWP_SHOWWINDOW);
+			MoveWindow(hESPWnd, 1, 1, ScreenWidth - 1, ScreenHeight - 1, TRUE);
 			//Wait until "Intermediate D3D Window" created
 			while (!(hChild = FindWindowExA(hESPWnd, 0, "Intermediate D3D Window"e, 0)));
-			MoveWindow(hESPWnd, 0, 0, ScreenWidth, ScreenHeight, false);
+			MoveWindow(hESPWnd, 0, 0, ScreenWidth, ScreenHeight, TRUE);
 
 			BLENDFUNCTION blendPixelFunction = { AC_SRC_OVER, 0, 0, AC_SRC_ALPHA };
 			UpdateLayeredWindow(hChild, 0, 0, 0, 0, 0, 0, &blendPixelFunction, ULW_ALPHA);
