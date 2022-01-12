@@ -299,14 +299,12 @@ public:
 		return VMCall(VMCALL_GETMEM);
 	}
 
-	const tl::function<bool(PhysicalAddress srcPA, void* dstVA, size_t size)> ReadPhysicalMemory =
-		[&](PhysicalAddress srcPA, void* dstVA, size_t size) {
+	const tReadPhysicalMemory ReadPhysicalMemory = [&](PhysicalAddress srcPA, void* dstVA, size_t size) {
 		constexpr unsigned nopagefault = true;
 		return VMCall(VMCALL_READ_PHYSICAL_MEMORY, srcPA, (unsigned)size, dstVA, nopagefault) == 0;
 	};
 
-	const tl::function<bool(PhysicalAddress dstPA, const void* srcVA, size_t size)> WritePhysicalMemory =
-		[&](PhysicalAddress dstPA, const void* srcVA, size_t size) {
+	const tWritePhysicalMemory WritePhysicalMemory = [&](PhysicalAddress dstPA, const void* srcVA, size_t size) {
 		constexpr unsigned nopagefault = true;
 		return VMCall(VMCALL_WRITE_PHYSICAL_MEMORY, dstPA, (unsigned)size, srcVA, nopagefault) == 0;
 	};
