@@ -7,9 +7,6 @@
     <Filter Include="imgui">
       <UniqueIdentifier>{855a6451-f588-4aa8-aae1-b1e6899e4942}</UniqueIdentifier>
     </Filter>
-    <Filter Include="math">
-      <UniqueIdentifier>{db01860d-9575-4b12-8c85-e9dcb3f7216a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="entrypoint">
       <UniqueIdentifier>{b1ac245a-1340-4f56-a918-7b636b94f557}</UniqueIdentifier>
     </Filter>
@@ -24,6 +21,9 @@
     </Filter>
     <Filter Include="hack\pubg\info">
       <UniqueIdentifier>{5fc5ae3a-7d4f-4cd9-b8fc-d06efd8dbff8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ue4math">
+      <UniqueIdentifier>{db01860d-9575-4b12-8c85-e9dcb3f7216a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -178,22 +178,22 @@
       <Filter>imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\ue4math\matrix.h">
-      <Filter>math</Filter>
+      <Filter>ue4math</Filter>
     </ClInclude>
     <ClInclude Include="..\ue4math\quat.h">
-      <Filter>math</Filter>
+      <Filter>ue4math</Filter>
     </ClInclude>
     <ClInclude Include="..\ue4math\rotator.h">
-      <Filter>math</Filter>
+      <Filter>ue4math</Filter>
     </ClInclude>
     <ClInclude Include="..\ue4math\transform.h">
-      <Filter>math</Filter>
+      <Filter>ue4math</Filter>
     </ClInclude>
     <ClInclude Include="..\ue4math\ue4math.h">
-      <Filter>math</Filter>
+      <Filter>ue4math</Filter>
     </ClInclude>
     <ClInclude Include="..\ue4math\vector.h">
-      <Filter>math</Filter>
+      <Filter>ue4math</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -243,19 +243,19 @@
       <Filter>imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\ue4math\matrix.cpp">
-      <Filter>math</Filter>
+      <Filter>ue4math</Filter>
     </ClCompile>
     <ClCompile Include="..\ue4math\quat.cpp">
-      <Filter>math</Filter>
+      <Filter>ue4math</Filter>
     </ClCompile>
     <ClCompile Include="..\ue4math\rotator.cpp">
-      <Filter>math</Filter>
+      <Filter>ue4math</Filter>
     </ClCompile>
     <ClCompile Include="..\ue4math\transform.cpp">
-      <Filter>math</Filter>
+      <Filter>ue4math</Filter>
     </ClCompile>
     <ClCompile Include="..\ue4math\vector.cpp">
-      <Filter>math</Filter>
+      <Filter>ue4math</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
