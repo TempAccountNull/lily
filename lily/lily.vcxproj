@@ -21,18 +21,18 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <SpectreMitigation>Spectre</SpectreMitigation>
+    <SpectreMitigation>false</SpectreMitigation>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <SpectreMitigation>Spectre</SpectreMitigation>
+    <SpectreMitigation>false</SpectreMitigation>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -49,13 +49,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>../imgui;../common;$(IncludePath)</IncludePath>
+    <IncludePath>../;$(IncludePath)</IncludePath>
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
     <OutDir>$(MSBuildProjectDirectory)\bin\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>../imgui;../common;$(IncludePath)</IncludePath>
+    <IncludePath>../;$(IncludePath)</IncludePath>
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
     <OutDir>$(MSBuildProjectDirectory)\bin\$(Platform)\$(Configuration)\</OutDir>
     <GenerateManifest>false</GenerateManifest>
@@ -143,12 +143,18 @@
     <ClInclude Include="..\common\shellcode.h" />
     <ClInclude Include="..\imgui\imconfig.h" />
     <ClInclude Include="..\imgui\imgui.h" />
-    <ClInclude Include="..\imgui\imgui_impl_dx9.h" />
+    <ClInclude Include="..\imgui\imgui_impl_dx11.h" />
     <ClInclude Include="..\imgui\imgui_impl_win32.h" />
     <ClInclude Include="..\imgui\imgui_internal.h" />
     <ClInclude Include="..\imgui\imstb_rectpack.h" />
     <ClInclude Include="..\imgui\imstb_textedit.h" />
     <ClInclude Include="..\imgui\imstb_truetype.h" />
+    <ClInclude Include="..\ue4math\matrix.h" />
+    <ClInclude Include="..\ue4math\quat.h" />
+    <ClInclude Include="..\ue4math\rotator.h" />
+    <ClInclude Include="..\ue4math\transform.h" />
+    <ClInclude Include="..\ue4math\ue4math.h" />
+    <ClInclude Include="..\ue4math\vector.h" />
     <ClInclude Include="dump.h" />
     <ClInclude Include="global.h" />
     <ClInclude Include="GNames.h" />
@@ -160,30 +166,32 @@
     <ClInclude Include="info_package.h" />
     <ClInclude Include="info_proj.h" />
     <ClInclude Include="info_vehicle.h" />
-    <ClInclude Include="matrix.h" />
-    <ClInclude Include="mymath.h" />
     <ClInclude Include="pubg_class.h" />
     <ClInclude Include="pubg_class_input.h" />
     <ClInclude Include="pubg_class_output.h" />
     <ClInclude Include="pubg_func.h" />
     <ClInclude Include="pubg_struct.h" />
-    <ClInclude Include="quat.h" />
     <ClInclude Include="render.h" />
-    <ClInclude Include="render_ddraw.h" />
+    <ClInclude Include="render_ddraw.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="render_overlay.h" />
-    <ClInclude Include="rotator.h" />
-    <ClInclude Include="transform.h" />
-    <ClInclude Include="vector.h" />
     <ClInclude Include="kernel_lily.h" />
     <ClInclude Include="pubg_process.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\imgui\imgui.cpp" />
     <ClCompile Include="..\imgui\imgui_draw.cpp" />
-    <ClCompile Include="..\imgui\imgui_impl_dx9_custom.cpp" />
+    <ClCompile Include="..\imgui\imgui_impl_dx11_custom.cpp" />
     <ClCompile Include="..\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="..\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\ue4math\matrix.cpp" />
+    <ClCompile Include="..\ue4math\quat.cpp" />
+    <ClCompile Include="..\ue4math\rotator.cpp" />
+    <ClCompile Include="..\ue4math\transform.cpp" />
+    <ClCompile Include="..\ue4math\vector.cpp" />
     <ClCompile Include="crtmain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -193,15 +201,10 @@
     <ClCompile Include="hack_main.cpp" />
     <ClCompile Include="hack_ui.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="matrix.cpp" />
     <ClCompile Include="pubg_class_pubg.cpp" />
     <ClCompile Include="pubg_class_ue4.cpp" />
     <ClCompile Include="pubg_struct.cpp" />
-    <ClCompile Include="quat.cpp" />
     <ClCompile Include="render.cpp" />
-    <ClCompile Include="rotator.cpp" />
-    <ClCompile Include="transform.cpp" />
-    <ClCompile Include="vector.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

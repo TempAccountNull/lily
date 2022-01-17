@@ -45,24 +45,6 @@
     <ClInclude Include="render_overlay.h">
       <Filter>hack</Filter>
     </ClInclude>
-    <ClInclude Include="matrix.h">
-      <Filter>math</Filter>
-    </ClInclude>
-    <ClInclude Include="mymath.h">
-      <Filter>math</Filter>
-    </ClInclude>
-    <ClInclude Include="quat.h">
-      <Filter>math</Filter>
-    </ClInclude>
-    <ClInclude Include="rotator.h">
-      <Filter>math</Filter>
-    </ClInclude>
-    <ClInclude Include="transform.h">
-      <Filter>math</Filter>
-    </ClInclude>
-    <ClInclude Include="vector.h">
-      <Filter>math</Filter>
-    </ClInclude>
     <ClInclude Include="pubg_class_input.h">
       <Filter>hack\pubg\dumped</Filter>
     </ClInclude>
@@ -109,9 +91,6 @@
       <Filter>imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\imgui\imgui.h">
-      <Filter>imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\imgui\imgui_impl_dx9.h">
       <Filter>imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\imgui\imgui_impl_win32.h">
@@ -195,25 +174,31 @@
     <ClInclude Include="..\common\function_ref.hpp">
       <Filter>common</Filter>
     </ClInclude>
+    <ClInclude Include="..\imgui\imgui_impl_dx11.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ue4math\matrix.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ue4math\quat.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ue4math\rotator.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ue4math\transform.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ue4math\ue4math.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ue4math\vector.h">
+      <Filter>math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hack_main.cpp">
       <Filter>hack</Filter>
-    </ClCompile>
-    <ClCompile Include="matrix.cpp">
-      <Filter>math</Filter>
-    </ClCompile>
-    <ClCompile Include="quat.cpp">
-      <Filter>math</Filter>
-    </ClCompile>
-    <ClCompile Include="rotator.cpp">
-      <Filter>math</Filter>
-    </ClCompile>
-    <ClCompile Include="transform.cpp">
-      <Filter>math</Filter>
-    </ClCompile>
-    <ClCompile Include="vector.cpp">
-      <Filter>math</Filter>
     </ClCompile>
     <ClCompile Include="pubg_class_pubg.cpp">
       <Filter>hack\pubg</Filter>
@@ -236,9 +221,6 @@
     <ClCompile Include="..\imgui\imgui_draw.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="..\imgui\imgui_impl_dx9_custom.cpp">
-      <Filter>imgui</Filter>
-    </ClCompile>
     <ClCompile Include="..\imgui\imgui_impl_win32.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
@@ -256,6 +238,24 @@
     </ClCompile>
     <ClCompile Include="render.cpp">
       <Filter>hack</Filter>
+    </ClCompile>
+    <ClCompile Include="..\imgui\imgui_impl_dx11_custom.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ue4math\matrix.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ue4math\quat.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ue4math\rotator.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ue4math\transform.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ue4math\vector.cpp">
+      <Filter>math</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

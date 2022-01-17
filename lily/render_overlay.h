@@ -3,230 +3,110 @@
 
 #include <Shlobj.h>
 #include <dwmapi.h>
-#include <d3d9.h>
+#include <dcomp.h>
+
 #include "kernel_lily.h"
 
 class RenderOverlay : public Render {
 private:
 	const KernelLily& kernel;
-	const ATOM atomDispAffinity;
-	HWND hESPWnd;
-	mutable HWND hAttachWnd = 0;
-	HANDLE hJob;
-
-	bool IsValid() const {
-		const bool bResult = [&] {
-			if (!IsWindow(hESPWnd))
-				return false;
-
-			DWORD dwExStyle = GetWindowLongA(hESPWnd, GWL_EXSTYLE);
-			if (dwExStyle & WS_EX_TRANSPARENT)
-				return false;
-			if (dwExStyle & WS_EX_LAYERED)
-				return false;
-			if (dwExStyle & WS_EX_TOPMOST)
-				return false;
-
-			COLORREF crKey;
-			BYTE bAlpha;
-			DWORD dwFlags;
-			if (GetLayeredWindowAttributes(hESPWnd, &crKey, &bAlpha, &dwFlags))
-				return false;
-
-			DWORD dwNewAffinity = WDA_MONITOR;
-			if (!GetWindowDisplayAffinity(hESPWnd, &dwNewAffinity))
-				return false;
-			if (dwNewAffinity != WDA_NONE)
-				return false;
-
-			DWORD dwAttribute = 0;
-			DwmGetWindowAttribute(hESPWnd, DWMWA_CLOAKED, &dwAttribute, sizeof(dwAttribute));
-			if (dwAttribute)
-				return false;
-
-			return true;
-		}();
-
-		if (!bResult)
-			CloseHandle(hJob);
-
-		return bResult;
-	}
-
-	bool MakeWindowIgnoreHitTest() const {
-		const tagWND* pWnd = kernel.UserValidateHwnd(hESPWnd);
-		if (!pWnd)
-			return false;
-
-		const RECT rcWindow = { 0, 0, 1, 1 };
-		return kernel.WriteProcessMemoryDBVM((uintptr_t)&pWnd->rcWindow, &rcWindow, sizeof(rcWindow));
-	}
-
-	bool RemoteSetWindowDisplayAffinityBypassed(HWND hWnd) {
-		bool bResult = false;
-		if (!kernel.PsSetProcessWin32ProcessWrapper(hWnd, [&] {
-			bResult = SetWindowDisplayAffinity(hWnd, WDA_EXCLUDEFROMCAPTURE);
-			})) return false;
-
-		if (!bResult)
-			return false;
-
-		if (!kernel.UserSetProp(hWnd, atomDispAffinity, HANDLE(WDA_NONE)))
-			return false;
-
-		return true;
-	}
-
-	bool InitJob() {
-		hJob = CreateJobObjectA(0, 0);
-		if (!hJob)
-			return false;
-
-		JOBOBJECT_EXTENDED_LIMIT_INFORMATION JobExLimitInfo = { .BasicLimitInformation = {.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE } };
-		if (!SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &JobExLimitInfo, sizeof(JobExLimitInfo)))
-			return false;
-
-		return true;
-	}
-
-	bool AddRenderWindowToJob() const {
-		const HANDLE hProcess = [&] {
-			DWORD dwPid = 0;
-			if (!GetWindowThreadProcessId(hESPWnd, &dwPid))
-				return (HANDLE)0;
-
-			return OpenProcess(PROCESS_ALL_ACCESS, FALSE, dwPid);
-		}();
-
-		if (!hProcess) {
-			PostMessageA(hESPWnd, WM_CLOSE, 0, 0);
-			return false;
-		}
-
-		const bool bResult = AssignProcessToJobObject(hJob, hProcess);
-		if (!bResult)
-			TerminateProcess(hProcess, 0);
-
-		CloseHandle(hProcess);
-		return bResult;
-	}
-
-	bool OpenRestreamChat() {
-		hESPWnd = FindWindowA("Chrome_WidgetWin_1"e, "Restream Chat"e);
-		if (hESPWnd)
-			return true;
-
-		char szPath[MAX_PATH];
-		if (!SHGetSpecialFolderPathA(0, szPath, CSIDL_LOCAL_APPDATA, 0))
-			return false;
-
-		strcat(szPath, "\\Programs\\restream-chat\\Restream Chat.exe"e);
-
-		CreateProcessCMD(szPath);
-		Sleep(2000);
-
-		hESPWnd = FindWindowA("Chrome_WidgetWin_1"e, "Restream Chat"e);
-		if (!hESPWnd)
-			return false;
-
-		while (!IsWindowVisible(hESPWnd));
-		return true;
-	}
-
-	void UpdateWindowPos(HWND hWndOver) const {
-		ShowWindow(hESPWnd, SW_NORMAL);
-		MoveWindow(hESPWnd, 0, 0, ScreenWidth, ScreenHeight, TRUE);
-
-		if (hWndOver == 0 || hWndOver == hESPWnd)
-			return;
-
-		for (HWND hWnd = GetWindow(hESPWnd, GW_HWNDFIRST); hWnd; hWnd = GetWindow(hWnd, GW_HWNDNEXT)) {
-			if (GetWindowLongA(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST)
-				continue;
-
-			if (hWnd == hESPWnd)
-				break;
-
-			if (hWnd != hWndOver)
-				continue;
-
-			const HWND hForeWnd = GetForegroundWindow();
-			if (hAttachWnd != hForeWnd && AttachThreadInput(GetWindowThreadProcessId(hESPWnd, 0), GetWindowThreadProcessId(hForeWnd, 0), TRUE))
-				hAttachWnd = hForeWnd;
-
-			BringWindowToTop(hESPWnd);
-			break;
-		}
-	}
-
-	void UpdateWindow(HWND hWndOver) const {
-		MakeWindowIgnoreHitTest();
-
-		const HDC hDC = GetDC(hESPWnd);
-		if (!hDC)
-			return;
-
-		const bool IsVisible = PtVisible(hDC, 5, 5);
-		ReleaseDC(hESPWnd, hDC);
-		if (IsVisible)
-			return;
-
-		UpdateWindowPos(hWndOver);
-	}
-
-	bool InitOverlay() {
-		if (!OpenRestreamChat())
-			return false;
-
-		if (!AddRenderWindowToJob())
-			return false;
-
-		bool bResult = [&] {
-			//SetWindowDisplayAffinity fail when parent & child windows has WS_EX_LAYERED and WS_EX_NOREDIRECTIONBITMAP
-			//Close "Intermediate D3D Window" for use SetWindowDisplayAffinity (WS_EX_NOREDIRECTIONBITMAP cannot be removed)
-			HWND hChild = FindWindowExA(hESPWnd, 0, "Intermediate D3D Window"e, 0);
-			if (hChild)
-				SendMessageA(hChild, WM_CLOSE, 0, 0);
-
-			SetWindowLongA(hESPWnd, GWL_EXSTYLE, GetWindowLongA(hESPWnd, GWL_EXSTYLE) & ~WS_EX_LAYERED & ~WS_EX_TRANSPARENT);
-			if (!RemoteSetWindowDisplayAffinityBypassed(hESPWnd))
-				return false;
-
-			//Move window to re-create "Intermediate D3D Window"
-			MoveWindow(hESPWnd, 1, 1, ScreenWidth - 1, ScreenHeight - 1, TRUE);
-			//Wait until "Intermediate D3D Window" created
-			while (!(hChild = FindWindowExA(hESPWnd, 0, "Intermediate D3D Window"e, 0)));
-			MoveWindow(hESPWnd, 0, 0, ScreenWidth, ScreenHeight, TRUE);
-
-			BLENDFUNCTION blendPixelFunction = { AC_SRC_OVER, 0, 0, AC_SRC_ALPHA };
-			UpdateLayeredWindow(hChild, 0, 0, 0, 0, 0, 0, &blendPixelFunction, ULW_ALPHA);
-
-			if (!MakeWindowIgnoreHitTest())
-				return false;
-
-			return true;
-		}();
-
-		if (!bResult)
-			CloseHandle(hJob);
-
-		return bResult;
-	}
+	IDCompositionTarget* m_pDCompTarget;
+	IDCompositionVisual* pDirectCompositionVisual;
 
 	virtual void Present(HWND hWnd) const {
-		verify(IsValid());
-		UpdateWindow(hWnd);
-		pDirect3DDevice9Ex->Present(0, 0, hESPWnd, 0);
+		Global::pDXGISwapChain1->Present(0, 0);
+	}
+
+	void Release(HWND hWnd) {
+		Global::pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TRUE, &m_pDCompTarget);
+		m_pDCompTarget->Release();
 	}
 
 public:
-	RenderOverlay(IDirect3DDevice9Ex* pDirect3DDevice9Ex, const KernelLily& kernel, int ScreenWidth, int ScreenHeight) :
-		Render(pDirect3DDevice9Ex, ScreenWidth, ScreenHeight), kernel(kernel),
-		atomDispAffinity(kernel.UserFindAtom(L"SysDispAffinity"e)) {
-		verify(atomDispAffinity);
-		verify(InitJob());
-		verify(InitOverlay());
-		verify(IsValid());
+	~RenderOverlay() {
+		const HWND hWnd = FindWindowA("Notepad"e, 0);
+		Release(hWnd);
+	}
+
+	RenderOverlay(const KernelLily& kernel, int ScreenWidth, int ScreenHeight) :
+		Render(ScreenWidth, ScreenHeight), kernel(kernel) {
+
+		//EnumWindows([](HWND hWnd, LPARAM)->BOOL {
+		//	RECT wndrect;
+		//	GetWindowRect(hWnd, &wndrect);
+		//	//if (wndrect.left != 0 || wndrect.top != 0)
+		//	//	return TRUE;
+
+		//	if (wndrect.right == wndrect.left || wndrect.bottom == wndrect.top)
+		//		return TRUE;
+
+		//	POINT p = { 0, 0 };
+		//	ScreenToClient(hWnd, &p);
+		//	if (p.x != 0 || p.y != 0)
+		//		return TRUE;
+
+		//	DWORD dwStyle = GetWindowLongA(hWnd, GWL_STYLE);
+
+		//	if (!(dwStyle & WS_VISIBLE))
+		//		return TRUE;
+
+		//	//DWORD dwExStyle = GetWindowLongA(hWnd, GWL_EXSTYLE);
+		//	//if (!(dwStyle & WS_EX_TOPMOST))
+		//	//	return TRUE;
+
+		//	char szClass[0x100];
+		//	char szText[0x100];
+		//	GetClassNameA(hWnd, szClass, sizeof(szClass));
+		//	GetWindowTextA(hWnd, szText, sizeof(szText));
+
+		//	printf("%08X %s %s\n", (DWORD)(uint64_t)hWnd, szClass, szText);
+		//	return TRUE;
+		//	}, 0);
+
+		//exit(0);
+
+		//const HWND hWnd = FindWindowA("CEF-OSC-WIDGET"e, "NVIDIA GeForce Overlay"e);
+		const HWND hWnd = FindWindowA("Notepad"e, 0);
+		//const HWND hWnd = FindWindowA(0, "FolderView"e);
+
+		HRESULT hr = 0;
+
+		const bool bSuccess = [&] {
+
+			if (!kernel.SetOwningThreadWrapper(hWnd, [&] {
+				Release(hWnd);
+				hr = Global::pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TRUE, &m_pDCompTarget);
+				})) return false;
+
+			if (FAILED(hr))
+				return false;
+
+			hr = Global::pDirectCompositionDevice->CreateVisual(&pDirectCompositionVisual);
+			if (FAILED(hr))
+				return false;
+
+			hr = pDirectCompositionVisual->SetContent(Global::pDXGISwapChain1.Get());
+			if (FAILED(hr))
+				return false;
+
+			hr = m_pDCompTarget->SetRoot(pDirectCompositionVisual);
+			if (FAILED(hr))
+				return false;
+
+			hr = Global::pDirectCompositionDevice->Commit();
+			if (FAILED(hr))
+				return false;
+
+			hr = Global::pDirectCompositionDevice->WaitForCommitCompletion();
+			if (FAILED(hr))
+				return false;
+
+			bool b1 = kernel.KernelRemoveProp(hWnd, kernel.UserFindAtom(L"SysDCompHwndTargets"e));
+			bool b2 = kernel.KernelRemoveProp(hWnd, kernel.UserFindAtom(L"SysVisRgnTracker"e));
+			return true;
+		}();
+
+		verify(bSuccess);
 		Clear();
 	}
 };

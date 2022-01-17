@@ -1,17 +1,19 @@
 #pragma once
+#include "ue4math.h"
 
-#include "pubg_struct.h"
+struct FVector;
+struct FMatrix;
 
-#include "vector.h"
-
-class Vector;
-class Matrix;
-
-class Quat {
+// ScriptStruct CoreUObject.Quat
+// 0x0010
+struct alignas(16) FQuat {
 public:
-	float X, Y, Z, W;
+	float                                              X;                                                        // 0x0000(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
+	float                                              Y;                                                        // 0x0004(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
+	float                                              Z;                                                        // 0x0008(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
+	float                                              W;                                                        // 0x000C(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
 
-	Quat(float X = 0.0, float Y = 0.0, float Z = 0.0, float W = 1.0) : X(X), Y(Y), Z(Z), W(W) {}
+	FQuat(float X = 0.0, float Y = 0.0, float Z = 0.0, float W = 1.0) : X(X), Y(Y), Z(Z), W(W) {}
 
 	static void VectorQuaternionMultiply(void* Result, const void* Quat1, const void* Quat2) {
 		typedef float Float4[4];
@@ -57,21 +59,18 @@ public:
 		}
 		else
 		{
-			*this = Quat();
+			*this = FQuat();
 		}
 	}
 
 	float SizeSquared() const { return (X * X + Y * Y + Z * Z + W * W); }
 	bool IsNormalized() const { return (fabs(1.0 - SizeSquared()) < THRESH_QUAT_NORMALIZED); }
-	Quat Inverse() const { return Quat(-X, -Y, -Z, W); }
+	FQuat Inverse() const { return FQuat(-X, -Y, -Z, W); }
 
-	Quat(const Matrix& M);
+	FQuat(const FMatrix& M);
 
-	Vector RotateVector(const Vector& V) const;
-	Vector operator*(const Vector& V) const;
-
-	//Convert to FQuat
-	operator FQuat() const { return FQuat((float)X, (float)Y, (float)Z, (float)W); }
-	Quat& operator=(const FQuat& v) { return *this = { v.X, v.Y, v.Z, v.W }; }
-	Quat(const FQuat& v) { operator=(v); }
+	FVector RotateVector(const FVector& V) const;
+	FVector operator*(const FVector& V) const;
 };
+
+static_assert(sizeof(FQuat) == 0x10, "FQuat");

@@ -1,11 +1,12 @@
 #include "transform.h"
 #include "vector.h"
 #include "quat.h"
+#include "matrix.h"
 
-Transform::Transform(const Quat& Rotation, const Vector& Translation, const Vector& Scale3D) :Rotation(Rotation), Translation(Translation), Scale3D(Scale3D) {}
-Transform::Transform() : Rotation(Quat(0.f, 0.f, 0.f, 1.f)), Translation(Vector(0.0, 0.0, 0.0)), Scale3D(Vector(1.0f, 1.0f, 1.0f)) {}
+FTransform::FTransform(const FQuat& Rotation, const FVector& Translation, const FVector& Scale3D) :Rotation(Rotation), Translation(Translation), Scale3D(Scale3D) {}
+FTransform::FTransform() : Rotation(FQuat(0.f, 0.f, 0.f, 1.f)), Translation(FVector(0.0, 0.0, 0.0)), Scale3D(FVector(1.0f, 1.0f, 1.0f)) {}
 
-bool Transform::AnyHasNegativeScale(const Vector& InScale3D, const Vector& InOtherScale3D)
+bool FTransform::AnyHasNegativeScale(const FVector& InScale3D, const FVector& InOtherScale3D)
 {
 	return  (InScale3D.X < 0.f || InScale3D.Y < 0.f || InScale3D.Z < 0.f
 		|| InOtherScale3D.X < 0.f || InOtherScale3D.Y < 0.f || InOtherScale3D.Z < 0.f);
@@ -14,9 +15,9 @@ bool Transform::AnyHasNegativeScale(const Vector& InScale3D, const Vector& InOth
 /**
 * Convert this Transform to a transformation matrix with scaling.
 */
-Matrix Transform::ToMatrixWithScale() const
+FMatrix FTransform::ToMatrixWithScale() const
 {
-	Matrix OutMatrix;
+	FMatrix OutMatrix;
 	OutMatrix.M[3][0] = Translation.X;
 	OutMatrix.M[3][1] = Translation.Y;
 	OutMatrix.M[3][2] = Translation.Z;
@@ -63,22 +64,22 @@ Matrix Transform::ToMatrixWithScale() const
 	return OutMatrix;
 }
 
-void Transform::MultiplyUsingMatrixWithScale(Transform* OutTransform, const Transform* A, const Transform* B)
+void FTransform::MultiplyUsingMatrixWithScale(FTransform* OutTransform, const FTransform* A, const FTransform* B)
 {
 	// the goal of using M is to get the correct orientation
 	// but for translation, we still need scale
 	ConstructTransformFromMatrixWithDesiredScale(A->ToMatrixWithScale(), B->ToMatrixWithScale(), A->Scale3D * B->Scale3D, *OutTransform);
 }
 
-void Transform::ConstructTransformFromMatrixWithDesiredScale(const Matrix& AMatrix, const Matrix& BMatrix, const Vector& DesiredScale, Transform& OutTransform)
+void FTransform::ConstructTransformFromMatrixWithDesiredScale(const FMatrix& AMatrix, const FMatrix& BMatrix, const FVector& DesiredScale, FTransform& OutTransform)
 {
 	// the goal of using M is to get the correct orientation
 	// but for translation, we still need scale
-	Matrix M = AMatrix * BMatrix;
+	FMatrix M = AMatrix * BMatrix;
 	M.RemoveScaling();
 
 	// apply negative scale back to axes
-	Vector SignedScale = DesiredScale.GetSignVector();
+	FVector SignedScale = DesiredScale.GetSignVector();
 
 	M.SetAxis0(SignedScale.X * M.GetScaledAxisX());
 	M.SetAxis1(SignedScale.Y * M.GetScaledAxisY());
@@ -86,7 +87,7 @@ void Transform::ConstructTransformFromMatrixWithDesiredScale(const Matrix& AMatr
 
 	// @note: if you have negative with 0 scale, this will return rotation that is identity
 	// since matrix loses that axes
-	Quat Rotation = Quat(M);
+	FQuat Rotation = FQuat(M);
 	Rotation.Normalize();
 
 	// set values back to output
@@ -100,7 +101,7 @@ void Transform::ConstructTransformFromMatrixWithDesiredScale(const Matrix& AMatr
 }
 
 /** Returns Multiplied Transform of 2 FTransforms **/
-void Transform::Multiply(Transform* OutTransform, const Transform* A, const Transform* B)
+void FTransform::Multiply(FTransform* OutTransform, const FTransform* A, const FTransform* B)
 {
 	if (AnyHasNegativeScale(A->Scale3D, B->Scale3D))
 	{
@@ -118,19 +119,10 @@ void Transform::Multiply(Transform* OutTransform, const Transform* A, const Tran
 	// that was removed at rev 21 with UE4
 }
 
-Transform Transform::operator*(const Transform& A) {
-	Transform OutTransform;
+FTransform FTransform::operator*(const FTransform& A) {
+	FTransform OutTransform;
 	Multiply(&OutTransform, this, &A);
 	return OutTransform;
-}
-
-//Convert to FTransform
-Transform::operator FTransform() const {
-	FTransform t;
-	t.Rotation = Rotation;
-	t.Scale3D = Scale3D;
-	t.Translation = Translation;
-	return t;
 }
 
 // mathematically if you have 0 scale, it should be infinite, 
@@ -138,9 +130,9 @@ Transform::operator FTransform() const {
 // anymore because you should be instead of showing gigantic infinite mesh
 // also returning BIG_NUMBER causes sequential NaN issues by multiplying 
 // so we hardcode as 0
-Vector Transform::GetSafeScaleReciprocal(const Vector& InScale, float Tolerance)
+FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale, float Tolerance)
 {
-	Vector SafeReciprocalScale;
+	FVector SafeReciprocalScale;
 	if (fabs(InScale.X) <= Tolerance)
 	{
 		SafeReciprocalScale.X = 0.f;
@@ -171,19 +163,19 @@ Vector Transform::GetSafeScaleReciprocal(const Vector& InScale, float Tolerance)
 	return SafeReciprocalScale;
 }
 
-void Transform::GetRelativeTransformUsingMatrixWithScale(Transform* OutTransform, const Transform* Base, const Transform* Relative)
+void FTransform::GetRelativeTransformUsingMatrixWithScale(FTransform* OutTransform, const FTransform* Base, const FTransform* Relative)
 {
 	// the goal of using M is to get the correct orientation
 	// but for translation, we still need scale
-	Matrix AM = Base->ToMatrixWithScale();
-	Matrix BM = Relative->ToMatrixWithScale();
+	FMatrix AM = Base->ToMatrixWithScale();
+	FMatrix BM = Relative->ToMatrixWithScale();
 	// get combined scale
-	Vector SafeRecipScale3D = GetSafeScaleReciprocal(Relative->Scale3D, SMALL_NUMBER);
-	Vector DesiredScale3D = Base->Scale3D * SafeRecipScale3D;
+	FVector SafeRecipScale3D = GetSafeScaleReciprocal(Relative->Scale3D, SMALL_NUMBER);
+	FVector DesiredScale3D = Base->Scale3D * SafeRecipScale3D;
 	ConstructTransformFromMatrixWithDesiredScale(AM, BM.Inverse(), DesiredScale3D, *OutTransform);
 }
 
-Transform Transform::GetRelativeTransform(const Transform& Other) const
+FTransform FTransform::GetRelativeTransform(const FTransform& Other) const
 {
 	// A * B(-1) = VQS(B)(-1) (VQS (A))
 	// 
@@ -191,7 +183,7 @@ Transform Transform::GetRelativeTransform(const Transform& Other) const
 	// Rotation = Q(B)(-1) * Q(A)
 	// Translation = 1/S(B) *[Q(B)(-1)*(T(A)-T(B))*Q(B)]
 	// where A = this, B = Other
-	Transform Result;
+	FTransform Result;
 
 	if (AnyHasNegativeScale(Scale3D, Other.Scale3D))
 	{
@@ -200,15 +192,15 @@ Transform Transform::GetRelativeTransform(const Transform& Other) const
 	}
 	else
 	{
-		Vector SafeRecipScale3D = GetSafeScaleReciprocal(Other.Scale3D, SMALL_NUMBER);
+		FVector SafeRecipScale3D = GetSafeScaleReciprocal(Other.Scale3D, SMALL_NUMBER);
 		Result.Scale3D = Scale3D * SafeRecipScale3D;
 
 		if (Other.Rotation.IsNormalized() == false)
 		{
-			return Transform();
+			return FTransform();
 		}
 
-		Quat Inverse = Other.Rotation.Inverse();
+		FQuat Inverse = Other.Rotation.Inverse();
 		Result.Rotation = Inverse * Rotation;
 
 		Result.Translation = (Inverse * (Translation - Other.Translation)) * (SafeRecipScale3D);
@@ -216,6 +208,3 @@ Transform Transform::GetRelativeTransform(const Transform& Other) const
 
 	return Result;
 }
-
-Transform& Transform::operator=(const FTransform& v) { return *this = { v.Rotation, v.Translation, v.Scale3D }; }
-Transform::Transform(const FTransform& v) { operator=(v); }

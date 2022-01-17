@@ -1,13 +1,11 @@
 #pragma once
-#include "pubg_struct.h"
-#include "mymath.h"
-#include "vector.h"
+#include "ue4math.h"
 
-class Vector;
-class Rotator;
-class Transform;
+struct FVector;
+struct FRotator;
+struct FTransform;
 
-class Matrix {
+struct FMatrix {
 public:
     union
     {
@@ -21,7 +19,7 @@ public:
         float M[4][4];
     };
 
-    Matrix() {
+    FMatrix() {
         //Identity matrix
         _11 = 1.0f; _12 = 0.0f; _13 = 0.0f; _14 = 0.0f;
         _21 = 0.0f; _22 = 1.0f; _23 = 0.0f; _24 = 0.0f;
@@ -29,9 +27,9 @@ public:
         _41 = 0.0f; _42 = 0.0f; _43 = 0.0f; _44 = 1.0f;
     }
 
-    Matrix MatrixMultiply(const Matrix& M2) const {
-        const Matrix& M1 = *this;
-        Matrix mResult;
+    FMatrix MatrixMultiply(const FMatrix& M2) const {
+        const FMatrix& M1 = *this;
+        FMatrix mResult;
         float x = M1.M[0][0];
         float y = M1.M[0][1];
         float z = M1.M[0][2];
@@ -67,7 +65,7 @@ public:
         return mResult;
     }
 
-    Matrix operator * (const Matrix& v) const { return MatrixMultiply(v); }
+    FMatrix operator * (const FMatrix& v) const { return MatrixMultiply(v); }
 
     void RemoveScaling(float Tolerance = SMALL_NUMBER)
     {
@@ -114,19 +112,19 @@ public:
                 );
     }
 
-    Matrix Inverse() const;
+    FMatrix Inverse() const;
 
-    void SetAxis0(const Vector& Axis);
-    void SetAxis1(const Vector& Axis);
-    void SetAxis2(const Vector& Axis);
+    void SetAxis0(const FVector& Axis);
+    void SetAxis1(const FVector& Axis);
+    void SetAxis2(const FVector& Axis);
 
-    Vector GetOrigin() const;
-    Vector GetScaledAxisX() const;
-    Vector GetScaledAxisY() const;
-    Vector GetScaledAxisZ() const;
-    Rotator GetRotator() const;
+    FVector GetOrigin() const;
+    FVector GetScaledAxisX() const;
+    FVector GetScaledAxisY() const;
+    FVector GetScaledAxisZ() const;
+    FRotator GetRotator() const;
 
     //Convert to FTransform
-    Matrix& operator=(const FTransform& t);
-    Matrix(const FTransform& t);
+    FMatrix& operator=(const FTransform& t);
+    FMatrix(const FTransform& t);
 };

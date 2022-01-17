@@ -2,7 +2,7 @@
 #include <Windows.h>
 #include <bcrypt.h>		//NTSTATUS
 #include <SubAuth.h>	//UNICODE_STRING
-#include "defclass.h"
+#include "common/defclass.h"
 
 class OBJECT_TYPE;
 typedef OBJECT_TYPE* POBJECT_TYPE;

@@ -2,9 +2,15 @@
 #include <windows.h>
 #include <vector>
 
-#include "ida_defs.h"
-#include "process.h"
-#include "mymath.h"
+#include "common/ida_defs.h"
+#include "common/process.h"
+
+#include "ue4math/vector.h"
+#include "ue4math/rotator.h"
+#include "ue4math/quat.h"
+#include "ue4math/transform.h"
+#include "ue4math/matrix.h"
+
 #include "pubg_process.h"
 
 template<class T>
@@ -104,50 +110,12 @@ using NativePtr = ObjectPtr<ObjectType, uintptr_t>;
 template <class ObjectType>
 using EncryptedPtr = ObjectPtr<ObjectType, XenuinePtr>;
 
-// ScriptStruct CoreUObject.Vector
-// 0x000C
-struct FVector
-{
-	float                                              X;                                                        // 0x0000(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
-	float                                              Y;                                                        // 0x0004(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
-	float                                              Z;                                                        // 0x0008(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
-};
-
-// ScriptStruct CoreUObject.Rotator
-// 0x000C
-struct FRotator
-{
-	float                                              Pitch;                                                    // 0x0000(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
-	float                                              Yaw;                                                      // 0x0004(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
-	float                                              Roll;                                                     // 0x0008(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
-};
-
-// ScriptStruct CoreUObject.Quat
-// 0x0010
-struct alignas(16) FQuat
-{
-	float                                              X;                                                        // 0x0000(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
-	float                                              Y;                                                        // 0x0004(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
-	float                                              Z;                                                        // 0x0008(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
-	float                                              W;                                                        // 0x000C(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
-};
-
 // ScriptStruct CoreUObject.Vector2D
 // 0x0008
 struct FVector2D
 {
 	float                                              X;                                                        // 0x0000(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
 	float                                              Y;                                                        // 0x0004(0x0004) (CPF_Edit, CPF_BlueprintVisible, CPF_ZeroConstructor, CPF_SaveGame, CPF_IsPlainOldData)
-};
-
-// ScriptStruct CoreUObject.Transform
-// 0x0030
-struct alignas(16) FTransform
-{
-	struct FQuat                                       Rotation;                                                 // 0x0000(0x0010) (CPF_Edit, CPF_BlueprintVisible, CPF_SaveGame, CPF_IsPlainOldData)
-	struct FVector                                     Translation;                                              // 0x0010(0x000C) (CPF_Edit, CPF_BlueprintVisible, CPF_SaveGame, CPF_IsPlainOldData)
-	unsigned char                                      UnknownData00[0x4];                                       // 0x001C(0x0004) MISSED OFFSET
-	struct FVector                                     Scale3D;                                                  // 0x0020(0x000C) (CPF_Edit, CPF_BlueprintVisible, CPF_SaveGame, CPF_IsPlainOldData)
 };
 
 struct FName

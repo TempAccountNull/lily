@@ -1,23 +1,23 @@
 #include "pubg_class.h"
 
-void SimulateWeaponTrajectory(Vector Direction, float Distance, float TrajectoryGravityZ, float BallisticDragScale, float BallisticDropScale, 
+void SimulateWeaponTrajectory(FVector Direction, float Distance, float TrajectoryGravityZ, float BallisticDragScale, float BallisticDropScale, 
 	float BDS, float SimulationSubstepTime, float VDragCoefficient, const FRichCurve& FloatCurve, float& TravelTime, float& BulletDrop) 
 {
-	TravelTime = 0.0;
-	BulletDrop = 0.0;
+	TravelTime = 0.0f;
+	BulletDrop = 0.0f;
 
-	float TravelDistance = 0.0;
-	float CurrentDrop = 0.0;
+	float TravelDistance = 0.0f;
+	float CurrentDrop = 0.0f;
 
 	Direction.Normalize();
-	Direction = Direction * 100.0;
+	Direction = Direction * 100.0f;
 
 	while (1) {
 		float BulletSpeed = FloatCurve.Eval(TravelDistance * BDS * BallisticDragScale, 0.0f);
-		Vector Velocity = Direction * BulletSpeed;
+		FVector Velocity = Direction * BulletSpeed;
 		Velocity.Z += CurrentDrop;
 
-		Vector Acceleration = Velocity * SimulationSubstepTime;
+		FVector Acceleration = Velocity * SimulationSubstepTime;
 		float AccelerationLen = Acceleration.Length() / 100.0f;
 
 		//BulletDrop += SimulationSubstepTime * CurrentDrop;
@@ -32,11 +32,11 @@ void SimulateWeaponTrajectory(Vector Direction, float Distance, float Trajectory
 	}
 }
 
-std::pair<float, float> GetBulletDropAndTravelTime(const Vector& GunLocation, const Rotator& GunRotation, const Vector& TargetPos,
+std::pair<float, float> GetBulletDropAndTravelTime(const FVector& GunLocation, const FRotator& GunRotation, const FVector& TargetPos,
 	float ZeroingDistance, float BulletDropAdd, float InitialSpeed, float TrajectoryGravityZ, float BallisticDragScale,
 	float BallisticDropScale, float BDS, float SimulationSubstepTime, float VDragCoefficient, NativePtr<UCurveVector> BallisticCurve)
 {
-	const float ZDistanceToTarget = TargetPos.Z - GunLocation.Z;				//= 0.0f;
+	const float ZDistanceToTarget = TargetPos.Z - GunLocation.Z;
 	const float DistanceToTarget = GunLocation.Distance(TargetPos) / 100.0f;
 	
 	float TravelTime = DistanceToTarget / InitialSpeed;
@@ -48,7 +48,7 @@ std::pair<float, float> GetBulletDropAndTravelTime(const Vector& GunLocation, co
 	UCurveVector CurveVector;
 	if (BallisticCurve.Read(CurveVector)) {
 		SimulateWeaponTrajectory(GunRotation.GetUnitVector(), DistanceToTarget, TrajectoryGravityZ, BallisticDragScale, BallisticDropScale, BDS, SimulationSubstepTime, VDragCoefficient, CurveVector.FloatCurves, TravelTime, BulletDrop);
-		SimulateWeaponTrajectory(Vector(1.0f, 0.0f, 0.0f), ZeroingDistance, TrajectoryGravityZ, BallisticDragScale, BallisticDropScale, BDS, SimulationSubstepTime, VDragCoefficient, CurveVector.FloatCurves, TravelTimeZero, BulletDropZero);
+		SimulateWeaponTrajectory(FVector(1.0f, 0.0f, 0.0f), ZeroingDistance, TrajectoryGravityZ, BallisticDragScale, BallisticDropScale, BDS, SimulationSubstepTime, VDragCoefficient, CurveVector.FloatCurves, TravelTimeZero, BulletDropZero);
 	}
 
 	BulletDrop = fabsf(BulletDrop) - fabsf(BulletDropAdd);
@@ -117,7 +117,7 @@ float UWeaponMeshComponent::GetScopingAttachPointRelativeZ(FName ScopingAttachPo
 	if (GetStaticMeshComponentScopeType().Read(StaticMeshComponent)) {
 		//Scope Attached
 		const float RelativeZ_1 = StaticMeshComponent.GetSocketTransform(ScopingAttachPoint, RTS_Component).Translation.Z;
-		const float RelativeZ_2 = Transform(StaticMeshComponent.ComponentToWorld).GetRelativeTransform(ComponentToWorld).Translation.Z;
+		const float RelativeZ_2 = FTransform(StaticMeshComponent.ComponentToWorld).GetRelativeTransform(ComponentToWorld).Translation.Z;
 		return RelativeZ_1 + RelativeZ_2;
 	}
 	else

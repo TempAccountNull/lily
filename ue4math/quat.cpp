@@ -2,7 +2,7 @@
 #include "vector.h"
 #include "matrix.h"
 
-Vector Quat::RotateVector(const Vector& V) const
+FVector FQuat::RotateVector(const FVector& V) const
 {
 	// http://people.csail.mit.edu/bkph/articles/Quaternions.pdf
 	// V' = V + 2w(Q x V) + (2Q x (Q x V))
@@ -11,21 +11,21 @@ Vector Quat::RotateVector(const Vector& V) const
 	// T = 2(Q x V);
 	// V' = V + w*(T) + (Q x T)
 
-	const Vector Q(X, Y, Z);
-	const Vector T = (Q ^ V) * 2.0;
-	const Vector Result = V + (T * W) + (Q ^ T);
+	const FVector Q(X, Y, Z);
+	const FVector T = (Q ^ V) * 2.0;
+	const FVector Result = V + (T * W) + (Q ^ T);
 	return Result;
 }
 
-Vector Quat::operator*(const Vector& V) const { return RotateVector(V); }
+FVector FQuat::operator*(const FVector& V) const { return RotateVector(V); }
 
-Quat::Quat(const Matrix& M) {
+FQuat::FQuat(const FMatrix& M) {
 	// If Matrix is NULL, return Identity quaternion. If any of them is 0, you won't be able to construct rotation
 	// if you have two plane at least, we can reconstruct the frame using cross product, but that's a bit expensive op to do here
 	// for now, if you convert to matrix from 0 scale and convert back, you'll lose rotation. Don't do that. 
 	if (M.GetScaledAxisX().IsNearlyZero() || M.GetScaledAxisY().IsNearlyZero() || M.GetScaledAxisZ().IsNearlyZero())
 	{
-		*this = Quat();
+		*this = FQuat();
 		return;
 	}
 
@@ -35,7 +35,7 @@ Quat::Quat(const Matrix& M) {
 	// Check diagonal (trace)
 	const float tr = M.M[0][0] + M.M[1][1] + M.M[2][2];
 
-	if (tr > 0.0f)
+	if (tr > 0)
 	{
 		float InvS = InvSqrt(tr + 1.f);
 		this->W = 0.5f * (1.f / InvS);

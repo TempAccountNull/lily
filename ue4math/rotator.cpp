@@ -1,11 +1,11 @@
-#include "mymath.h"
+#include "ue4math.h"
 
 #include "rotator.h"
 #include "vector.h"
 #include "quat.h"
 #include "matrix.h"
 
-Rotator::Rotator(const Quat& q) {
+FRotator::FRotator(const FQuat& q) {
 	const float SingularitYTest = q.Z * q.X - q.W * q.Y;
 	const float YawY = 2.0f * (q.W * q.Z + q.X * q.Y);
 	const float YawX = (1.0f - 2.0f * (q.Y * q.Y + q.Z * q.Z));
@@ -30,7 +30,7 @@ Rotator::Rotator(const Quat& q) {
 	}
 }
 
-Quat Rotator::GetQuaternion() const {
+FQuat FRotator::GetQuaternion() const {
 	const float DEG_TO_RAD = PI / (180.0f);
 	const float RADS_DIVIDED_BY_2 = DEG_TO_RAD / 2.0f;
 	float SP, SY, SR;
@@ -47,7 +47,7 @@ Quat Rotator::GetQuaternion() const {
 	SR = sinf(RollNoWinding * RADS_DIVIDED_BY_2);
 	CR = cosf(RollNoWinding * RADS_DIVIDED_BY_2);
 
-	Quat RotationQuat;
+	FQuat RotationQuat;
 	RotationQuat.X = CR * SP * SY - SR * CP * CY;
 	RotationQuat.Y = -CR * SP * CY - SR * CP * SY;
 	RotationQuat.Z = CR * CP * SY - SR * SP * CY;
@@ -55,11 +55,11 @@ Quat Rotator::GetQuaternion() const {
 	return RotationQuat;
 }
 
-Rotator::operator Quat() const {
+FRotator::operator FQuat() const {
 	return GetQuaternion();
 }
 
-Matrix Rotator::GetMatrix(Vector origin) const {
+FMatrix FRotator::GetMatrix(FVector origin) const {
 	float radPitch = ConvertToRadians(Pitch);
 	float radYaw = ConvertToRadians(Yaw);
 	float radRoll = ConvertToRadians(Roll);
@@ -71,7 +71,7 @@ Matrix Rotator::GetMatrix(Vector origin) const {
 	float SR = sinf(radRoll);
 	float CR = cosf(radRoll);
 
-	Matrix matriX;
+	FMatrix matriX;
 	matriX.M[0][0] = CP * CY;
 	matriX.M[0][1] = CP * SY;
 	matriX.M[0][2] = SP;
@@ -95,7 +95,7 @@ Matrix Rotator::GetMatrix(Vector origin) const {
 	return matriX;
 }
 
-Vector Rotator::GetUnitVector() const {
+FVector FRotator::GetUnitVector() const {
 	float radPitch = ConvertToRadians(Pitch);
 	float radYaw = ConvertToRadians(Yaw);
 
@@ -104,7 +104,7 @@ Vector Rotator::GetUnitVector() const {
 	float SY = sinf(radYaw);
 	float CY = cosf(radYaw);
 
-	return Vector(CP * CY, CP * SY, SP);
+	return FVector(CP * CY, CP * SY, SP);
 }
 
 

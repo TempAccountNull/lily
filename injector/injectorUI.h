@@ -1,13 +1,13 @@
 #pragma once
-#include "util.h"
+#include "common/util.h"
 
 #include <d3d9.h>
 
-#include "dbvm.h"
-#include "encrypt_string.h"
-#include "imgui.h"
-#include "imgui_impl_dx9.h"
-#include "imgui_impl_win32.h"
+#include "common/dbvm.h"
+#include "common/encrypt_string.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_dx9.h"
+#include "imgui/imgui_impl_win32.h"
 
 #define INI ".\\config.ini"e
 #define APP "INJECTOR"e

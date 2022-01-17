@@ -1,20 +1,19 @@
 #include "pubg_class.h"
-#include "transform.h"
 
 constexpr inline auto NAME_None = FName(0, 0);
 constexpr inline auto INDEX_NONE = -1;
 
-Vector WorldToScreen(const Vector& WorldLocation, const Matrix& RotationMatrix, const Vector& CameraLocation, float CameraFOV, float Width, float Height) {
-	Vector Screenlocation(0, 0, 0);
+FVector WorldToScreen(const FVector& WorldLocation, const FMatrix& RotationMatrix, const FVector& CameraLocation, float CameraFOV, float Width, float Height) {
+	FVector Screenlocation;
 
-	Vector AxisX = RotationMatrix.GetScaledAxisX();
-	Vector AxisY = RotationMatrix.GetScaledAxisY();
-	Vector AxisZ = RotationMatrix.GetScaledAxisZ();
+	FVector AxisX = RotationMatrix.GetScaledAxisX();
+	FVector AxisY = RotationMatrix.GetScaledAxisY();
+	FVector AxisZ = RotationMatrix.GetScaledAxisZ();
 
-	Vector vDelta(WorldLocation - CameraLocation);
-	Vector vTransformed(vDelta | AxisY, vDelta | AxisZ, vDelta | AxisX);
+	FVector vDelta(WorldLocation - CameraLocation);
+	FVector vTransformed(vDelta | AxisY, vDelta | AxisZ, vDelta | AxisX);
 
-	if (vTransformed.Z == 0.0)
+	if (vTransformed.Z == 0.0f)
 		vTransformed.Z = -0.001f;
 
 	Screenlocation.Z = vTransformed.Z;
@@ -37,8 +36,8 @@ bool UWorld::GetUWorld(UWorld& World) {
 	return PP.Read(P) && P.Read(World);
 }
 
-Transform USkeletalMeshSocket::GetSocketLocalTransform() const {
-	return Transform(Rotator(RelativeRotation), RelativeLocation, RelativeScale);
+FTransform USkeletalMeshSocket::GetSocketLocalTransform() const {
+	return FTransform(FRotator(RelativeRotation), RelativeLocation, RelativeScale);
 }
 
 bool USkeleton::FindSocketAndIndex(FName InSocketName, int32& OutIndex, USkeletalMeshSocket& OutSocket) const {
@@ -59,9 +58,9 @@ bool USkeleton::FindSocketAndIndex(FName InSocketName, int32& OutIndex, USkeleta
 	return false;
 }
 
-bool USkeletalMesh::FindSocketInfo(FName InSocketName, Transform& OutTransform, int32& OutBoneIndex, int32& OutIndex, USkeletalMeshSocket& OutSocket) const {
+bool USkeletalMesh::FindSocketInfo(FName InSocketName, FTransform& OutTransform, int32& OutBoneIndex, int32& OutIndex, USkeletalMeshSocket& OutSocket) const {
 	OutIndex = INDEX_NONE;
-	OutTransform = Transform();
+	OutTransform = FTransform();
 	OutBoneIndex = INDEX_NONE;
 
 	int Index = -1;
@@ -123,7 +122,7 @@ int32 USkinnedMeshComponent::GetBoneIndex(FName BoneName) const {
 	return BoneIndex;
 }
 
-bool USkinnedMeshComponent::GetSocketInfoByName(FName InSocketName, Transform& OutTransform, int32& OutBoneIndex, USkeletalMeshSocket& OutSocket) const {
+bool USkinnedMeshComponent::GetSocketInfoByName(FName InSocketName, FTransform& OutTransform, int32& OutBoneIndex, USkeletalMeshSocket& OutSocket) const {
 	USkeletalMesh SkeletalMesh;
 	if (!this->SkeletalMesh.Read(SkeletalMesh))
 		return false;
@@ -132,25 +131,25 @@ bool USkinnedMeshComponent::GetSocketInfoByName(FName InSocketName, Transform& O
 	return SkeletalMesh.FindSocketInfo(InSocketName, OutTransform, OutBoneIndex, SocketIndex, OutSocket);
 }
 
-Transform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx, const Transform& LocalToWorld) const {
+FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx, const FTransform& LocalToWorld) const {
 	FTransform BoneTransform;
 	if (!BoneSpaceTransforms.GetValue(BoneIdx, BoneTransform))
-		return Transform();
+		return FTransform();
 
-	return Transform(BoneTransform) * LocalToWorld;
+	return FTransform(BoneTransform) * LocalToWorld;
 }
 
-Transform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx) const {
+FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx) const {
 	return GetBoneTransform(BoneIdx, ComponentToWorld);
 }
 
-Transform USkinnedMeshComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const {
-	Transform OutSocketTransform = ComponentToWorld;
+FTransform USkinnedMeshComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const {
+	FTransform OutSocketTransform = ComponentToWorld;
 
 	if (InSocketName != NAME_None)
 	{
 		int32 SocketBoneIndex;
-		Transform SocketLocalTransform;
+		FTransform SocketLocalTransform;
 		USkeletalMeshSocket SkeletalMeshSocket;
 		if (GetSocketInfoByName(InSocketName, SocketLocalTransform, SocketBoneIndex, SkeletalMeshSocket)) {
 			if (TransformSpace == RTS_ParentBoneSpace)
@@ -227,36 +226,36 @@ bool UStaticMeshComponent::GetSocketByName(FName InSocketName, UStaticMeshSocket
 	return StaticMesh.FindSocket(InSocketName, OutSocket);
 }
 
-bool UStaticMeshSocket::GetSocketTransform(Transform& OutTransform, const UStaticMeshComponent& MeshComp) const {
-	OutTransform = Transform(Rotator(RelativeRotation), RelativeLocation, RelativeScale) * MeshComp.ComponentToWorld;
+bool UStaticMeshSocket::GetSocketTransform(FTransform& OutTransform, const UStaticMeshComponent& MeshComp) const {
+	OutTransform = FTransform(FRotator(RelativeRotation), RelativeLocation, RelativeScale) * MeshComp.ComponentToWorld;
 	return true;
 }
 
-Transform USceneComponent::GetSocketTransform(FName SocketName, ERelativeTransformSpace TransformSpace) const {
+FTransform USceneComponent::GetSocketTransform(FName SocketName, ERelativeTransformSpace TransformSpace) const {
 	switch (TransformSpace)
 	{
 		case RTS_Actor:
 		{
 			AActor Actor;
 			if (Owner.Read(Actor))
-				return Transform(ComponentToWorld).GetRelativeTransform(Actor.ActorToWorld());
+				return FTransform(ComponentToWorld).GetRelativeTransform(Actor.ActorToWorld());
 			break;
 		}
 		case RTS_Component:
 		case RTS_ParentBoneSpace:
 		{
-			return Transform();
+			return FTransform();
 		}
 	}
 	return ComponentToWorld;
 }
 
-Transform UStaticMeshComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const {
+FTransform UStaticMeshComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const {
 	if (InSocketName != NAME_None) {
 		UStaticMeshSocket Socket;
 		if (GetSocketByName(InSocketName, Socket))
 		{
-			Transform SocketWorldTransform;
+			FTransform SocketWorldTransform;
 			if (Socket.GetSocketTransform(SocketWorldTransform, *this))
 			{
 				switch (TransformSpace)
@@ -285,10 +284,10 @@ Transform UStaticMeshComponent::GetSocketTransform(FName InSocketName, ERelative
 	return USceneComponent::GetSocketTransform(InSocketName, TransformSpace);
 }
 
-Transform AActor::ActorToWorld() const {
+FTransform AActor::ActorToWorld() const {
 	USceneComponent SceneComponent;
 	if (!RootComponent.Read(SceneComponent))
-		return Transform();
+		return FTransform();
 
 	return SceneComponent.ComponentToWorld;
 }

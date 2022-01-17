@@ -1,5 +1,5 @@
 #pragma once
-#include "util.h"
+#include "common/util.h"
 
 #include <Windows.h>
 #include <string>
@@ -7,11 +7,11 @@
 #include <intrin.h>
 #pragma intrinsic(_enable)
 
-#include "dbvm.h"
-#include "encrypt_string.h"
+#include "common/dbvm.h"
+#include "common/encrypt_string.h"
 #include "msrnames.h"
 #include "physicalmemory.h"
-#include "exception.h"
+#include "common/exception.h"
 #include "patternscan.h"
 #include "function_ref.hpp"
 
@@ -85,8 +85,39 @@ public:
 	};
 
 private:
+	class EProcess {
+	public:
+		DWORD GetPid(const Kernel& kernel) const {
+			DWORD Pid = 0;
+			if (!kernel.ReadProcessMemoryDBVM((uintptr_t)this + kernel.Offset_UniqueProcessId, &Pid, sizeof(Pid)))
+				return 0;
+			return Pid;
+		}
+		EProcess* GetNextProcess(const Kernel& kernel) const {
+			LIST_ENTRY ListEntry;
+			if (!kernel.ReadProcessMemoryDBVM((uintptr_t)this + kernel.Offset_ActiveProcessLinks, &ListEntry, sizeof(ListEntry)))
+				return 0;
+
+			return (EProcess*)((uintptr_t)ListEntry.Flink - kernel.Offset_ActiveProcessLinks);
+		}
+		CR3 GetKernelCR3(const Kernel& kernel) const {
+			CR3 cr3 = { 0 };
+			if (!kernel.ReadProcessMemoryDBVM((uintptr_t)this + kernel.Offset_DirectoryTableBase, &cr3, sizeof(cr3)))
+				return 0;
+
+			return cr3;
+		}
+		uintptr_t GetPebAddress(const Kernel& kernel) const {
+			uintptr_t PebAddress;
+			if (!kernel.ReadProcessMemoryDBVM((uintptr_t)this + kernel.Offset_Peb, &PebAddress, sizeof(PebAddress)))
+				return 0;
+
+			return PebAddress;
+		}
+	};
+
 	//EPROCESS Offset
-	const uintptr_t SystemProcess = [&] {
+	EProcess* const SystemProcess = [&] {
 		const uintptr_t PsInitialSystemProcess = GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsInitialSystemProcess"e);
 		ReadProcessMemoryDBVM(PsInitialSystemProcess, (void*)&SystemProcess, sizeof(SystemProcess));
 		verify(SystemProcess);
@@ -292,46 +323,30 @@ public:
 		return WriteProcessMemory(Address, Buffer, Size);
 	};
 
-	uintptr_t GetEPROCESS(DWORD Pid) const {
-		uintptr_t pProcess = SystemProcess;
-		do {
-			DWORD UniqueProcessId;
-			if (!ReadProcessMemoryDBVM(pProcess + Offset_UniqueProcessId, &UniqueProcessId, sizeof(UniqueProcessId)))
-				break;
-
-			if (UniqueProcessId == Pid)
+	EProcess* GetEPROCESS(DWORD Pid) const {
+		for (EProcess* pProcess = SystemProcess->GetNextProcess(*this);
+			pProcess && pProcess != SystemProcess;
+			pProcess = pProcess->GetNextProcess(*this)) {
+			if (pProcess->GetPid(*this) == Pid)
 				return pProcess;
-
-			LIST_ENTRY ListEntry;
-			if (!ReadProcessMemoryDBVM(pProcess + Offset_ActiveProcessLinks, &ListEntry, sizeof(ListEntry)))
-				break;
-
-			pProcess = (uintptr_t)ListEntry.Flink - Offset_ActiveProcessLinks;
-		} while (pProcess != SystemProcess);
-
+		}
 		return 0;
 	}
 
 	CR3 GetKernelCR3(DWORD Pid) const {
-		CR3 cr3 = { 0 };
-
-		uintptr_t pProcess = GetEPROCESS(Pid);
-		if (pProcess)
-			ReadProcessMemoryDBVM(pProcess + Offset_DirectoryTableBase, &cr3, sizeof(cr3));
-
-		return cr3;
-	}
-
-	uintptr_t GetPebAddress(DWORD Pid) const {
-		uintptr_t pProcess = GetEPROCESS(Pid);
+		const EProcess* pProcess = GetEPROCESS(Pid);
 		if (!pProcess)
 			return 0;
 
-		uintptr_t PebAddress;
-		if (!ReadProcessMemoryDBVM(pProcess + Offset_Peb, &PebAddress, sizeof(PebAddress)))
+		return pProcess->GetKernelCR3(*this);
+	}
+
+	uintptr_t GetPebAddress(DWORD Pid) const {
+		const EProcess* pProcess = GetEPROCESS(Pid);
+		if (!pProcess)
 			return 0;
 
-		return PebAddress;
+		return pProcess->GetPebAddress(*this);
 	}
 
 	uintptr_t GetMappedPhysicalAddress(PhysicalAddress Address) const {

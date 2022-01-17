@@ -40,22 +40,24 @@ void Hack::Loop() {
 		if (hGameWnd == GetForegroundWindow())
 			ProcessHotkey();
 
-		const float TimeDelta = ProcessTimeDelta();
+		const float TimeDelta = render.GetTimeDelta();
+		NoticeTimeRemain = std::max(NoticeTimeRemain - TimeDelta, 0.0f);
+
 		const float Width = render.GetWidth();
 		const float Height = render.GetHeight();
 
 		render.RenderArea(hGameWnd, [&]() {
 			ProcessImGui();
 			DrawHotkey();
-			DrawFPS(FPS, Render::COLOR_TEAL);
+			DrawFPS(render.GetFPS(), Render::COLOR_TEAL);
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			bool IsNeedToHookAim = false;
 			TArray<NativePtr<AActor>> Actors;
 			NativePtr<APlayerController> PlayerContollerPtr = 0;
 
-			Vector CameraLocation(0.0f, 0.0f, 0.0f);
-			Rotator CameraRotation(0.0f, 0.0f, 0.0f);
+			FVector CameraLocation;
+			FRotator CameraRotation;
 			float DefaultFOV = 0.0f;
 			float CameraFOV = 0.0f;
 
@@ -137,17 +139,17 @@ void Hack::Loop() {
 
 			float AimbotDistant = AimbotCircleSize;
 
-			Vector MyLocation = CameraLocation;
-			Matrix CameraRotationMatrix = CameraRotation.GetMatrix(Vector(0.0, 0.0, 0.0));
+			FVector MyLocation = CameraLocation;
+			FMatrix CameraRotationMatrix = CameraRotation.GetMatrix();
 
-			Vector GunLocation = CameraLocation;
-			Rotator GunRotation = CameraRotation;
+			FVector GunLocation = CameraLocation;
+			FRotator GunRotation = CameraRotation;
 
-			auto DrawRatioBoxWrapper = [&](const Vector& ScreenPos, float CameraDistance, float BarLength3D, float Ratio, ImU32 ColorRemain, ImU32 ColorDamaged, ImU32 ColorEdge) {
-				Vector ZeroLocation = Vector(0.0f, 0.0f, 0.0f);
-				Matrix ZeroRotationMatrix = Rotator(0.0f, 0.0f, 0.0f).GetMatrix(Vector(0.0, 0.0, 0.0));
-				Vector ScreenPos1 = WorldToScreen(Vector(CameraDistance, BarLength3D / 2.0f, 0.0f), ZeroRotationMatrix, ZeroLocation, CameraFOV);
-				Vector ScreenPos2 = WorldToScreen(Vector(CameraDistance, -BarLength3D / 2.0f, 0.0f), ZeroRotationMatrix, ZeroLocation, CameraFOV);
+			auto DrawRatioBoxWrapper = [&](const FVector& ScreenPos, float CameraDistance, float BarLength3D, float Ratio, ImU32 ColorRemain, ImU32 ColorDamaged, ImU32 ColorEdge) {
+				FVector ZeroLocation;
+				FMatrix ZeroRotationMatrix = FRotator().GetMatrix();
+				FVector ScreenPos1 = WorldToScreen({ CameraDistance, BarLength3D / 2.0f, 0.0f }, ZeroRotationMatrix, ZeroLocation, CameraFOV);
+				FVector ScreenPos2 = WorldToScreen({ CameraDistance, -BarLength3D / 2.0f, 0.0f }, ZeroRotationMatrix, ZeroLocation, CameraFOV);
 
 				float ScreenLengthX = ScreenPos1.X - ScreenPos2.X;
 				float ScreenLengthY = ScreenLengthX / 6.0f;
@@ -217,9 +219,9 @@ void Hack::Loop() {
 						return;
 
 					IsScoping = TslAnimInstance.bIsScoping_CP;
-					Rotator Recoil_CP = TslAnimInstance.RecoilADSRotation_CP;
+					FRotator Recoil_CP = TslAnimInstance.RecoilADSRotation_CP;
 					Recoil_CP.Yaw += (TslAnimInstance.LeanRightAlpha_CP - TslAnimInstance.LeanLeftAlpha_CP) * Recoil_CP.Pitch / 3.0f;
-					GunRotation = Rotator(TslAnimInstance.ControlRotation_CP) + Recoil_CP;
+					GunRotation = TslAnimInstance.ControlRotation_CP + Recoil_CP;
 				}();
 
 				//MyCharacter Weapon Info
@@ -244,7 +246,7 @@ void Hack::Loop() {
 
 					UWeaponMeshComponent WeaponMesh;
 					if (TslWeapon.Mesh3P.Read(WeaponMesh)) {
-						Transform GunTransform = WeaponMesh.GetSocketTransform(TslWeapon.FiringAttachPoint, RTS_World);
+						FTransform GunTransform = WeaponMesh.GetSocketTransform(TslWeapon.FiringAttachPoint, RTS_World);
 
 						GunLocation = GunTransform.Translation;
 						if (IsScoping)
@@ -285,15 +287,15 @@ void Hack::Loop() {
 
 			NativePtr<ATslCharacter> CurrentTargetPtr = 0;
 			bool bFoundTarget = false;
-			Vector TargetPos(0.0f, 0.0f, 0.0f);
-			Vector TargetVelocity(0.0f, 0.0f, 0.0f);
+			FVector TargetPos;
+			FVector TargetVelocity;
 
 			//Actor loop
 			for (const auto& ActorPtr : Actors.GetVector()) {
 				TSet<NativePtr<UActorComponent>> OwnedComponents;
-				Vector ActorVelocity(0.0f, 0.0f, 0.0f);
-				Vector ActorLocation(0.0f, 0.0f, 0.0f);
-				Vector ActorLocationScreen(0.0f, 0.0f, 0.0f);
+				FVector ActorVelocity;
+				FVector ActorLocation;
+				FVector ActorLocationScreen;
 				float DistanceToActor = 0.0f;
 				unsigned ActorNameHash = 0;
 
@@ -327,7 +329,7 @@ void Hack::Loop() {
 					ActorNameHash = CompileTime::Hash(szBuf);
 
 					if (bDebug) {
-						Vector v2_DebugLoc = ActorLocationScreen;
+						FVector v2_DebugLoc = ActorLocationScreen;
 						v2_DebugLoc.Y += 15.0;
 						DrawString(v2_DebugLoc, szBuf, Render::COLOR_WHITE, false);
 					}
@@ -424,7 +426,7 @@ void Hack::Loop() {
 						if (!IsDestructible)
 							return;
 
-						Vector VehicleBarScreenPos = ActorLocationScreen;
+						FVector VehicleBarScreenPos = ActorLocationScreen;
 						VehicleBarScreenPos.Y += render.GetTextSize(FONTSIZE, szBuf).y / 2.0f + 4.0f;
 						const float CameraDistance = CameraLocation.Distance(ActorLocation) / 100.0f;
 						if (Health <= 0.0f)
@@ -438,7 +440,7 @@ void Hack::Loop() {
 					}();
 				}();
 
-				auto DrawItem = [&](NativePtr<UItem> ItemPtr, Vector ItemLocation) {
+				auto DrawItem = [&](NativePtr<UItem> ItemPtr, FVector ItemLocation) {
 					UItem Item;
 					if (!ItemPtr.Read(Item))
 						return false;
@@ -480,7 +482,7 @@ void Hack::Loop() {
 						if (!ActorPtr.ReadOtherType(ItemPackage))
 							return;
 
-						Vector PackageLocationScreen = ActorLocationScreen;
+						FVector PackageLocationScreen = ActorLocationScreen;
 
 						const float TextLineHeight = render.GetTextSize(FONTSIZE, ""e).y;
 						PackageLocationScreen.Y += TextLineHeight * 1.5f;
@@ -522,7 +524,7 @@ void Hack::Loop() {
 						if (ItemComponentHash != "DroppedItemInteractionComponent"h && ItemComponentHash != "DestructibleItemInteractionComponent"h)
 							continue;
 
-						Vector ItemLocationScreen = WorldToScreen(ItemComponent.ComponentToWorld.Translation, CameraRotationMatrix, CameraLocation, CameraFOV);
+						FVector ItemLocationScreen = WorldToScreen(ItemComponent.ComponentToWorld.Translation, CameraRotationMatrix, CameraLocation, CameraFOV);
 						DrawItem(ItemComponent.Item, ItemLocationScreen);
 					}
 				}();
@@ -593,7 +595,7 @@ void Hack::Loop() {
 						if (TslCharacter.LastTeamNum == MyTeamNum)
 							return;
 
-						Vector ALfromME = ActorLocation - MyLocation;
+						FVector ALfromME = ActorLocation - MyLocation;
 						int RadarX = (int)round(ALfromME.X / 100);
 						int RadarY = (int)round(ALfromME.Y / 100);
 
@@ -601,7 +603,7 @@ void Hack::Loop() {
 						if (RadarX > 200 || RadarX < -200 || RadarY > 200 || RadarY < -200)
 							return;
 
-						Vector v;
+						FVector v;
 						v.X = (Width * (0.9807f + 0.8474f) / 2.0f) + (RadarX / 200.0f * Width * (0.9807f - 0.8474f) / 2.0f);
 						v.Y = (Height * (0.9722f + 0.7361f) / 2.0f) + (RadarY / 200.0f * Height * (0.9722f - 0.7361f) / 2.0f);
 
@@ -626,20 +628,19 @@ void Hack::Loop() {
 						if (!BoneSpaceTransformsSize)
 							return;
 
-						Transform ComponentToWorld = Mesh.ComponentToWorld;
-						std::map<int, Vector> BonesPos, BonesScreenPos;
+						std::map<int, FVector> BonesPos, BonesScreenPos;
 
 						//GetBonesPosition
 						for (auto BoneIndex : GetBoneIndexArray()) {
 							verify(BoneIndex < BoneSpaceTransformsSize);
-							Vector Pos = ((Transform)BoneSpaceTransforms[BoneIndex] * ComponentToWorld).Translation;
+							FVector Pos = (BoneSpaceTransforms[BoneIndex] * Mesh.ComponentToWorld).Translation;
 							BonesPos[BoneIndex] = Pos;
 							BonesScreenPos[BoneIndex] = WorldToScreen(Pos, CameraRotationMatrix, CameraLocation, CameraFOV);
 						}
 
-						Vector HealthBarPos = BonesPos[neck_01];
+						FVector HealthBarPos = BonesPos[neck_01];
 						HealthBarPos.Z += 35.0f;
-						Vector HealthBarScreenPos = WorldToScreen(HealthBarPos, CameraRotationMatrix, CameraLocation, CameraFOV);
+						FVector HealthBarScreenPos = WorldToScreen(HealthBarPos, CameraRotationMatrix, CameraLocation, CameraFOV);
 						HealthBarScreenPos.Y -= 5.0f;
 
 						const float CameraDistance = CameraLocation.Distance(HealthBarPos) / 100.0f;
@@ -663,16 +664,16 @@ void Hack::Loop() {
 							if (!bPushingCTRL && Health <= 0.0f)
 								return;
 
-							Vector VecEnemy = (BonesPos[neck_01] + BonesPos[spine_02]) * 0.5f;
+							FVector VecEnemy = (BonesPos[neck_01] + BonesPos[spine_02]) * 0.5f;
 							if (bPushingShift)
 								VecEnemy = BonesPos[forehead];
 
-							Vector VecEnemy2D = WorldToScreen(VecEnemy, CameraRotationMatrix, CameraLocation, CameraFOV);
+							FVector VecEnemy2D = WorldToScreen(VecEnemy, CameraRotationMatrix, CameraLocation, CameraFOV);
 							if (VecEnemy2D.Z < 0.0f)
 								return;
 
 							VecEnemy2D.Z = 0.0f;
-							Vector Center2D = { Width / 2.0f, Height / 2.0f, 0 };
+							FVector Center2D = { Width / 2.0f, Height / 2.0f, 0 };
 
 							float DistanceFromCenter = Center2D.Distance(VecEnemy2D);
 
@@ -752,12 +753,12 @@ void Hack::Loop() {
 				float BulletDrop = Result.first;
 				float TravelTime = Result.second;
 
-				Vector PredictedPos = TargetPos;
+				FVector PredictedPos = TargetPos;
 				PredictedPos.Z += BulletDrop;
 				PredictedPos = PredictedPos + (TargetVelocity * (TravelTime / CustomTimeDilation));
 
-				Vector TargetScreenPos = WorldToScreen(TargetPos, CameraRotationMatrix, CameraLocation, CameraFOV);
-				Vector AimScreenPos = WorldToScreen(PredictedPos, CameraRotationMatrix, CameraLocation, CameraFOV);
+				FVector TargetScreenPos = WorldToScreen(TargetPos, CameraRotationMatrix, CameraLocation, CameraFOV);
+				FVector AimScreenPos = WorldToScreen(PredictedPos, CameraRotationMatrix, CameraLocation, CameraFOV);
 				render.DrawLine(TargetScreenPos, AimScreenPos, Render::COLOR_RED);
 
 				if (!IsWeaponed || !bPushingMouseM)
@@ -767,7 +768,7 @@ void Hack::Loop() {
 					if (bTurnBack)
 						return;
 
-					Rotator RotationInput = (PredictedPos - CameraLocation).GetDirectionRotator() - GunRotation;
+					FRotator RotationInput = (PredictedPos - CameraLocation).GetDirectionRotator() - GunRotation;
 					RotationInput.Clamp();
 					RotationInput.Pitch = RotationInput.Pitch / -InputPitchScale;
 					RotationInput.Yaw = RotationInput.Yaw / InputYawScale;
@@ -780,7 +781,7 @@ void Hack::Loop() {
 					if (hGameWnd != GetForegroundWindow())
 						return;
 
-					const Vector Loc = WorldToScreen(PredictedPos, GunRotation.GetMatrix(Vector(0.0, 0.0, 0.0)), CameraLocation, CameraFOV);
+					const FVector Loc = WorldToScreen(PredictedPos, GunRotation.GetMatrix(), CameraLocation, CameraFOV);
 					const float ScreenCenterX = Width / 2.0f;
 					const float ScreenCenterY = Height / 2.0f;
 					const int MouseX = int((Loc.X - ScreenCenterX) / (Width / 1280.0f));
@@ -798,7 +799,7 @@ void Hack::Loop() {
 				else if (nAimbot == 2 && !IsScoping)
 					Aimbot_RotationInput();
 				else if (nAimbot == 2 || nAimbot == 3) {
-					Vector DirectionInput = PredictedPos - GunLocation;
+					FVector DirectionInput = PredictedPos - GunLocation;
 					DirectionInput.Normalize();
 
 					ChangeRegOnBPInfo Info = {0};
@@ -827,7 +828,7 @@ void Hack::Loop() {
 
 			if (bTurnBack) {
 				bTurnBack = false;
-				Rotator RotationInput(0.0f, 180.0f, 0.0f);
+				FRotator RotationInput(0.0f, 180.0f, 0.0f);
 				PlayerContollerPtr.WriteAtOffset(RotationInput, offsetof(APlayerController, RotationInput));
 			}
 		});

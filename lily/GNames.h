@@ -5,7 +5,7 @@
 
 #include "pubg_process.h"
 #include "pubg_struct.h"
-#include "compiletime.h"
+#include "common/compiletime.h"
 #include "pubg_class.h"
 
 class TNameEntryArray

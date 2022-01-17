@@ -1,8 +1,10 @@
 #pragma once
-
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <string.h>
+#include <cstdint>
+#include <cstddef>
+#include "common/ida_defs.h"
 
 /*-----------------------------------------------------------------------------
 	Floating point constants.

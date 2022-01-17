@@ -2,7 +2,7 @@
 #include <windows.h>
 #include <tlhelp32.h>
 
-#include "kernel.h"
+#include "common/kernel.h"
 #include "peb.h"
 
 class Process {

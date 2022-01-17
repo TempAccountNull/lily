@@ -2,7 +2,7 @@
 #include "render.h"
 
 #include <Windows.h>
-#include <d3d9.h>
+#include <d3d11.h>
 #include <ddraw.h> 
 #pragma comment(lib, "ddraw.lib")
 #pragma comment(lib, "dxguid.lib")

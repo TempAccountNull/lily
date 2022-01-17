@@ -1,5 +1,5 @@
 #pragma once
-#include "kernel.h"
+#include "common/kernel.h"
 #include "shellcode.h"
 
 class RemoteProcess {

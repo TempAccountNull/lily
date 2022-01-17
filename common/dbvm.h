@@ -2,8 +2,8 @@
 #include <Windows.h>
 #include <intrin.h>
 #include "physicalmemory.h"
-#include "ida_defs.h"
-#include "exception.h"
+#include "common/ida_defs.h"
+#include "common/exception.h"
 #include "function_ref.hpp"
 
 extern "C" uintptr_t vmcall_intel(uint64_t Password3, uint64_t Password1, void* pVMCallInfo);

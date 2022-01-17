@@ -1,8 +1,7 @@
 #pragma once
-
 #include <Windows.h>
 
-#include "ida_defs.h"
+#include "common/ida_defs.h"
 #include "pubg_process.h"
 #include "pubg_struct.h"
 

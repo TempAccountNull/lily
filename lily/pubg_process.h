@@ -1,7 +1,7 @@
 #pragma once
 #include <Windows.h>
-#include "process.h"
-#include "exception.h"
+#include "common/process.h"
+#include "common/exception.h"
 #include "dump.h"
 
 extern "C" uintptr_t XenuineCall(uintptr_t Seed, uintptr_t Value, uintptr_t rax, uintptr_t pFunc);

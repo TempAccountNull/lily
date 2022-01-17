@@ -1,18 +1,21 @@
 #pragma once
-#include "util.h"
+#include "common/util.h"
 
 #include <Windows.h>
-#include <d3d9.h>
-#pragma comment(lib, "d3d9.lib")
+#include <d3d11.h>
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "dxgi.lib")
+#include <dcomp.h>
+#pragma comment(lib, "dcomp.lib")
+#include <wrl.h>
 
-#include "initializer.h"
-#include "encrypt_string.h"
-#include "dbvm.h"
-#include "msrnames.h"
+#include "common/initializer.h"
+#include "common/encrypt_string.h"
+#include "common/dbvm.h"
 
-#include "imgui.h"
-#include "imgui_impl_dx9.h"
-#include "imgui_impl_win32.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_dx11.h"
+#include "imgui/imgui_impl_win32.h"
 
 class Global {
 public:
@@ -21,10 +24,15 @@ public:
 	static inline const int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
 	static inline const int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
 
-	static inline IDirect3D9Ex* pDirect3D9Ex;
-	static inline IDirect3DDevice9Ex* pDirect3DDevice9Ex;
-	static inline IDirect3DSurface9* pBackBufferSurface;
-	static inline IDirect3DSurface9* pOffscreenPlainSurface;
+	template<class Interface>
+	using ComPtr = Microsoft::WRL::ComPtr<Interface>;
+
+	static inline ComPtr<ID3D11Device> pD3D11Device;
+	static inline ComPtr<ID3D11DeviceContext> pD3D11DeviceContext;
+	static inline ComPtr<IDXGISwapChain1> pDXGISwapChain1;
+	static inline ComPtr<ID3D11RenderTargetView> pD3D11RenderTargetView;
+	static inline ComPtr<IDCompositionDevice> pDirectCompositionDevice;
+
 	static inline char Buf[0x200];
 
 	static void SetModuleInfo(auto Base, auto Size) {
@@ -61,43 +69,55 @@ private:
 	};
 
 	INITIALIZER_INCLASS(InitD3D) {
-		bool bD3DSuccess = [&] {
-			HRESULT res = Direct3DCreate9Ex(D3D_SDK_VERSION, &pDirect3D9Ex);
-			if (FAILED(res))
+		const bool bD3DSuccess = [&] {
+			HRESULT hr;
+			hr = D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+				0, 0, D3D11_SDK_VERSION, &pD3D11Device, 0, &pD3D11DeviceContext);
+			if (FAILED(hr))
 				return false;
 
-			D3DPRESENT_PARAMETERS d3dpp = { 0 };
-			d3dpp.Windowed = true;
-			d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
-			d3dpp.hDeviceWindow = 0;
-			d3dpp.BackBufferFormat = D3DFMT_A8R8G8B8;
-			d3dpp.BackBufferCount = 1;
-			d3dpp.BackBufferWidth = (UINT)ScreenWidth;
-			d3dpp.BackBufferHeight = (UINT)ScreenHeight;
-			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-			d3dpp.EnableAutoDepthStencil = TRUE;
-			d3dpp.AutoDepthStencilFormat = D3DFMT_D16;
-			d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-
-			res = pDirect3D9Ex->CreateDeviceEx(
-				D3DADAPTER_DEFAULT,
-				D3DDEVTYPE_HAL,
-				nullptr,
-				D3DCREATE_HARDWARE_VERTEXPROCESSING,
-				&d3dpp,
-				nullptr,
-				&pDirect3DDevice9Ex
-			);
-			if (FAILED(res))
+			ComPtr<IDXGIDevice> pDXGIDevice;
+			hr = pD3D11Device->QueryInterface(pDXGIDevice.GetAddressOf());
+			if (FAILED(hr))
 				return false;
 
-			res = pDirect3DDevice9Ex->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBufferSurface);
-			if (FAILED(res))
+			ComPtr<IDXGIFactory2> dxFactory;
+			hr = CreateDXGIFactory2(
+				DXGI_CREATE_FACTORY_DEBUG,
+				__uuidof(dxFactory),
+				reinterpret_cast<void**>(dxFactory.GetAddressOf()));
+			if (FAILED(hr))
 				return false;
 
-			res = pDirect3DDevice9Ex->CreateOffscreenPlainSurface(
-				ScreenWidth, ScreenHeight, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &pOffscreenPlainSurface, 0);
-			if (FAILED(res))
+			const DXGI_SWAP_CHAIN_DESC1 SwapChainDesc = {
+				.Width = (UINT)ScreenWidth,
+				.Height = (UINT)ScreenHeight,
+				.Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+				.SampleDesc = {.Count = 1},
+				.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
+				.BufferCount = 2,
+				.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+				.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED,
+				//.Flags = DXGI_SWAP_CHAIN_FLAG_DISPLAY_ONLY
+				.Flags = DXGI_SWAP_CHAIN_FLAG_HW_PROTECTED
+			};
+
+			hr = dxFactory->CreateSwapChainForComposition(pDXGIDevice.Get(), &SwapChainDesc, 0, pDXGISwapChain1.GetAddressOf());
+			if (FAILED(hr))
+				return false;
+
+			ComPtr<ID3D11Texture2D> pBuffer;
+			hr = pDXGISwapChain1->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)pBuffer.GetAddressOf());
+			if (FAILED(hr))
+				return false;
+
+			const CD3D11_RENDER_TARGET_VIEW_DESC renderTargerViewDesc(D3D11_RTV_DIMENSION_TEXTURE2D);
+			hr = pD3D11Device->CreateRenderTargetView(pBuffer.Get(), &renderTargerViewDesc, pD3D11RenderTargetView.GetAddressOf());
+			if (FAILED(hr))
+				return false;
+
+			hr = DCompositionCreateDevice(pDXGIDevice.Get(), __uuidof(IDCompositionDevice), (void**)pDirectCompositionDevice.GetAddressOf());
+			if (FAILED(hr))
 				return false;
 
 			return true;
@@ -107,7 +127,7 @@ private:
 
 	INITIALIZER_INCLASS(InitImGui) {
 		ImGui::CreateContext();
-		ImGui_ImplDX9_Init(pDirect3DDevice9Ex);
+		ImGui_ImplDX11_Init(pD3D11Device.Get(), pD3D11DeviceContext.Get());
 
 		ImGuiIO& io = ImGui::GetIO();
 		io.DisplaySize = { (float)ScreenWidth , (float)ScreenHeight };

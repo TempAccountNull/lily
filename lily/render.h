@@ -1,15 +1,16 @@
 #pragma once
-#include "imgui.h"
-#include "imgui_impl_dx9.h"
-#include "imgui_impl_win32.h"
-#include "vector.h"
-#include "encrypt_string.h"
+#include <Windows.h>
 
-struct IDirect3DDevice9Ex;
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_dx11.h"
+#include "imgui/imgui_impl_win32.h"
+#include "ue4math/vector.h"
+#include "common/encrypt_string.h"
+#include "common/util.h"
 
 class __declspec(novtable) Render {
 private:
-	float PosX = 0.0f, PosY = 0.0f;
+	float PosX = 0, PosY = 0;
 	float Width = (float)ScreenWidth, Height = (float)ScreenHeight;
 
 	void ImGuiRenderDrawData() const;
@@ -48,11 +49,47 @@ private:
 		io.MousePos.y = (float)CursorPos.y - PosY;
 	}
 
+	uint64_t PrevFPSTime = GetTickCountInMicroSeconds();
+	uint64_t PrevTime = GetTickCountInMicroSeconds();
+	uint32_t FPSCount = 0;
+	uint32_t FPS = 0;
+	float TimeDelta = 0;
+
+	void UpdateTimeDelta() {
+		FPSCount++;
+		const uint64_t CurrTime = GetTickCountInMicroSeconds();
+		const uint64_t Delta = CurrTime - PrevTime;
+
+		//limit FPS
+		//while (Delta < 5) {
+		//	CurrTime = GetAccurateTickCount();
+		//	Delta = CurrTime - PrevTime;
+		//}
+
+		//Calculate FPS each 1s 
+		if (CurrTime - PrevFPSTime > 1000000) {
+			PrevFPSTime = CurrTime;
+			FPS = FPSCount;
+			FPSCount = 0;
+			dprintf("%d"e, FPS);
+		}
+
+		PrevTime = CurrTime;
+		TimeDelta = (float)Delta / 1000000;
+	}
+
 protected:
+	const ImVec4 clear_color = ImVec4(0, 0, 0, 0);
+	const float clear_color_with_alpha[4] = {
+		clear_color.x * clear_color.w,
+		clear_color.y * clear_color.w,
+		clear_color.z * clear_color.w,
+		clear_color.w };
+
 	constexpr static auto COLOR_CLEAR = RGB(1, 1, 1);
 
 	void Clear() const {
-		ImGui_ImplDX9_NewFrame();
+		ImGui_ImplDX11_NewFrame();
 		ImGui::NewFrame();
 		ImGui::EndFrame();
 		ImGuiRenderDrawData();
@@ -65,8 +102,8 @@ public:
 	constexpr static unsigned MARGIN = 10;
 
 	constexpr static float FONTSIZE_SMALL = 15.0f;
-	constexpr static float FONTSIZE_NORMAL = 20.0f;
-	constexpr static float FONTSIZE_BIG = 40.0f;
+	constexpr static float FONTSIZE_NORMAL = 20;
+	constexpr static float FONTSIZE_BIG = 40;
 
 	constexpr static ImU32 COLOR_RED = IM_COL32(255, 0, 0, 255);
 	constexpr static ImU32 COLOR_GREEN = IM_COL32(0, 255, 0, 255);
@@ -87,10 +124,11 @@ public:
 	float GetPosY() const { return PosY; }
 	float GetWidth() const { return Width; }
 	float GetHeight() const { return Height; }
+	float GetTimeDelta() const { return TimeDelta; }
+	uint32_t GetFPS() const { return FPS; }
 
-	IDirect3DDevice9Ex* const pDirect3DDevice9Ex;
-	Render(IDirect3DDevice9Ex* pDirect3DDevice9Ex, int ScreenWidth, int ScreenHeight) : 
-		pDirect3DDevice9Ex(pDirect3DDevice9Ex), ScreenWidth(ScreenWidth), ScreenHeight(ScreenHeight) {}
+	Render(int ScreenWidth, int ScreenHeight) :
+		ScreenWidth(ScreenWidth), ScreenHeight(ScreenHeight) {}
 
 	void RenderArea(HWND hWnd, auto func) {
 		if (hWnd == GetForegroundWindow())
@@ -98,17 +136,18 @@ public:
 
 		ProcessExitHotkey();
 		UpdateRenderArea(hWnd);
+		UpdateTimeDelta();
 
-		ImGui_ImplDX9_NewFrame();
+		ImGui_ImplDX11_NewFrame();
 		ImGui::NewFrame();
 
-		auto Viewport = ImGui::GetMainViewport();
-		Viewport->Pos = { -PosX, -PosY };
-		Viewport->WorkPos = { 0.0f, 0.0f };
-		Viewport->Size = { PosX + Width, PosY + Height };
-		Viewport->WorkSize = { Width, Height };
+		//auto Viewport = ImGui::GetMainViewport();
+		//Viewport->Pos = { -PosX, -PosY };
+		//Viewport->WorkPos = { 0, 0 };
+		//Viewport->Size = { PosX + Width, PosY + Height };
+		//Viewport->WorkSize = { Width, Height };
 
-		ImGui::SetNextWindowPos({ 0.0f, 0.0f });
+		ImGui::SetNextWindowPos({ 0, 0 });
 		ImGui::SetNextWindowSize({ Width, Height });
 		ImGui::Begin("lily"e, 0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
 
@@ -121,10 +160,10 @@ public:
 	}
 
 	static ImVec2 GetTextSize(float FontSize, const char* szText);
-	void DrawString(const Vector& Pos, float Margin, const char* szText, float Size, ImU32 Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const;
-	void DrawRatioBox(const Vector& from, const Vector& to, float HealthRatio, ImU32 ColorRemain, ImU32 ColorDamaged, ImU32 ColorEdge) const;
-	void DrawLine(const Vector& from, const Vector& to, ImU32 Color, float thickness = 1.0f) const;
+	void DrawString(const FVector& Pos, float Margin, const char* szText, float Size, ImU32 Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const;
+	void DrawRatioBox(const FVector& from, const FVector& to, float HealthRatio, ImU32 ColorRemain, ImU32 ColorDamaged, ImU32 ColorEdge) const;
+	void DrawLine(const FVector& from, const FVector& to, ImU32 Color, float thickness = 1.0f) const;
 	void DrawCircle(const ImVec2& center, float radius, ImU32 Color, int num_segments = 0, float thickness = 1.0f) const;
-	void DrawRectOutlined(const Vector& from, const Vector& to, ImU32 Color, float rounding = 0.0f, ImDrawFlags flags = 0, float thickness = 1.0f) const;
-	void DrawRectFilled(const Vector& from, const Vector& to, ImU32 Color, float rounding = 0.0f, ImDrawFlags flags = 0) const;
+	void DrawRectOutlined(const FVector& from, const FVector& to, ImU32 Color, float rounding = 0, ImDrawFlags flags = 0, float thickness = 1.0f) const;
+	void DrawRectFilled(const FVector& from, const FVector& to, ImU32 Color, float rounding = 0, ImDrawFlags flags = 0) const;
 };

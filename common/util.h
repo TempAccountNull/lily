@@ -1,6 +1,6 @@
 #pragma once
 #include "harderror.h"
-#include "encrypt_string.h"
+#include "common/encrypt_string.h"
 static uintptr_t GetProcAddressVerified(const char* szModuleName, const char* szProcName);
 const inline tNtRaiseHardError NtRaiseHardError = (tNtRaiseHardError)GetProcAddressVerified("ntdll.dll"e, "NtRaiseHardError"e);
 
@@ -152,7 +152,7 @@ static uintptr_t GetKernelProcAddressVerified(const char* szModuleName, const ch
 	}();
 
 	if(!Result)
-		error(szModuleName, szProcName);
+		error(szProcName, szModuleName);
 
 	return Result;
 }
@@ -173,7 +173,7 @@ static uintptr_t GetProcAddressVerified(const char* szModuleName, const char* sz
 	}();
 
 	if (!Result)
-		error(szModuleName, szProcName);
+		error(szProcName, szModuleName);
 
 	return Result;
 }

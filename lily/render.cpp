@@ -1,5 +1,4 @@
 #include "render.h"
-#include "encrypt_string.h"
 
 void AddText(const ImFont* font, float font_size, const ImVec2& pos, ImU32 col, const char* szText, float wrap_width = 0.0f, const ImVec4* cpu_fine_clip_rect = 0) {
 	ImGui::GetWindowDrawList()->AddText(font, font_size, pos, col, szText, 0, wrap_width, cpu_fine_clip_rect);
@@ -18,7 +17,7 @@ ImVec2 Render::GetTextSize(float FontSize, const char* szText) {
 	return pFont->CalcTextSizeA(FontSize, FLT_MAX, 0.0f, szText, 0, 0);
 }
 
-void Render::DrawString(const Vector& Pos, float Margin, const char* szText, float Size, ImU32 Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const {
+void Render::DrawString(const FVector& Pos, float Margin, const char* szText, float Size, ImU32 Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const {
 	if (!bRender) return;
 
 	if (Pos.Z < 0.0f && !bShowAlways)
@@ -77,21 +76,21 @@ void Render::DrawString(const Vector& Pos, float Margin, const char* szText, flo
 	}
 }
 
-void Render::DrawRectOutlined(const Vector& from, const Vector& to, ImU32 Color, float rounding, ImDrawFlags flags, float thickness) const {
+void Render::DrawRectOutlined(const FVector& from, const FVector& to, ImU32 Color, float rounding, ImDrawFlags flags, float thickness) const {
 	if (!bRender) return;
 
 	if (from.Z < 0.0f) return;
 	ImGui::GetWindowDrawList()->AddRect({ from.X, from.Y }, { to.X, to.Y }, Color, rounding, flags, thickness);
 }
 
-void Render::DrawRectFilled(const Vector& from, const Vector& to, ImU32 Color, float rounding, ImDrawFlags flags) const {
+void Render::DrawRectFilled(const FVector& from, const FVector& to, ImU32 Color, float rounding, ImDrawFlags flags) const {
 	if (!bRender) return;
 
 	if (from.Z < 0.0f) return;
 	ImGui::GetWindowDrawList()->AddRectFilled({ from.X, from.Y }, { to.X, to.Y }, Color, rounding, flags);
 }
 
-void Render::DrawRatioBox(const Vector& from, const Vector& to, float Ratio, ImU32 ColorRemain, ImU32 ColorDamaged, ImU32 ColorEdge) const {
+void Render::DrawRatioBox(const FVector& from, const FVector& to, float Ratio, ImU32 ColorRemain, ImU32 ColorDamaged, ImU32 ColorEdge) const {
 	if (!bRender) return;
 
 	if (from.Z < 0.0f) return;
@@ -100,17 +99,17 @@ void Render::DrawRatioBox(const Vector& from, const Vector& to, float Ratio, ImU
 	if (Ratio < 1.0f && Ratio > 0.0f)
 		RemainLen = ceilf(RemainLen);
 
-	const Vector RemainFrom = { from.X, from.Y, 0.0f };
-	const Vector RemainTo = { from.X + RemainLen, to.Y, 0.0f };
-	const Vector DamagedFrom = { from.X + RemainLen, from.Y, 0.0f };
-	const Vector DamagedTo = { to.X, to.Y, 0.0f };
+	const FVector RemainFrom = { from.X, from.Y, 0.0f };
+	const FVector RemainTo = { from.X + RemainLen, to.Y, 0.0f };
+	const FVector DamagedFrom = { from.X + RemainLen, from.Y, 0.0f };
+	const FVector DamagedTo = { to.X, to.Y, 0.0f };
 
 	DrawRectFilled(DamagedFrom, DamagedTo, ColorDamaged);
 	DrawRectFilled(RemainFrom, RemainTo, ColorRemain);
 	DrawRectOutlined(from, to, ColorEdge);
 }
 
-void Render::DrawLine(const Vector& from, const Vector& to, ImU32 Color, float thickness) const {
+void Render::DrawLine(const FVector& from, const FVector& to, ImU32 Color, float thickness) const {
 	if (!bRender) return;
 
 	if (from.Z < 0.0f) return;
@@ -123,17 +122,13 @@ void Render::DrawCircle(const ImVec2& center, float radius, ImU32 Color, int num
 	ImGui::GetWindowDrawList()->AddCircle(center, radius, Color, num_segments, thickness);
 }
 
-#include <d3d9.h>
-#pragma comment(lib, "d3d9.lib")
+#include <d3d11.h>
+#pragma comment(lib, "d3d11.lib")
+#include "global.h"
 
 void Render::ImGuiRenderDrawData() const {
-	pDirect3DDevice9Ex->SetRenderState(D3DRS_ZENABLE, 0);
-	pDirect3DDevice9Ex->SetRenderState(D3DRS_ALPHABLENDENABLE, 0);
-	pDirect3DDevice9Ex->SetRenderState(D3DRS_SCISSORTESTENABLE, 0);
-	pDirect3DDevice9Ex->Clear(0, 0, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, COLOR_CLEAR, 1.0f, 0);
-	if (pDirect3DDevice9Ex->BeginScene() >= 0) {
-		ImGui::Render();
-		ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
-		pDirect3DDevice9Ex->EndScene();
-	}
+	ImGui::Render();
+	Global::pD3D11DeviceContext->OMSetRenderTargets(1, Global::pD3D11RenderTargetView.GetAddressOf(), NULL);
+	Global::pD3D11DeviceContext->ClearRenderTargetView(Global::pD3D11RenderTargetView.Get(), clear_color_with_alpha);
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }

@@ -1,7 +1,6 @@
 #pragma once
-
 #include <windows.h>
-#include "initializer.h"
+#include "common/initializer.h"
 
 class ExceptionHandler {
 private:

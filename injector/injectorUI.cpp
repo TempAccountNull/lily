@@ -2,8 +2,8 @@
 
 #include <memory>
 #include <tlhelp32.h>
-#include "kernel.h"
-#include "dbvm.h"
+#include "common/kernel.h"
+#include "common/dbvm.h"
 #include "injector.h"
 
 #define FILE_READ_ACCESS          ( 0x0001 )    // file & pipe

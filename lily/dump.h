@@ -1,5 +1,5 @@
 #pragma once
-#include "util.h"
+#include "common/util.h"
 
 #include <Windows.h>
 #include <stdio.h>
@@ -11,7 +11,7 @@
 #include <iostream>
 #include <array>
 
-#include "process.h"
+#include "common/process.h"
 
 //working pubg versions
 //14.2.6.7

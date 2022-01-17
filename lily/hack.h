@@ -5,9 +5,9 @@
 #include "pubg_class.h"
 #include "pubg_func.h"
 
-#include "imgui.h"
-#include "imgui_impl_dx9.h"
-#include "imgui_impl_win32.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_dx11.h"
+#include "imgui/imgui_impl_win32.h"
 
 class Hack {
 private:
@@ -43,41 +43,6 @@ private:
 	char* const szBuf = 0;
 	const size_t nBufSize = 0;
 
-	uint64_t PrevFPSTime = GetTickCountInMicroSeconds();
-	uint64_t PrevTime = GetTickCountInMicroSeconds();
-	unsigned FPSCount = 0;
-	unsigned FPS = 0;
-
-	float ProcessTimeDelta() {
-		FPSCount++;
-		uint64_t CurrTime = GetTickCountInMicroSeconds();
-		uint64_t Delta = CurrTime - PrevTime;
-
-		//limit FPS
-		//while (Delta < 5) {
-		//	CurrTime = GetAccurateTickCount();
-		//	Delta = CurrTime - PrevTime;
-		//}
-
-		//Calculate FPS each 1s 
-		if (CurrTime - PrevFPSTime > 1000000) {
-			PrevFPSTime = CurrTime;
-			FPS = FPSCount;
-			FPSCount = 0;
-			dprintf("%d"e, FPS);
-		}
-		PrevTime = CurrTime;
-
-		const float DeltaInSeconds = (float)Delta / 1000000.0f;
-
-		if (DeltaInSeconds < NoticeTimeRemain)
-			NoticeTimeRemain -= DeltaInSeconds;
-		else
-			NoticeTimeRemain = 0;
-
-		return DeltaInSeconds;
-	}
-
 	constexpr static unsigned DEBUGLOG_MAXSIZE = 0x4000;
 	constexpr static unsigned DEBUGLOG_REMOVESIZE = 0x1000;
 	std::string debuglog;
@@ -108,7 +73,7 @@ public:
 
 	void Loop();
 	
-	void DrawString(const Vector& pos, const char* szText, ImU32 Color, bool bShowAlways) const {
+	void DrawString(const FVector& pos, const char* szText, ImU32 Color, bool bShowAlways) const {
 		render.DrawString(pos, Render::MARGIN, szText, FONTSIZE, Color, true, true, bShowAlways);
 	}
 
@@ -154,7 +119,7 @@ public:
 		debuglog += buf;
 	}
 
-	Vector WorldToScreen(const Vector& WorldLocation, const Matrix& RotationMatrix, const Vector& CameraLocation, float CameraFOV) const {
+	FVector WorldToScreen(const FVector& WorldLocation, const FMatrix& RotationMatrix, const FVector& CameraLocation, float CameraFOV) const {
 		return ::WorldToScreen(WorldLocation, RotationMatrix, CameraLocation, CameraFOV, render.GetWidth(), render.GetHeight());
 	}
 };

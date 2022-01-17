@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include "injectorUI.h"
-#include "remoteprocess.h"
+#include "common/remoteprocess.h"
 
 #define IMR_RELTYPE(x)				((x >> 12) & 0xF)
 #define IMR_RELOFFSET(x)			(x & 0xFFF)
