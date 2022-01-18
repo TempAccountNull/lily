@@ -3,90 +3,123 @@
 
 #include <Windows.h>
 #include <d3d11.h>
+#include <wrl.h>
 #include <ddraw.h> 
 #pragma comment(lib, "ddraw.lib")
 #pragma comment(lib, "dxguid.lib")
 
 class RenderDDraw : public Render {
 private:
-	LPDIRECTDRAWSURFACE7 pPrimarySurface = 0;
-	LPDIRECTDRAWSURFACE7 pOverlaySurface = 0;
-	LPDIRECTDRAWSURFACE7 pAttachedSurface = 0;
+	ComPtr<ID3D11Texture2D> pD3D11Texture2D;
+	ComPtr<ID3D11RenderTargetView> pD3D11RenderTargetView;
 
-	IDirect3DSurface9* pBackBufferSurface = 0;
-	IDirect3DSurface9* pOffscreenPlainSurface = 0;
+	ComPtr<IDirectDrawSurface7> pPrimarySurface;
+	ComPtr<IDirectDrawSurface7> pOverlaySurface;
+	ComPtr<IDirectDrawSurface7> pAttachedSurface;
 
-	bool InitDirectDraw() {
-		LPDIRECTDRAW7 pDirectDraw7;
-		HRESULT res = DirectDrawCreateEx(0, (void**)&pDirectDraw7, IID_IDirectDraw7, 0);
-		if (FAILED(res))
+	bool InitD3D() {
+		HRESULT hr;
+
+		const D3D11_TEXTURE2D_DESC TextureDesc = {
+			.Width = (UINT)ScreenWidth,
+			.Height = (UINT)ScreenHeight,
+			.MipLevels = 1,
+			.ArraySize = 1,
+			.Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+			.SampleDesc = { .Count = 1 },
+			.Usage = D3D11_USAGE_DEFAULT,
+			.BindFlags = D3D11_BIND_RENDER_TARGET,
+			.MiscFlags = D3D11_RESOURCE_MISC_GDI_COMPATIBLE,
+		};
+
+		hr = pD3D11Device->CreateTexture2D(&TextureDesc, 0, &pD3D11Texture2D);
+		if (FAILED(hr))
 			return false;
 
-		res = pDirectDraw7->SetCooperativeLevel(0, DDSCL_NORMAL);
-		if (FAILED(res))
+		hr = pD3D11Device->CreateRenderTargetView(pD3D11Texture2D.Get(), 0, &pD3D11RenderTargetView);
+		if (FAILED(hr))
 			return false;
 
-		DDSURFACEDESC2 Desc = { 0 };
-		Desc.dwSize = sizeof(Desc);
-		Desc.dwFlags = DDSD_CAPS;
-		Desc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
-		res = pDirectDraw7->CreateSurface(&Desc, &pPrimarySurface, 0);
-		if (FAILED(res))
-			return false;
-
-		Desc = { 0 };
-		Desc.dwSize = sizeof(Desc);
-		Desc.ddsCaps.dwCaps = DDSCAPS_OVERLAY | DDSCAPS_FLIP | DDSCAPS_COMPLEX | DDSCAPS_VIDEOMEMORY;
-		Desc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_BACKBUFFERCOUNT | DDSD_PIXELFORMAT;
-		Desc.dwWidth = ScreenWidth;
-		Desc.dwHeight = ScreenHeight;
-		Desc.dwBackBufferCount = 1;
-		Desc.ddpfPixelFormat = DDPIXELFORMAT{ sizeof(DDPIXELFORMAT), DDPF_RGB, 0, 32, 0xFF0000, 0x00FF00, 0x0000FF, 0 };
-		res = pDirectDraw7->CreateSurface(&Desc, &pOverlaySurface, 0);
-		if (FAILED(res))
-			return false;
-
-		DDSCAPS2 Caps2 = { DDSCAPS_BACKBUFFER };
-		res = pOverlaySurface->GetAttachedSurface(&Caps2, &pAttachedSurface);
-		if (FAILED(res))
-			return false;
-
-		DDOVERLAYFX OverlayFX = { 0 };
-		OverlayFX.dwSize = sizeof(OverlayFX);
-		OverlayFX.dckSrcColorkey = DDCOLORKEY{ COLOR_CLEAR, COLOR_CLEAR };
-		RECT Rect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
-		DWORD dwUpdateFlags = DDOVER_SHOW | DDOVER_DDFX | DDOVER_KEYSRCOVERRIDE;
-
-		//Retry if fail
-		for (int i = 0; i < 0x20; i++) {
-			res = pOverlaySurface->UpdateOverlay(0, pPrimarySurface, &Rect, dwUpdateFlags, &OverlayFX);
-			if (SUCCEEDED(res))
-				break;
-		}
-
-		if (FAILED(res))
-			return false;
-
-		pDirectDraw7->Release();
 		return true;
 	}
 
-	virtual void Present(HWND) const {
-		pDirect3DDevice9Ex->GetRenderTargetData(pBackBufferSurface, pOffscreenPlainSurface);
+	bool InitDirectDraw() {
+		HRESULT hr;
 
-		HDC hOffscreenPlainSurfaceDC, hAttachedSurfaceDC;
-		pOffscreenPlainSurface->GetDC(&hOffscreenPlainSurfaceDC);
+		ComPtr<IDirectDraw7> pDirectDraw7;
+		hr = DirectDrawCreateEx(0, &pDirectDraw7, IID_IDirectDraw7, 0);
+		if (FAILED(hr))
+			return false;
+
+		hr = pDirectDraw7->SetCooperativeLevel(0, DDSCL_NORMAL);
+		if (FAILED(hr))
+			return false;
+
+		DDSURFACEDESC2 PrimarySurfaceDesc = {
+			.dwSize = sizeof(PrimarySurfaceDesc),
+			.dwFlags = DDSD_CAPS,
+			.ddsCaps = {.dwCaps = DDSCAPS_PRIMARYSURFACE }
+		};
+
+		hr = pDirectDraw7->CreateSurface(&PrimarySurfaceDesc, &pPrimarySurface, 0);
+		if (FAILED(hr))
+			return false;
+
+		DDSURFACEDESC2 OverlaySurfaceDesc = {
+			.dwSize = sizeof(PrimarySurfaceDesc),
+			.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_BACKBUFFERCOUNT | DDSD_PIXELFORMAT,
+			.dwHeight = (unsigned long)ScreenHeight,
+			.dwWidth = (unsigned long)ScreenWidth,
+			.dwBackBufferCount = 1,
+			.ddpfPixelFormat = DDPIXELFORMAT{ sizeof(DDPIXELFORMAT), DDPF_RGB, 0, 32, 0xFF0000, 0x00FF00, 0x0000FF, 0 },
+			.ddsCaps = {.dwCaps = DDSCAPS_OVERLAY | DDSCAPS_FLIP | DDSCAPS_COMPLEX | DDSCAPS_VIDEOMEMORY }
+		};
+
+		hr = pDirectDraw7->CreateSurface(&OverlaySurfaceDesc, &pOverlaySurface, 0);
+		if (FAILED(hr))
+			return false;
+
+		DDSCAPS2 AttachedSurfaceCaps2 = { .dwCaps = DDSCAPS_BACKBUFFER };
+		hr = pOverlaySurface->GetAttachedSurface(&AttachedSurfaceCaps2, &pAttachedSurface);
+		if (FAILED(hr))
+			return false;
+
+		DDOVERLAYFX OverlayFX = { .dwSize = sizeof(OverlayFX), .dckSrcColorkey = { COLOR_CLEAR_RGB, COLOR_CLEAR_RGB }, };
+		RECT Rect = { 0, 0, ScreenWidth, ScreenHeight };
+		const DWORD dwUpdateFlags = DDOVER_SHOW | DDOVER_DDFX | DDOVER_KEYSRCOVERRIDE;
+
+		for (unsigned i = 0; i < 10 && 
+			FAILED(hr = pOverlaySurface->UpdateOverlay(0, pPrimarySurface.Get(), &Rect, dwUpdateFlags, &OverlayFX)); i++);
+
+		if (FAILED(hr))
+			return false;
+
+		return true;
+	}
+
+	virtual bool IsScreenPosNeeded() const { return true; }
+
+	virtual ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const { return pD3D11RenderTargetView; }
+
+	virtual void Present(HWND) {
+		ComPtr<IDXGISurface1> pDXGISurface;
+		pD3D11Texture2D->QueryInterface(__uuidof(pDXGISurface), &pDXGISurface);
+
+		HDC hSurfaceDC;
+		pDXGISurface->GetDC(FALSE, &hSurfaceDC);
+		HDC hAttachedSurfaceDC;
 		pAttachedSurface->GetDC(&hAttachedSurfaceDC);
-		BitBlt(hAttachedSurfaceDC, 0, 0, ScreenWidth, ScreenHeight, hOffscreenPlainSurfaceDC, 0, 0, SRCCOPY);
+		BitBlt(hAttachedSurfaceDC, 0, 0, ScreenWidth, ScreenHeight, hSurfaceDC, 0, 0, SRCCOPY);
 		pAttachedSurface->ReleaseDC(hAttachedSurfaceDC);
-		pOffscreenPlainSurface->ReleaseDC(hOffscreenPlainSurfaceDC);
+		pDXGISurface->ReleaseDC(0);
 
 		pOverlaySurface->Flip(0, DDFLIP_DONOTWAIT | DDFLIP_NOVSYNC);
 	}
 
 public:
-	RenderDDraw(IDirect3DDevice9Ex* pDirect3DDevice9Ex, IDirect3DSurface9* pBackBufferSurface, IDirect3DSurface9* pOffscreenPlainSurface, int ScreenWidth, int ScreenHeight) :
-		Render(pDirect3DDevice9Ex, ScreenWidth, ScreenHeight), pBackBufferSurface(pBackBufferSurface), pOffscreenPlainSurface(pOffscreenPlainSurface) {
+	RenderDDraw(ComPtr<ID3D11Device> pD3D11Device, ComPtr<ID3D11DeviceContext> pD3D11DeviceContext, int ScreenWidth, int ScreenHeight) :
+		Render(pD3D11Device, pD3D11DeviceContext, ScreenWidth, ScreenHeight) {
+		verify(InitD3D());
 		verify(InitDirectDraw());
 		Clear();
 	}

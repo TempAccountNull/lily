@@ -124,11 +124,16 @@ void Render::DrawCircle(const ImVec2& center, float radius, ImU32 Color, int num
 
 #include <d3d11.h>
 #pragma comment(lib, "d3d11.lib")
-#include "global.h"
 
 void Render::ImGuiRenderDrawData() const {
+	const float clear_color_with_alpha[4] = {
+	COLOR_CLEAR_VEC4.x * COLOR_CLEAR_VEC4.w,
+	COLOR_CLEAR_VEC4.y * COLOR_CLEAR_VEC4.w,
+	COLOR_CLEAR_VEC4.z * COLOR_CLEAR_VEC4.w,
+	COLOR_CLEAR_VEC4.w };
+
 	ImGui::Render();
-	Global::pD3D11DeviceContext->OMSetRenderTargets(1, Global::pD3D11RenderTargetView.GetAddressOf(), NULL);
-	Global::pD3D11DeviceContext->ClearRenderTargetView(Global::pD3D11RenderTargetView.Get(), clear_color_with_alpha);
+	pD3D11DeviceContext->OMSetRenderTargets(1, GetRenderTargetView().GetAddressOf(), 0);
+	pD3D11DeviceContext->ClearRenderTargetView(GetRenderTargetView().Get(), clear_color_with_alpha);
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }

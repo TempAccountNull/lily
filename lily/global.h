@@ -29,9 +29,6 @@ public:
 
 	static inline ComPtr<ID3D11Device> pD3D11Device;
 	static inline ComPtr<ID3D11DeviceContext> pD3D11DeviceContext;
-	static inline ComPtr<IDXGISwapChain1> pDXGISwapChain1;
-	static inline ComPtr<ID3D11RenderTargetView> pD3D11RenderTargetView;
-	static inline ComPtr<IDCompositionDevice> pDirectCompositionDevice;
 
 	static inline char Buf[0x200];
 
@@ -73,50 +70,6 @@ private:
 			HRESULT hr;
 			hr = D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, D3D11_CREATE_DEVICE_BGRA_SUPPORT,
 				0, 0, D3D11_SDK_VERSION, &pD3D11Device, 0, &pD3D11DeviceContext);
-			if (FAILED(hr))
-				return false;
-
-			ComPtr<IDXGIDevice> pDXGIDevice;
-			hr = pD3D11Device->QueryInterface(pDXGIDevice.GetAddressOf());
-			if (FAILED(hr))
-				return false;
-
-			ComPtr<IDXGIFactory2> dxFactory;
-			hr = CreateDXGIFactory2(
-				DXGI_CREATE_FACTORY_DEBUG,
-				__uuidof(dxFactory),
-				reinterpret_cast<void**>(dxFactory.GetAddressOf()));
-			if (FAILED(hr))
-				return false;
-
-			const DXGI_SWAP_CHAIN_DESC1 SwapChainDesc = {
-				.Width = (UINT)ScreenWidth,
-				.Height = (UINT)ScreenHeight,
-				.Format = DXGI_FORMAT_B8G8R8A8_UNORM,
-				.SampleDesc = {.Count = 1},
-				.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
-				.BufferCount = 2,
-				.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
-				.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED,
-				//.Flags = DXGI_SWAP_CHAIN_FLAG_DISPLAY_ONLY
-				.Flags = DXGI_SWAP_CHAIN_FLAG_HW_PROTECTED
-			};
-
-			hr = dxFactory->CreateSwapChainForComposition(pDXGIDevice.Get(), &SwapChainDesc, 0, pDXGISwapChain1.GetAddressOf());
-			if (FAILED(hr))
-				return false;
-
-			ComPtr<ID3D11Texture2D> pBuffer;
-			hr = pDXGISwapChain1->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)pBuffer.GetAddressOf());
-			if (FAILED(hr))
-				return false;
-
-			const CD3D11_RENDER_TARGET_VIEW_DESC renderTargerViewDesc(D3D11_RTV_DIMENSION_TEXTURE2D);
-			hr = pD3D11Device->CreateRenderTargetView(pBuffer.Get(), &renderTargerViewDesc, pD3D11RenderTargetView.GetAddressOf());
-			if (FAILED(hr))
-				return false;
-
-			hr = DCompositionCreateDevice(pDXGIDevice.Get(), __uuidof(IDCompositionDevice), (void**)pDirectCompositionDevice.GetAddressOf());
 			if (FAILED(hr))
 				return false;
 

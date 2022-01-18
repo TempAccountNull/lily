@@ -1,5 +1,7 @@
 #pragma once
 #include <Windows.h>
+#include <d3d11.h>
+#include <wrl.h>
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_dx11.h"
@@ -15,12 +17,14 @@ private:
 
 	void ImGuiRenderDrawData() const;
 
-	void ProcessExitHotkey() const {
+	void ProcessExitHotkey() {
 		if (!IsKeyPushing(VK_MENU) && !IsKeyPushing(VK_MBUTTON))
 			return;
 		if (!IsKeyPushed(VK_END))
 			return;
 		Clear();
+
+		this->~Render();
 		exit(0);
 	}
 
@@ -79,16 +83,18 @@ private:
 	}
 
 protected:
-	const ImVec4 clear_color = ImVec4(0, 0, 0, 0);
-	const float clear_color_with_alpha[4] = {
-		clear_color.x * clear_color.w,
-		clear_color.y * clear_color.w,
-		clear_color.z * clear_color.w,
-		clear_color.w };
+	template<class Interface>
+	using ComPtr = Microsoft::WRL::ComPtr<Interface>;
 
-	constexpr static auto COLOR_CLEAR = RGB(1, 1, 1);
+	const ComPtr<ID3D11Device> pD3D11Device;
+	const ComPtr<ID3D11DeviceContext> pD3D11DeviceContext;
 
-	void Clear() const {
+	constexpr static auto CLEARVAL = 0;
+
+	constexpr static auto COLOR_CLEAR_RGB = RGB(CLEARVAL, CLEARVAL, CLEARVAL);
+	const ImVec4 COLOR_CLEAR_VEC4 = ImVec4(CLEARVAL / 255.0f, CLEARVAL / 255.0f, CLEARVAL / 255.0f, 0.0f);
+
+	void Clear() {
 		ImGui_ImplDX11_NewFrame();
 		ImGui::NewFrame();
 		ImGui::EndFrame();
@@ -96,7 +102,14 @@ protected:
 		Present(0);
 	}
 
-	virtual void Present(HWND hGameWnd) const;
+	virtual void Present(HWND hWnd);
+	virtual ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const;
+	virtual bool IsScreenPosNeeded() const;
+	
+	Render(ComPtr<ID3D11Device> pD3D11Device, ComPtr<ID3D11DeviceContext> pD3D11DeviceContext, int ScreenWidth, int ScreenHeight) :
+		pD3D11Device(pD3D11Device), pD3D11DeviceContext(pD3D11DeviceContext), ScreenWidth(ScreenWidth), ScreenHeight(ScreenHeight) {}
+
+	virtual ~Render() {}
 
 public:
 	constexpr static unsigned MARGIN = 10;
@@ -127,25 +140,21 @@ public:
 	float GetTimeDelta() const { return TimeDelta; }
 	uint32_t GetFPS() const { return FPS; }
 
-	Render(int ScreenWidth, int ScreenHeight) :
-		ScreenWidth(ScreenWidth), ScreenHeight(ScreenHeight) {}
-
 	void RenderArea(HWND hWnd, auto func) {
+		ProcessExitHotkey();
+		UpdateTimeDelta();
+		UpdateRenderArea(hWnd);
 		if (hWnd == GetForegroundWindow())
 			InsertMouseInfo();
-
-		ProcessExitHotkey();
-		UpdateRenderArea(hWnd);
-		UpdateTimeDelta();
 
 		ImGui_ImplDX11_NewFrame();
 		ImGui::NewFrame();
 
-		//auto Viewport = ImGui::GetMainViewport();
-		//Viewport->Pos = { -PosX, -PosY };
-		//Viewport->WorkPos = { 0, 0 };
-		//Viewport->Size = { PosX + Width, PosY + Height };
-		//Viewport->WorkSize = { Width, Height };
+		auto Viewport = ImGui::GetMainViewport();
+		Viewport->Pos = IsScreenPosNeeded() ? ImVec2(-PosX, -PosY) : ImVec2(0.0f, 0.0f);
+		Viewport->Size = IsScreenPosNeeded() ? ImVec2(PosX + Width, PosY + Height) : ImVec2(Width, Height);
+		Viewport->WorkPos = { 0.0f, 0.0f };
+		Viewport->WorkSize = { Width, Height };
 
 		ImGui::SetNextWindowPos({ 0, 0 });
 		ImGui::SetNextWindowSize({ Width, Height });

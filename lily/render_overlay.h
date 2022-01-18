@@ -1,112 +1,150 @@
 #pragma once
 #include "render.h"
 
-#include <Shlobj.h>
-#include <dwmapi.h>
+#include <Windows.h>
+#include <d3d11.h>
+#include <wrl.h>
 #include <dcomp.h>
 
 #include "kernel_lily.h"
 
 class RenderOverlay : public Render {
 private:
+	constexpr static BOOL TOPMOST = TRUE;
+
 	const KernelLily& kernel;
-	IDCompositionTarget* m_pDCompTarget;
-	IDCompositionVisual* pDirectCompositionVisual;
 
-	virtual void Present(HWND hWnd) const {
-		Global::pDXGISwapChain1->Present(0, 0);
+	ComPtr<IDXGISwapChain1> pDXGISwapChain1;
+	ComPtr<ID3D11RenderTargetView> pD3D11RenderTargetView;
+	ComPtr<IDCompositionTarget> pDirectCompositionTarget;
+	ComPtr<IDCompositionVisual> pDirectCompositionVisual;
+	ComPtr<IDCompositionDevice> pDirectCompositionDevice;
+
+	HWND hAttachWnd = 0;
+
+	virtual bool IsScreenPosNeeded() const { return false; }
+
+	virtual ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const { return pD3D11RenderTargetView; }
+
+	virtual void Present(HWND hWnd) {
+		if (hWnd && hWnd != hAttachWnd)
+			AttachWindow(hWnd);
+
+		pDXGISwapChain1->Present(0, 0);
 	}
 
-	void Release(HWND hWnd) {
-		Global::pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TRUE, &m_pDCompTarget);
-		m_pDCompTarget->Release();
-	}
-
-public:
-	~RenderOverlay() {
-		const HWND hWnd = FindWindowA("Notepad"e, 0);
-		Release(hWnd);
-	}
-
-	RenderOverlay(const KernelLily& kernel, int ScreenWidth, int ScreenHeight) :
-		Render(ScreenWidth, ScreenHeight), kernel(kernel) {
-
-		//EnumWindows([](HWND hWnd, LPARAM)->BOOL {
-		//	RECT wndrect;
-		//	GetWindowRect(hWnd, &wndrect);
-		//	//if (wndrect.left != 0 || wndrect.top != 0)
-		//	//	return TRUE;
-
-		//	if (wndrect.right == wndrect.left || wndrect.bottom == wndrect.top)
-		//		return TRUE;
-
-		//	POINT p = { 0, 0 };
-		//	ScreenToClient(hWnd, &p);
-		//	if (p.x != 0 || p.y != 0)
-		//		return TRUE;
-
-		//	DWORD dwStyle = GetWindowLongA(hWnd, GWL_STYLE);
-
-		//	if (!(dwStyle & WS_VISIBLE))
-		//		return TRUE;
-
-		//	//DWORD dwExStyle = GetWindowLongA(hWnd, GWL_EXSTYLE);
-		//	//if (!(dwStyle & WS_EX_TOPMOST))
-		//	//	return TRUE;
-
-		//	char szClass[0x100];
-		//	char szText[0x100];
-		//	GetClassNameA(hWnd, szClass, sizeof(szClass));
-		//	GetWindowTextA(hWnd, szText, sizeof(szText));
-
-		//	printf("%08X %s %s\n", (DWORD)(uint64_t)hWnd, szClass, szText);
-		//	return TRUE;
-		//	}, 0);
-
-		//exit(0);
-
-		//const HWND hWnd = FindWindowA("CEF-OSC-WIDGET"e, "NVIDIA GeForce Overlay"e);
-		const HWND hWnd = FindWindowA("Notepad"e, 0);
-		//const HWND hWnd = FindWindowA(0, "FolderView"e);
-
-		HRESULT hr = 0;
-
+	void DetachWindow(HWND hWnd) {
 		const bool bSuccess = [&] {
+			HRESULT hr;
 
 			if (!kernel.SetOwningThreadWrapper(hWnd, [&] {
-				Release(hWnd);
-				hr = Global::pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TRUE, &m_pDCompTarget);
+				hr = pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget);
+				pDirectCompositionTarget->Release();
 				})) return false;
 
 			if (FAILED(hr))
 				return false;
 
-			hr = Global::pDirectCompositionDevice->CreateVisual(&pDirectCompositionVisual);
-			if (FAILED(hr))
-				return false;
-
-			hr = pDirectCompositionVisual->SetContent(Global::pDXGISwapChain1.Get());
-			if (FAILED(hr))
-				return false;
-
-			hr = m_pDCompTarget->SetRoot(pDirectCompositionVisual);
-			if (FAILED(hr))
-				return false;
-
-			hr = Global::pDirectCompositionDevice->Commit();
-			if (FAILED(hr))
-				return false;
-
-			hr = Global::pDirectCompositionDevice->WaitForCommitCompletion();
-			if (FAILED(hr))
-				return false;
-
-			bool b1 = kernel.KernelRemoveProp(hWnd, kernel.UserFindAtom(L"SysDCompHwndTargets"e));
-			bool b2 = kernel.KernelRemoveProp(hWnd, kernel.UserFindAtom(L"SysVisRgnTracker"e));
 			return true;
 		}();
 
 		verify(bSuccess);
+		hAttachWnd = 0;
+	}
+
+	void AttachWindow(HWND hWnd) {
+		DetachWindow(hWnd);
+
+		const bool bSuccess = [&] {
+			HRESULT hr;
+
+			if (!kernel.SetOwningThreadWrapper(hWnd, [&] {
+				hr = pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget);
+				})) return false;
+
+			if (FAILED(hr))
+				return false;
+
+			hr = pDirectCompositionDevice->CreateVisual(&pDirectCompositionVisual);
+			if (FAILED(hr))
+				return false;
+
+			hr = pDirectCompositionVisual->SetContent(pDXGISwapChain1.Get());
+			if (FAILED(hr))
+				return false;
+
+			hr = pDirectCompositionTarget->SetRoot(pDirectCompositionVisual.Get());
+			if (FAILED(hr))
+				return false;
+
+			hr = pDirectCompositionDevice->Commit();
+			if (FAILED(hr))
+				return false;
+
+			hr = pDirectCompositionDevice->WaitForCommitCompletion();
+			if (FAILED(hr))
+				return false;
+
+			return
+				kernel.KernelRemoveProp(hWnd, kernel.UserFindAtom(L"SysDCompHwndTargets"e)) &&
+				kernel.KernelRemoveProp(hWnd, kernel.UserFindAtom(L"SysVisRgnTracker"e));
+		}();
+
+		verify(bSuccess);
+		hAttachWnd = hWnd;
+	}
+
+	bool InitD3D() {
+		HRESULT hr;
+
+		ComPtr<IDXGIDevice> pDXGIDevice;
+		hr = pD3D11Device->QueryInterface(__uuidof(pDXGIDevice), &pDXGIDevice);
+		if (FAILED(hr))
+			return false;
+
+		ComPtr<IDXGIFactory2> dxFactory;
+		hr = CreateDXGIFactory2(0, __uuidof(dxFactory), &dxFactory);
+		if (FAILED(hr))
+			return false;
+
+		const DXGI_SWAP_CHAIN_DESC1 SwapChainDesc = {
+			.Width = (UINT)ScreenWidth,
+			.Height = (UINT)ScreenHeight,
+			.Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+			.SampleDesc = {.Count = 1},
+			.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
+			.BufferCount = 2,
+			.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+			.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED,
+			.Flags = DXGI_SWAP_CHAIN_FLAG_HW_PROTECTED	//DXGI_SWAP_CHAIN_FLAG_DISPLAY_ONLY
+		};
+
+		hr = dxFactory->CreateSwapChainForComposition(pDXGIDevice.Get(), &SwapChainDesc, 0, &pDXGISwapChain1);
+		if (FAILED(hr))
+			return false;
+
+		ComPtr<ID3D11Texture2D> pBuffer;
+		hr = pDXGISwapChain1->GetBuffer(0, __uuidof(ID3D11Texture2D), &pBuffer);
+		if (FAILED(hr))
+			return false;
+
+		hr = pD3D11Device->CreateRenderTargetView(pBuffer.Get(), 0, &pD3D11RenderTargetView);
+		if (FAILED(hr))
+			return false;
+
+		hr = DCompositionCreateDevice(pDXGIDevice.Get(), __uuidof(IDCompositionDevice), &pDirectCompositionDevice);
+		if (FAILED(hr))
+			return false;
+
+		return true;
+	}
+
+public:
+	RenderOverlay(const KernelLily& kernel, ComPtr<ID3D11Device> pD3D11Device, ComPtr<ID3D11DeviceContext> pD3D11DeviceContext, int ScreenWidth, int ScreenHeight) :
+		kernel(kernel), Render(pD3D11Device, pD3D11DeviceContext, ScreenWidth, ScreenHeight) {
+		verify(InitD3D());
 		Clear();
 	}
+
+	virtual ~RenderOverlay() { DetachWindow(hAttachWnd); }
 };

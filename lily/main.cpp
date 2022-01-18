@@ -10,7 +10,7 @@
 #include "common/encrypt_string.h"
 
 #include "render_overlay.h"
-//#include "render_ddraw.h"
+#include "render_ddraw.h"
 
 void realmain() {
 #ifdef DPRINT
@@ -28,20 +28,14 @@ void realmain() {
 	dprintf("Kernel OK"e);
 
 #ifdef _WINDLL
-	RenderOverlay render(kernel, Global::ScreenWidth, Global::ScreenHeight);
+	RenderOverlay render(kernel, Global::pD3D11Device, Global::pD3D11DeviceContext, Global::ScreenWidth, Global::ScreenHeight);
 #else
-	RenderOverlay render(kernel, Global::ScreenWidth, Global::ScreenHeight);
-	//RenderDDraw render(Global::pDirect3DDevice9Ex, Global::pBackBufferSurface, Global::pOffscreenPlainSurface, Global::ScreenWidth, Global::ScreenHeight);
+	RenderDDraw render(Global::pD3D11Device, Global::pD3D11DeviceContext, Global::ScreenWidth, Global::ScreenHeight);
 #endif
 
-	char szbuf[0x100];
-
 	for (;; Sleep(1)) {
-
-		sprintf(szbuf, "rand : %d", GetTickCount());
-
-		render.RenderArea(GetDesktopWindow(), [&] {
-			render.DrawString({ 500.0f, 0.0f, 0.0f }, Render::MARGIN, szbuf, Render::FONTSIZE_BIG, Render::COLOR_RED, true, true, true);
+		render.RenderArea(FindWindowA("Progman"e, "Program Manager"e), [&] {
+			render.DrawString({ 500.0f, 0.0f, 0.0f }, Render::MARGIN, "Waiting for PUBG..."e, Render::FONTSIZE_BIG, Render::COLOR_RED, true, true, true);
 			});
 
 		const HWND hGameWnd = FindWindowA("UnrealWindow"e, 0);
