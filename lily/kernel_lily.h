@@ -19,6 +19,7 @@ public:
 	DefBaseClass(tagWND_USER,
 		MemberAtOffset(DWORD, dwExStyle, 0x18)
 		MemberAtOffset(RECT, rcWindow, 0x58)
+		MemberAtOffset(RECT, rcClient, 0x68)
 		MemberAtOffset(WORD, FNID, 0x2A)
 	,)
 	class PROP {};
@@ -143,6 +144,13 @@ private:
 	}
 
 public:
+	ATOM UserFindAtomVerified(PCWSTR AtomName) const {
+		const ATOM atom = UserFindAtom(AtomName);
+		if (!atom)
+			error(AtomName, L"Atom"e);
+		return atom;
+	}
+
 	HANDLE KernelGetProp(HWND hWnd, ATOM nAtom, DWORD dwFlag = 1) const {
 		tagWND* pWnd = ValidateHwnd(hWnd);
 		if (!pWnd)

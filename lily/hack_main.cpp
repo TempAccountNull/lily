@@ -4,16 +4,12 @@
 #include "GNames.h"
 #include "GObjects.h"
 
-#include "pubg_class.h"
-
 #include "info_bone.h"
 #include "info_item.h"
 #include "info_vehicle.h"
 #include "info_proj.h"
 #include "info_package.h"
 #include "info_character.h"
-
-#include "render.h"
 
 void Hack::Loop() {
 	dbvm.CloakReset();
@@ -46,7 +42,7 @@ void Hack::Loop() {
 		const float Width = render.GetWidth();
 		const float Height = render.GetHeight();
 
-		render.RenderArea(hGameWnd, [&]() {
+		render.RenderArea(hGameWnd, Render::COLOR_CLEAR, [&]() {
 			ProcessImGui();
 			DrawHotkey();
 			DrawFPS(render.GetFPS(), Render::COLOR_TEAL);
@@ -145,7 +141,7 @@ void Hack::Loop() {
 			FVector GunLocation = CameraLocation;
 			FRotator GunRotation = CameraRotation;
 
-			auto DrawRatioBoxWrapper = [&](const FVector& ScreenPos, float CameraDistance, float BarLength3D, float Ratio, ImU32 ColorRemain, ImU32 ColorDamaged, ImU32 ColorEdge) {
+			auto DrawRatioBoxWrapper = [&](const FVector& ScreenPos, float CameraDistance, float BarLength3D, float Ratio, ImColor ColorRemain, ImColor ColorDamaged, ImColor ColorEdge) {
 				FVector ZeroLocation;
 				FMatrix ZeroRotationMatrix = FRotator().GetMatrix();
 				FVector ScreenPos1 = WorldToScreen({ CameraDistance, BarLength3D / 2.0f, 0.0f }, ZeroRotationMatrix, ZeroLocation, CameraFOV);
@@ -412,7 +408,7 @@ void Hack::Loop() {
 
 					bool IsDestructible = (std::get<1>(VehicleInfo) == VehicleType2::Destructible);
 
-					ImU32 Color = Render::COLOR_BLUE;
+					ImColor Color = Render::COLOR_BLUE;
 					if (std::get<2>(VehicleInfo) == VehicleType3::Special)
 						Color = Render::COLOR_TEAL;
 					if (Health <= 0.0f || Fuel <= 0.0f)
@@ -450,7 +446,7 @@ void Hack::Loop() {
 						return false;
 
 					int ItemPriority = std::get<0>(GetItemInfo(ItemHash, szBuf));
-					ImU32 Color = GetItemColor(ItemPriority);
+					ImColor Color = GetItemColor(ItemPriority);
 
 					if (ItemPriority >= nItem)
 						DrawString(ItemLocation, szBuf, Color, false);
@@ -607,7 +603,7 @@ void Hack::Loop() {
 						v.X = (Width * (0.9807f + 0.8474f) / 2.0f) + (RadarX / 200.0f * Width * (0.9807f - 0.8474f) / 2.0f);
 						v.Y = (Height * (0.9722f + 0.7361f) / 2.0f) + (RadarY / 200.0f * Height * (0.9722f - 0.7361f) / 2.0f);
 
-						ImU32 Color = Render::COLOR_RED;
+						ImColor Color = Render::COLOR_RED;
 
 						if (IsInVehicle)
 							Color = Render::COLOR_BLUE;
@@ -696,7 +692,7 @@ void Hack::Loop() {
 						//DrawCharacter
 						[&] {
 							//GetColor
-							ImU32 Color = [&] {
+							ImColor Color = [&] {
 								if (ActorPtr == PrevTargetPtr)
 									return Render::COLOR_RED;
 								if (TslCharacter.LastTeamNum == MyTeamNum)

@@ -11,6 +11,7 @@
 class RenderDDraw : public Render {
 private:
 	ComPtr<ID3D11Texture2D> pD3D11Texture2D;
+	ComPtr<IDXGISurface1> pDXGISurface;
 	ComPtr<ID3D11RenderTargetView> pD3D11RenderTargetView;
 
 	ComPtr<IDirectDrawSurface7> pPrimarySurface;
@@ -37,6 +38,10 @@ private:
 			return false;
 
 		hr = pD3D11Device->CreateRenderTargetView(pD3D11Texture2D.Get(), 0, &pD3D11RenderTargetView);
+		if (FAILED(hr))
+			return false;
+
+		hr = pD3D11Texture2D->QueryInterface(__uuidof(pDXGISurface), &pDXGISurface);
 		if (FAILED(hr))
 			return false;
 
@@ -84,9 +89,12 @@ private:
 		if (FAILED(hr))
 			return false;
 
+		constexpr COLORREF COLOR_CLEAR_RGB = 
+			RGB(COLOR_CLEAR_FLOAT4[0] * 255.0f, COLOR_CLEAR_FLOAT4[1] * 255.0f, COLOR_CLEAR_FLOAT4[2] * 255.0f);
+
 		DDOVERLAYFX OverlayFX = { .dwSize = sizeof(OverlayFX), .dckSrcColorkey = { COLOR_CLEAR_RGB, COLOR_CLEAR_RGB }, };
 		RECT Rect = { 0, 0, ScreenWidth, ScreenHeight };
-		const DWORD dwUpdateFlags = DDOVER_SHOW | DDOVER_DDFX | DDOVER_KEYSRCOVERRIDE;
+		constexpr DWORD dwUpdateFlags = DDOVER_SHOW | DDOVER_DDFX | DDOVER_KEYSRCOVERRIDE;
 
 		for (unsigned i = 0; i < 10 && 
 			FAILED(hr = pOverlaySurface->UpdateOverlay(0, pPrimarySurface.Get(), &Rect, dwUpdateFlags, &OverlayFX)); i++);
@@ -97,14 +105,11 @@ private:
 		return true;
 	}
 
-	virtual bool IsScreenPosNeeded() const { return true; }
+	bool IsScreenPosNeeded() const final { return true; }
 
-	virtual ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const { return pD3D11RenderTargetView; }
+	ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const final { return pD3D11RenderTargetView; }
 
-	virtual void Present(HWND) {
-		ComPtr<IDXGISurface1> pDXGISurface;
-		pD3D11Texture2D->QueryInterface(__uuidof(pDXGISurface), &pDXGISurface);
-
+	void Present(HWND) final {
 		HDC hSurfaceDC;
 		pDXGISurface->GetDC(FALSE, &hSurfaceDC);
 		HDC hAttachedSurfaceDC;
@@ -117,8 +122,7 @@ private:
 	}
 
 public:
-	RenderDDraw(ComPtr<ID3D11Device> pD3D11Device, ComPtr<ID3D11DeviceContext> pD3D11DeviceContext, int ScreenWidth, int ScreenHeight) :
-		Render(pD3D11Device, pD3D11DeviceContext, ScreenWidth, ScreenHeight) {
+	RenderDDraw(float DefaultFontSize) : Render(DefaultFontSize) {
 		verify(InitD3D());
 		verify(InitDirectDraw());
 		Clear();

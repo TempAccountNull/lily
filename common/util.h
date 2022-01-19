@@ -35,6 +35,11 @@ static void error(const char* szMsg, const char* szTitle = "Error!"e) {
 	exit(0);
 }
 
+static void error(const wchar_t* wMsg, const wchar_t* wTitle = L"Error!"e) {
+	USES_CONVERSION;
+	error(W2A(wMsg), W2A(wTitle));
+}
+
 template<fixstr::basic_fixed_string path>
 consteval auto ExtractOnlyFileName() {
 	return path.substr<path.find_last_of('\\') + 1>();
@@ -218,3 +223,38 @@ static DWORD GetPIDByProcessName(const char* szProcessName) {
 	CloseHandle(hSnapShot);
 	return Pid;
 }
+
+static void SetClientRect(HWND hWnd, RECT Rect) {
+	const DWORD dwStyle = GetWindowLongA(hWnd, GWL_STYLE);
+	const DWORD dwExStyle = GetWindowLongA(hWnd, GWL_EXSTYLE);
+
+	AdjustWindowRectEx(&Rect, dwStyle, GetMenu(hWnd) != 0, dwExStyle);
+	if (dwStyle & WS_VSCROLL) Rect.right += GetSystemMetrics(SM_CXVSCROLL);
+	if (dwStyle & WS_HSCROLL) Rect.bottom += GetSystemMetrics(SM_CYVSCROLL);
+	SetWindowPos(hWnd, 0, 0, 0, Rect.right - Rect.left, Rect.bottom - Rect.top, SWP_NOMOVE | SWP_NOZORDER);
+}
+
+static bool SetClientRectWrapper(HWND hWnd, RECT Rect, auto f) {
+	RECT ClientRect;
+	if (!GetClientRect(hWnd, &ClientRect))
+		return false;
+
+	SetClientRect(hWnd, Rect);
+	f();
+	SetClientRect(hWnd, ClientRect);
+	return true;
+}
+
+static bool SetPrivilege(HANDLE hToken, const char* szPrivilege, bool bEnablePrivilege) {
+	LUID Luid;
+	if (!LookupPrivilegeValueA(NULL, szPrivilege, &Luid))
+		return false;
+
+	TOKEN_PRIVILEGES TokenPrivileges = {
+		.PrivilegeCount = 1,
+		.Privileges = { {.Luid = Luid, .Attributes = bEnablePrivilege ? (DWORD)SE_PRIVILEGE_ENABLED : 0 } }
+	};
+
+	return AdjustTokenPrivileges(hToken, FALSE, &TokenPrivileges, sizeof(TOKEN_PRIVILEGES), 0, 0) &&
+		GetLastError() == ERROR_SUCCESS;
+};

@@ -1,15 +1,15 @@
 #include "render.h"
 
-void AddText(const ImFont* font, float font_size, const ImVec2& pos, ImU32 col, const char* szText, float wrap_width = 0.0f, const ImVec4* cpu_fine_clip_rect = 0) {
-	ImGui::GetWindowDrawList()->AddText(font, font_size, pos, col, szText, 0, wrap_width, cpu_fine_clip_rect);
+void AddText(const ImFont* font, float font_size, const ImVec2& pos, ImColor Color, const char* szText, float wrap_width = 0.0f, const ImVec4* cpu_fine_clip_rect = 0) {
+	ImGui::GetWindowDrawList()->AddText(font, font_size, pos, Color, szText, 0, wrap_width, cpu_fine_clip_rect);
 }
 
-void AddTextOutlined(const ImFont* font, float font_size, const ImVec2& pos, ImU32 col, const char* szText, float wrap_width, const ImVec4* cpu_fine_clip_rect) {
+void AddTextOutlined(const ImFont* font, float font_size, const ImVec2& pos, ImColor Color, const char* szText, float wrap_width, const ImVec4* cpu_fine_clip_rect) {
 	AddText(font, font_size, { pos.x + 1, pos.y + 1 }, IM_COL32_BLACK, szText, wrap_width, cpu_fine_clip_rect);
 	AddText(font, font_size, { pos.x - 1, pos.y - 1 }, IM_COL32_BLACK, szText, wrap_width, cpu_fine_clip_rect);
 	AddText(font, font_size, { pos.x + 1, pos.y - 1 }, IM_COL32_BLACK, szText, wrap_width, cpu_fine_clip_rect);
 	AddText(font, font_size, { pos.x - 1, pos.y + 1 }, IM_COL32_BLACK, szText, wrap_width, cpu_fine_clip_rect);
-	AddText(font, font_size, pos, col, szText, wrap_width, cpu_fine_clip_rect);
+	AddText(font, font_size, pos, Color, szText, wrap_width, cpu_fine_clip_rect);
 }
 
 ImVec2 Render::GetTextSize(float FontSize, const char* szText) {
@@ -17,7 +17,7 @@ ImVec2 Render::GetTextSize(float FontSize, const char* szText) {
 	return pFont->CalcTextSizeA(FontSize, FLT_MAX, 0.0f, szText, 0, 0);
 }
 
-void Render::DrawString(const FVector& Pos, float Margin, const char* szText, float Size, ImU32 Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const {
+void Render::DrawString(const FVector& Pos, float Margin, const char* szText, float Size, ImColor Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const {
 	if (!bRender) return;
 
 	if (Pos.Z < 0.0f && !bShowAlways)
@@ -76,21 +76,21 @@ void Render::DrawString(const FVector& Pos, float Margin, const char* szText, fl
 	}
 }
 
-void Render::DrawRectOutlined(const FVector& from, const FVector& to, ImU32 Color, float rounding, ImDrawFlags flags, float thickness) const {
+void Render::DrawRectOutlined(const FVector& from, const FVector& to, ImColor Color, float rounding, ImDrawFlags flags, float thickness) const {
 	if (!bRender) return;
 
 	if (from.Z < 0.0f) return;
 	ImGui::GetWindowDrawList()->AddRect({ from.X, from.Y }, { to.X, to.Y }, Color, rounding, flags, thickness);
 }
 
-void Render::DrawRectFilled(const FVector& from, const FVector& to, ImU32 Color, float rounding, ImDrawFlags flags) const {
+void Render::DrawRectFilled(const FVector& from, const FVector& to, ImColor Color, float rounding, ImDrawFlags flags) const {
 	if (!bRender) return;
 
 	if (from.Z < 0.0f) return;
 	ImGui::GetWindowDrawList()->AddRectFilled({ from.X, from.Y }, { to.X, to.Y }, Color, rounding, flags);
 }
 
-void Render::DrawRatioBox(const FVector& from, const FVector& to, float Ratio, ImU32 ColorRemain, ImU32 ColorDamaged, ImU32 ColorEdge) const {
+void Render::DrawRatioBox(const FVector& from, const FVector& to, float Ratio, ImColor ColorRemain, ImColor ColorDamaged, ImColor ColorEdge) const {
 	if (!bRender) return;
 
 	if (from.Z < 0.0f) return;
@@ -109,31 +109,15 @@ void Render::DrawRatioBox(const FVector& from, const FVector& to, float Ratio, I
 	DrawRectOutlined(from, to, ColorEdge);
 }
 
-void Render::DrawLine(const FVector& from, const FVector& to, ImU32 Color, float thickness) const {
+void Render::DrawLine(const FVector& from, const FVector& to, ImColor Color, float thickness) const {
 	if (!bRender) return;
 
 	if (from.Z < 0.0f) return;
 	ImGui::GetWindowDrawList()->AddLine({ from.X, from.Y }, { to.X, to.Y }, Color, thickness);
 }
 
-void Render::DrawCircle(const ImVec2& center, float radius, ImU32 Color, int num_segments, float thickness) const {
+void Render::DrawCircle(const ImVec2& center, float radius, ImColor Color, int num_segments, float thickness) const {
 	if (!bRender) return;
 
 	ImGui::GetWindowDrawList()->AddCircle(center, radius, Color, num_segments, thickness);
-}
-
-#include <d3d11.h>
-#pragma comment(lib, "d3d11.lib")
-
-void Render::ImGuiRenderDrawData() const {
-	const float clear_color_with_alpha[4] = {
-	COLOR_CLEAR_VEC4.x * COLOR_CLEAR_VEC4.w,
-	COLOR_CLEAR_VEC4.y * COLOR_CLEAR_VEC4.w,
-	COLOR_CLEAR_VEC4.z * COLOR_CLEAR_VEC4.w,
-	COLOR_CLEAR_VEC4.w };
-
-	ImGui::Render();
-	pD3D11DeviceContext->OMSetRenderTargets(1, GetRenderTargetView().GetAddressOf(), 0);
-	pD3D11DeviceContext->ClearRenderTargetView(GetRenderTargetView().Get(), clear_color_with_alpha);
-	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }

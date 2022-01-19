@@ -36,15 +36,6 @@
     <ClInclude Include="hack.h">
       <Filter>hack</Filter>
     </ClInclude>
-    <ClInclude Include="render.h">
-      <Filter>hack</Filter>
-    </ClInclude>
-    <ClInclude Include="render_ddraw.h">
-      <Filter>hack</Filter>
-    </ClInclude>
-    <ClInclude Include="render_overlay.h">
-      <Filter>hack</Filter>
-    </ClInclude>
     <ClInclude Include="pubg_class_input.h">
       <Filter>hack\pubg\dumped</Filter>
     </ClInclude>
@@ -195,6 +186,18 @@
     <ClInclude Include="..\ue4math\vector.h">
       <Filter>ue4math</Filter>
     </ClInclude>
+    <ClInclude Include="render_lily.h">
+      <Filter>hack</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\render.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\render_dcomp.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\render_ddraw.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hack_main.cpp">
@@ -236,9 +239,6 @@
     <ClCompile Include="hack_ui.cpp">
       <Filter>hack</Filter>
     </ClCompile>
-    <ClCompile Include="render.cpp">
-      <Filter>hack</Filter>
-    </ClCompile>
     <ClCompile Include="..\imgui\imgui_impl_dx11_custom.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
@@ -256,6 +256,9 @@
     </ClCompile>
     <ClCompile Include="..\ue4math\vector.cpp">
       <Filter>ue4math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\render.cpp">
+      <Filter>common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

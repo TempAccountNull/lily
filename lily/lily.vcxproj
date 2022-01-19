@@ -132,6 +132,9 @@
     <ClInclude Include="..\common\ida_defs.h" />
     <ClInclude Include="..\common\initializer.h" />
     <ClInclude Include="..\common\kernel.h" />
+    <ClInclude Include="..\common\render.h" />
+    <ClInclude Include="..\common\render_dcomp.h" />
+    <ClInclude Include="..\common\render_ddraw.h" />
     <ClInclude Include="..\common\util.h" />
     <ClInclude Include="..\common\msrnames.h" />
     <ClInclude Include="..\common\obcallback.h" />
@@ -171,16 +174,12 @@
     <ClInclude Include="pubg_class_output.h" />
     <ClInclude Include="pubg_func.h" />
     <ClInclude Include="pubg_struct.h" />
-    <ClInclude Include="render.h" />
-    <ClInclude Include="render_ddraw.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="render_overlay.h" />
     <ClInclude Include="kernel_lily.h" />
     <ClInclude Include="pubg_process.h" />
+    <ClInclude Include="render_lily.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\common\render.cpp" />
     <ClCompile Include="..\imgui\imgui.cpp" />
     <ClCompile Include="..\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\imgui\imgui_impl_dx11_custom.cpp" />
@@ -204,7 +203,6 @@
     <ClCompile Include="pubg_class_pubg.cpp" />
     <ClCompile Include="pubg_class_ue4.cpp" />
     <ClCompile Include="pubg_struct.cpp" />
-    <ClCompile Include="render.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

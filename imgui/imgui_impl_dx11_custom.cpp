@@ -393,38 +393,43 @@ bool    ImGui_ImplDX11_CreateDeviceObjects()
     //  2) use code to detect any version of the DLL and grab a pointer to D3DCompile from the DLL.
     // See https://github.com/ocornut/imgui/pull/638 for sources and details.
 
+    const HMODULE hD3DCompiler = LoadLibraryA(D3DCOMPILER_DLL_A""e);
+    const decltype(&D3DCompile) pD3DCompile = (decltype(&D3DCompile))GetProcAddress(hD3DCompiler, "D3DCompile"e);
+    if (!pD3DCompile)
+        error(D3DCOMPILER_DLL_A""e);
+
     // Create the vertex shader
     {
-        static const char* vertexShader =
-            "cbuffer vertexBuffer : register(b0) \
-            {\
-              float4x4 ProjectionMatrix; \
-            };\
-            struct VS_INPUT\
-            {\
-              float2 pos : POSITION;\
-              float4 col : COLOR0;\
-              float2 uv  : TEXCOORD0;\
-            };\
-            \
-            struct PS_INPUT\
-            {\
-              float4 pos : SV_POSITION;\
-              float4 col : COLOR0;\
-              float2 uv  : TEXCOORD0;\
-            };\
-            \
-            PS_INPUT main(VS_INPUT input)\
-            {\
-              PS_INPUT output;\
-              output.pos = mul( ProjectionMatrix, float4(input.pos.xy, 0.f, 1.f));\
-              output.col = input.col;\
-              output.uv  = input.uv;\
-              return output;\
-            }";
+        auto vertexShader =
+            "cbuffer vertexBuffer : register(b0)"
+            "{"
+            "  float4x4 ProjectionMatrix;"
+            "};"
+            "struct VS_INPUT"
+            "{"
+            "  float2 pos : POSITION;"
+            "  float4 col : COLOR0;"
+            "  float2 uv  : TEXCOORD0;"
+            "};"
+            ""
+            "struct PS_INPUT"
+            "{"
+            "  float4 pos : SV_POSITION;"
+            "  float4 col : COLOR0;"
+            "  float2 uv  : TEXCOORD0;"
+            "};"
+            ""
+            "PS_INPUT main(VS_INPUT input)"
+            "{"
+            "  PS_INPUT output;"
+            "  output.pos = mul( ProjectionMatrix, float4(input.pos.xy, 0.f, 1.f));"
+            "  output.col = input.col;"
+            "  output.uv  = input.uv;"
+            "  return output;"
+            "}"e;
 
         ID3DBlob* vertexShaderBlob;
-        if (FAILED(D3DCompile(vertexShader, strlen(vertexShader), NULL, NULL, NULL, "main", "vs_4_0", 0, 0, &vertexShaderBlob, NULL)))
+        if (FAILED(pD3DCompile(vertexShader, sizeof(vertexShader), NULL, NULL, NULL, "main"e, "vs_4_0"e, 0, 0, &vertexShaderBlob, NULL)))
             return false; // NB: Pass ID3DBlob* pErrorBlob to D3DCompile() to get error showing in (const char*)pErrorBlob->GetBufferPointer(). Make sure to Release() the blob!
         if (bd->pd3dDevice->CreateVertexShader(vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize(), NULL, &bd->pVertexShader) != S_OK)
         {
@@ -432,12 +437,16 @@ bool    ImGui_ImplDX11_CreateDeviceObjects()
             return false;
         }
 
+        auto szPOSITION = "POSITION"e;
+        auto szTEXCOORD = "TEXCOORD"e;
+        auto szCOLOR = "COLOR"e;
+
         // Create the input layout
         D3D11_INPUT_ELEMENT_DESC local_layout[] =
         {
-            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,   0, (UINT)IM_OFFSETOF(ImDrawVert, pos), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,   0, (UINT)IM_OFFSETOF(ImDrawVert, uv),  D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "COLOR",    0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, (UINT)IM_OFFSETOF(ImDrawVert, col), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { szPOSITION, 0, DXGI_FORMAT_R32G32_FLOAT,   0, (UINT)IM_OFFSETOF(ImDrawVert, pos), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { szTEXCOORD, 0, DXGI_FORMAT_R32G32_FLOAT,   0, (UINT)IM_OFFSETOF(ImDrawVert, uv),  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { szCOLOR,    0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, (UINT)IM_OFFSETOF(ImDrawVert, col), D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
         if (bd->pd3dDevice->CreateInputLayout(local_layout, 3, vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize(), &bd->pInputLayout) != S_OK)
         {
@@ -460,24 +469,24 @@ bool    ImGui_ImplDX11_CreateDeviceObjects()
 
     // Create the pixel shader
     {
-        static const char* pixelShader =
-            "struct PS_INPUT\
-            {\
-            float4 pos : SV_POSITION;\
-            float4 col : COLOR0;\
-            float2 uv  : TEXCOORD0;\
-            };\
-            sampler sampler0;\
-            Texture2D texture0;\
-            \
-            float4 main(PS_INPUT input) : SV_Target\
-            {\
-            float4 out_col = input.col * texture0.Sample(sampler0, input.uv); \
-            return out_col; \
-            }";
+        auto pixelShader =
+            "struct PS_INPUT"
+            "{"
+            "float4 pos : SV_POSITION;"
+            "float4 col : COLOR0;"
+            "float2 uv  : TEXCOORD0;"
+            "};"
+            "sampler sampler0;"
+            "Texture2D texture0;"
+            ""
+            "float4 main(PS_INPUT input) : SV_Target"
+            "{"
+            "float4 out_col = input.col * texture0.Sample(sampler0, input.uv);"
+            "return out_col;"
+            "}"e;
 
         ID3DBlob* pixelShaderBlob;
-        if (FAILED(D3DCompile(pixelShader, strlen(pixelShader), NULL, NULL, NULL, "main", "ps_4_0", 0, 0, &pixelShaderBlob, NULL)))
+        if (FAILED(pD3DCompile(pixelShader, sizeof(pixelShader), NULL, NULL, NULL, "main"e, "ps_4_0"e, 0, 0, &pixelShaderBlob, NULL)))
             return false; // NB: Pass ID3DBlob* pErrorBlob to D3DCompile() to get error showing in (const char*)pErrorBlob->GetBufferPointer(). Make sure to Release() the blob!
         if (bd->pd3dDevice->CreatePixelShader(pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize(), NULL, &bd->pPixelShader) != S_OK)
         {
@@ -486,6 +495,8 @@ bool    ImGui_ImplDX11_CreateDeviceObjects()
         }
         pixelShaderBlob->Release();
     }
+
+    FreeLibrary(hD3DCompiler);
 
     // Create the blending setup
     {

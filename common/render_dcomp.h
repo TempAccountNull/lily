@@ -5,65 +5,55 @@
 #include <d3d11.h>
 #include <wrl.h>
 #include <dcomp.h>
+#pragma comment(lib, "dcomp.lib")
 
-#include "kernel_lily.h"
-
-class RenderOverlay : public Render {
+class RenderDComp : public Render {
 private:
-	constexpr static BOOL TOPMOST = TRUE;
-
-	const KernelLily& kernel;
-
 	ComPtr<IDXGISwapChain1> pDXGISwapChain1;
 	ComPtr<ID3D11RenderTargetView> pD3D11RenderTargetView;
-	ComPtr<IDCompositionTarget> pDirectCompositionTarget;
 	ComPtr<IDCompositionVisual> pDirectCompositionVisual;
-	ComPtr<IDCompositionDevice> pDirectCompositionDevice;
 
-	HWND hAttachWnd = 0;
+	virtual bool ReleaseDirectCompositionTarget() {
+		pDirectCompositionTarget.ReleaseAndGetAddressOf();
+		return true;
+	}
 
-	virtual bool IsScreenPosNeeded() const { return false; }
+	virtual bool CreateDirectCompositionTarget(HWND hWnd) {
+		return pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget) == S_OK;
+	}
+	
+	bool IsScreenPosNeeded() const final { return false; }
 
-	virtual ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const { return pD3D11RenderTargetView; }
+	ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const final { return pD3D11RenderTargetView; }
 
-	virtual void Present(HWND hWnd) {
+	void Present(HWND hWnd) final {
 		if (hWnd && hWnd != hAttachWnd)
 			AttachWindow(hWnd);
 
 		pDXGISwapChain1->Present(0, 0);
 	}
 
-	void DetachWindow(HWND hWnd) {
-		const bool bSuccess = [&] {
-			HRESULT hr;
+	void DetachWindow() {
+		if (!hAttachWnd)
+			return;
 
-			if (!kernel.SetOwningThreadWrapper(hWnd, [&] {
-				hr = pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget);
-				pDirectCompositionTarget->Release();
-				})) return false;
-
-			if (FAILED(hr))
-				return false;
-
-			return true;
-		}();
-
-		verify(bSuccess);
+		verify(ReleaseDirectCompositionTarget());
 		hAttachWnd = 0;
 	}
 
 	void AttachWindow(HWND hWnd) {
-		DetachWindow(hWnd);
+		if (!IsWindowVisible(hWnd))
+			return;
+
+		DetachWindow();
 
 		const bool bSuccess = [&] {
 			HRESULT hr;
 
-			if (!kernel.SetOwningThreadWrapper(hWnd, [&] {
-				hr = pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget);
-				})) return false;
-
-			if (FAILED(hr))
+			if (!CreateDirectCompositionTarget(hWnd)) {
+				pDirectCompositionTarget.ReleaseAndGetAddressOf();
 				return false;
+			}
 
 			hr = pDirectCompositionDevice->CreateVisual(&pDirectCompositionVisual);
 			if (FAILED(hr))
@@ -85,16 +75,14 @@ private:
 			if (FAILED(hr))
 				return false;
 
-			return
-				kernel.KernelRemoveProp(hWnd, kernel.UserFindAtom(L"SysDCompHwndTargets"e)) &&
-				kernel.KernelRemoveProp(hWnd, kernel.UserFindAtom(L"SysVisRgnTracker"e));
+			return true;
 		}();
 
 		verify(bSuccess);
 		hAttachWnd = hWnd;
 	}
 
-	bool InitD3D() {
+	bool InitD3D(bool IsProtected) {
 		HRESULT hr;
 
 		ComPtr<IDXGIDevice> pDXGIDevice;
@@ -116,7 +104,7 @@ private:
 			.BufferCount = 2,
 			.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
 			.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED,
-			.Flags = DXGI_SWAP_CHAIN_FLAG_HW_PROTECTED	//DXGI_SWAP_CHAIN_FLAG_DISPLAY_ONLY
+			.Flags = IsProtected ? (UINT)DXGI_SWAP_CHAIN_FLAG_HW_PROTECTED : 0	//DXGI_SWAP_CHAIN_FLAG_DISPLAY_ONLY
 		};
 
 		hr = dxFactory->CreateSwapChainForComposition(pDXGIDevice.Get(), &SwapChainDesc, 0, &pDXGISwapChain1);
@@ -139,12 +127,17 @@ private:
 		return true;
 	}
 
+protected:
+	constexpr static BOOL TOPMOST = TRUE;
+	ComPtr<IDCompositionDevice> pDirectCompositionDevice;
+	ComPtr<IDCompositionTarget> pDirectCompositionTarget;
+	HWND hAttachWnd = 0;
+
 public:
-	RenderOverlay(const KernelLily& kernel, ComPtr<ID3D11Device> pD3D11Device, ComPtr<ID3D11DeviceContext> pD3D11DeviceContext, int ScreenWidth, int ScreenHeight) :
-		kernel(kernel), Render(pD3D11Device, pD3D11DeviceContext, ScreenWidth, ScreenHeight) {
-		verify(InitD3D());
+	RenderDComp(float DefaultFontSize, bool IsProtected = false) : Render(DefaultFontSize) {
+		verify(InitD3D(IsProtected));
 		Clear();
 	}
 
-	virtual ~RenderOverlay() { DetachWindow(hAttachWnd); }
+	virtual ~RenderDComp() override {}
 };

@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <string>
 
-#include "render.h"
+#include "common/render.h"
 #include "pubg_class.h"
 #include "pubg_func.h"
 
@@ -11,8 +11,7 @@
 
 class Hack {
 private:
-	static constexpr float FONTSIZE = Render::FONTSIZE_SMALL;
-	static constexpr float NOTICE_TIME = 3.0f;
+	constexpr static float NOTICE_TIME = 3.0f;
 
 	float NoticeTimeRemain = 0.0f;
 
@@ -50,11 +49,18 @@ private:
 	bool bNeedToScroll = false;
 
 public:
+	constexpr static unsigned MARGIN = 10;
+
+	constexpr static float FONTSIZE_SMALL = 15.0f;
+	constexpr static float FONTSIZE_NORMAL = 20.0f;
+	constexpr static float FONTSIZE_BIG = 40.0f;
+	constexpr static float FONTSIZE = FONTSIZE_SMALL;
+
 	PubgProcess& pubg;
 	Kernel& kernel;
 	const DBVM& dbvm;
 
-	static ImU32 GetItemColor(int ItemPriority) {
+	static ImColor GetItemColor(int ItemPriority) {
 		switch (ItemPriority) {
 		case 1: return Render::COLOR_YELLOW;
 		case 2: return Render::COLOR_ORANGE;
@@ -73,30 +79,30 @@ public:
 
 	void Loop();
 	
-	void DrawString(const FVector& pos, const char* szText, ImU32 Color, bool bShowAlways) const {
-		render.DrawString(pos, Render::MARGIN, szText, FONTSIZE, Color, true, true, bShowAlways);
+	void DrawString(const FVector& pos, const char* szText, ImColor Color, bool bShowAlways) const {
+		render.DrawString(pos, Hack::MARGIN, szText, FONTSIZE, Color, true, true, bShowAlways);
 	}
 
-	void DrawNotice(const char* szText, ImU32 Color) const {
-		render.DrawString({ 30.0f, 30.0f , 0.0f }, Render::MARGIN, szText, Render::FONTSIZE_NORMAL, Color, false, false, true);
+	void DrawNotice(const char* szText, ImColor Color) const {
+		render.DrawString({ 30.0f, 30.0f , 0.0f }, Hack::MARGIN, szText, Hack::FONTSIZE_NORMAL, Color, false, false, true);
 	}
 
-	void DrawFPS(unsigned FPS, ImU32 Color) const {
+	void DrawFPS(unsigned FPS, ImColor Color) const {
 		float Width = ImGui::GetMainViewport()->WorkSize.x;
 		sprintf(szBuf, "FPS : %d"e, FPS);
-		render.DrawString({ Width * 0.6f, 0.0f , 0.0f }, Render::MARGIN, szBuf, Render::FONTSIZE_SMALL, Color, true, true, true);
+		render.DrawString({ Width * 0.6f, 0.0f , 0.0f }, Hack::MARGIN, szBuf, Hack::FONTSIZE_SMALL, Color, true, true, true);
 	}
 
-	void DrawZeroingDistance(float ZeroingDistance, ImU32 Color) const {
+	void DrawZeroingDistance(float ZeroingDistance, ImColor Color) const {
 		float Width = ImGui::GetMainViewport()->WorkSize.x;
 		sprintf(szBuf, "Zero : %.0f"e, ZeroingDistance);
-		render.DrawString({ Width * 0.5f, 0.0f , 0.0f }, Render::MARGIN, szBuf, Render::FONTSIZE_SMALL, Color, true, true, true);
+		render.DrawString({ Width * 0.5f, 0.0f , 0.0f }, Hack::MARGIN, szBuf, Hack::FONTSIZE_SMALL, Color, true, true, true);
 	}
 
-	void DrawSpectatedCount(unsigned SpectatedCount, ImU32 Color) const {
+	void DrawSpectatedCount(unsigned SpectatedCount, ImColor Color) const {
 		float Width = ImGui::GetMainViewport()->WorkSize.x;
 		sprintf(szBuf, "Spectators : %d"e, SpectatedCount);
-		render.DrawString({ Width * 0.4f, 0.0f , 0.0f }, Render::MARGIN, szBuf, Render::FONTSIZE_SMALL, Color, true, true, true);
+		render.DrawString({ Width * 0.4f, 0.0f , 0.0f }, Hack::MARGIN, szBuf, Hack::FONTSIZE_SMALL, Color, true, true, true);
 	}
 	
 	void DrawHotkey() const;

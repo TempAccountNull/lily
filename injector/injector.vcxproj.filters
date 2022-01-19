@@ -15,9 +15,6 @@
     <ClInclude Include="..\imgui\imgui.h">
       <Filter>imgui</Filter>
     </ClInclude>
-    <ClInclude Include="..\imgui\imgui_impl_dx9.h">
-      <Filter>imgui</Filter>
-    </ClInclude>
     <ClInclude Include="..\imgui\imgui_impl_win32.h">
       <Filter>imgui</Filter>
     </ClInclude>
@@ -105,12 +102,21 @@
     <ClInclude Include="..\common\util.h">
       <Filter>common</Filter>
     </ClInclude>
+    <ClInclude Include="..\imgui\imgui_impl_dx11.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\render.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\render_dcomp.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\render_ddraw.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\imgui\imgui.cpp">
-      <Filter>imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\imgui\imgui_impl_dx9_custom.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\imgui\imgui_impl_win32.cpp">
@@ -127,6 +133,12 @@
     </ClCompile>
     <ClCompile Include="injectorUI.cpp" />
     <ClCompile Include="winmain.cpp" />
+    <ClCompile Include="..\imgui\imgui_impl_dx11_custom.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\common\render.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <MASM Include="..\common\dbvm_.asm">

@@ -1,12 +1,11 @@
 #pragma once
 #include "common/util.h"
 
-#include <d3d9.h>
-
 #include "common/dbvm.h"
 #include "common/encrypt_string.h"
+#include "common/render_dcomp.h"
 #include "imgui/imgui.h"
-#include "imgui/imgui_impl_dx9.h"
+#include "imgui/imgui_impl_dx11.h"
 #include "imgui/imgui_impl_win32.h"
 
 #define INI ".\\config.ini"e
@@ -24,7 +23,7 @@ private:
 
 	bool bInjected = false;
 	HWND hWnd = 0;
-	IDirect3DDevice9Ex* pDirect3DDevice9Ex = 0;
+	RenderDComp& render;
 
 	char szProcessName[0x100] = { 0 };
 	bool bCreateProcess = false;
@@ -55,52 +54,6 @@ private:
 		verify(Result == 7);
 	}
 
-	static void SetClientRect(HWND hWnd, int width, int height) {
-		RECT crt;
-		DWORD Style, ExStyle;
-
-		SetRect(&crt, 0, 0, width, height);
-		Style = GetWindowLong(hWnd, GWL_STYLE);
-		ExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
-
-		AdjustWindowRectEx(&crt, Style, GetMenu(hWnd) != NULL, ExStyle);
-		if (Style & WS_VSCROLL) crt.right += GetSystemMetrics(SM_CXVSCROLL);
-		if (Style & WS_HSCROLL) crt.bottom += GetSystemMetrics(SM_CYVSCROLL);
-		SetWindowPos(hWnd, NULL, 0, 0, crt.right - crt.left, crt.bottom - crt.top,
-			SWP_NOMOVE | SWP_NOZORDER);
-	}
-
-	void RenderArea(auto func) const {
-		ImGui_ImplDX9_NewFrame();
-		ImGui_ImplWin32_NewFrame();
-		ImGui::NewFrame();
-
-		RECT Rect;
-		GetClientRect(hWnd, &Rect);
-
-		ImGui::SetNextWindowPos({ (float)Rect.left, (float)Rect.top });
-		ImGui::SetNextWindowSize({ (float)Rect.right, (float)Rect.bottom });
-		ImGui::Begin("Injector"e, 0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
-
-		func();
-
-		SetClientRect(hWnd, 500, (int)ImGui::GetCursorPosY());
-		ImGui::End();
-		ImGui::EndFrame();
-
-		pDirect3DDevice9Ex->SetRenderState(D3DRS_ZENABLE, 0);
-		pDirect3DDevice9Ex->SetRenderState(D3DRS_ALPHABLENDENABLE, 0);
-		pDirect3DDevice9Ex->SetRenderState(D3DRS_SCISSORTESTENABLE, 0);
-		pDirect3DDevice9Ex->Clear(0, 0, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, RGB(0, 0, 0), 1.0f, 0);
-		if (pDirect3DDevice9Ex->BeginScene() >= 0) {
-			ImGui::Render();
-			ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
-			pDirect3DDevice9Ex->EndScene();
-		}
-
-		pDirect3DDevice9Ex->Present(&Rect, &Rect, hWnd, 0);
-	}
-
 	bool SetPasswordFromParam();
 
 	void OnButtonSetPassword();
@@ -129,7 +82,7 @@ private:
 	}
 
 public:
-	InjectorUI(HWND hWnd, IDirect3DDevice9Ex* pDirect3DDevice9Ex) : hWnd(hWnd), pDirect3DDevice9Ex(pDirect3DDevice9Ex) {
+	InjectorUI(HWND hWnd, RenderDComp& render) : hWnd(hWnd), render(render) {
 		GetDataFromINI();
 
 		szServiceName << "93827461_CEDRIVER60"e;
@@ -166,7 +119,13 @@ public:
 			HostButtonWidth = ImGui::GetItemRectSize().x;
 		};
 
-		RenderArea([&] {
+		constexpr auto Width = 500;
+
+		render.RenderArea(hWnd, Render::COLOR_BLACK, [&] {
+			ImGui::SetNextWindowPos({ 0, 0 });
+			ImGui::SetNextWindowSize({ Width, 0 });
+			ImGui::Begin("injector"e, 0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
+
 			if (dbvm.GetVersion()) {
 				std::string strMsg;
 				strMsg << "dbvm loaded. "e;
@@ -221,7 +180,12 @@ public:
 				if (ImGui::Button("SetPassword"e))
 					OnButtonSetPassword();
 				});
+
+			SetClientRect(hWnd, { 0, 0, Width, (int)ImGui::GetCursorPosY() });
+
+			ImGui::End();
 		});
+
 		return bInjected;
 	}
 };

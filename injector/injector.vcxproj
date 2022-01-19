@@ -129,11 +129,14 @@
     <ClInclude Include="..\common\process.h" />
     <ClInclude Include="..\common\process.hpp" />
     <ClInclude Include="..\common\remoteprocess.h" />
+    <ClInclude Include="..\common\render.h" />
+    <ClInclude Include="..\common\render_dcomp.h" />
+    <ClInclude Include="..\common\render_ddraw.h" />
     <ClInclude Include="..\common\shellcode.h" />
     <ClInclude Include="..\common\util.h" />
     <ClInclude Include="..\imgui\imconfig.h" />
     <ClInclude Include="..\imgui\imgui.h" />
-    <ClInclude Include="..\imgui\imgui_impl_dx9.h" />
+    <ClInclude Include="..\imgui\imgui_impl_dx11.h" />
     <ClInclude Include="..\imgui\imgui_impl_win32.h" />
     <ClInclude Include="..\imgui\imgui_internal.h" />
     <ClInclude Include="..\imgui\imstb_rectpack.h" />
@@ -144,9 +147,10 @@
     <ClInclude Include="injectorUI.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\common\render.cpp" />
     <ClCompile Include="..\imgui\imgui.cpp" />
     <ClCompile Include="..\imgui\imgui_draw.cpp" />
-    <ClCompile Include="..\imgui\imgui_impl_dx9_custom.cpp" />
+    <ClCompile Include="..\imgui\imgui_impl_dx11_custom.cpp" />
     <ClCompile Include="..\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="..\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\imgui\imgui_widgets.cpp" />

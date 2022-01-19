@@ -2,15 +2,15 @@
 #include <stdio.h>
 #include <Shlobj.h>
 
-#include "global.h"
 #include "common/dbvm.h"
-#include "kernel_lily.h"
 #include "common/process.h"
-#include "hack.h"
 #include "common/encrypt_string.h"
+#include "common/render_ddraw.h"
 
-#include "render_overlay.h"
-#include "render_ddraw.h"
+#include "global.h"
+#include "kernel_lily.h"
+#include "render_lily.h"
+#include "hack.h"
 
 void realmain() {
 #ifdef DPRINT
@@ -28,14 +28,14 @@ void realmain() {
 	dprintf("Kernel OK"e);
 
 #ifdef _WINDLL
-	RenderOverlay render(kernel, Global::pD3D11Device, Global::pD3D11DeviceContext, Global::ScreenWidth, Global::ScreenHeight);
+	RenderLily render(kernel, Hack::FONTSIZE_SMALL);
 #else
-	RenderDDraw render(Global::pD3D11Device, Global::pD3D11DeviceContext, Global::ScreenWidth, Global::ScreenHeight);
+	RenderDDraw render(Hack::FONTSIZE_SMALL);
 #endif
 
 	for (;; Sleep(1)) {
-		render.RenderArea(FindWindowA("Progman"e, "Program Manager"e), [&] {
-			render.DrawString({ 500.0f, 0.0f, 0.0f }, Render::MARGIN, "Waiting for PUBG..."e, Render::FONTSIZE_BIG, Render::COLOR_RED, true, true, true);
+		render.RenderArea(FindWindowA("Progman"e, "Program Manager"e), Render::COLOR_CLEAR, [&] {
+			render.DrawString({ 500.0f, 0.0f, 0.0f }, Hack::MARGIN, "Waiting for PUBG..."e, Hack::FONTSIZE_BIG, Render::COLOR_RED, true, true, true);
 			});
 
 		const HWND hGameWnd = FindWindowA("UnrealWindow"e, 0);

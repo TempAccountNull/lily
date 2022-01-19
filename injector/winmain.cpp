@@ -4,7 +4,7 @@
 #include "injectorUI.h"
 
 #include "imgui/imgui.h"
-#include "imgui/imgui_impl_dx9.h"
+#include "imgui/imgui_impl_dx11.h"
 #include "imgui/imgui_impl_win32.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -43,22 +43,20 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nC
     if (!hWnd)
         return 0;
 
-    ImGui_ImplWin32_Init(hWnd);
     ShowWindow(hWnd, SW_SHOW);
 
-    InjectorUI UI(hWnd, Global::pDirect3DDevice9Ex);
+    RenderDComp render(30.0f);
+    ImGui_ImplWin32_Init(hWnd);
+    InjectorUI UI(hWnd, render);
 
-    while (true) {
+    while (!UI.ProcessFrame()) {
         MSG msg;
-        while (PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE)) {
+        while (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
-            DispatchMessage(&msg);
+            DispatchMessageA(&msg);
             if (msg.message == WM_QUIT)
               return 0;
         }
-
-        if (UI.ProcessFrame())
-            break;
     }
 
     return 0;

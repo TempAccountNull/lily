@@ -1,34 +1,13 @@
 #pragma once
 #include "common/util.h"
-
-#include <Windows.h>
-#include <d3d11.h>
-#pragma comment(lib, "d3d11.lib")
-#pragma comment(lib, "dxgi.lib")
-#include <dcomp.h>
-#pragma comment(lib, "dcomp.lib")
-#include <wrl.h>
-
 #include "common/initializer.h"
 #include "common/encrypt_string.h"
 #include "common/dbvm.h"
-
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_dx11.h"
-#include "imgui/imgui_impl_win32.h"
 
 class Global {
 public:
 	static inline char DBVMPassword[21];
 	static inline DBVM dbvm;
-	static inline const int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
-	static inline const int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
-
-	template<class Interface>
-	using ComPtr = Microsoft::WRL::ComPtr<Interface>;
-
-	static inline ComPtr<ID3D11Device> pD3D11Device;
-	static inline ComPtr<ID3D11DeviceContext> pD3D11DeviceContext;
 
 	static inline char Buf[0x200];
 
@@ -36,6 +15,7 @@ public:
 		ModuleBase = (uintptr_t)Base;
 		ModuleSize = (uintptr_t)Size;
 	}
+
 private:
 	static inline uintptr_t ModuleBase = 0;
 	static inline size_t ModuleSize = 0;
@@ -63,32 +43,6 @@ private:
 
 		dbvm.SetPassword(password1, password2, password3);
 		verify(dbvm.GetVersion());
-	};
-
-	INITIALIZER_INCLASS(InitD3D) {
-		const bool bD3DSuccess = [&] {
-			HRESULT hr;
-			hr = D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-				0, 0, D3D11_SDK_VERSION, &pD3D11Device, 0, &pD3D11DeviceContext);
-			if (FAILED(hr))
-				return false;
-
-			return true;
-		}();
-		verify(bD3DSuccess);
-	};
-
-	INITIALIZER_INCLASS(InitImGui) {
-		ImGui::CreateContext();
-		ImGui_ImplDX11_Init(pD3D11Device.Get(), pD3D11DeviceContext.Get());
-
-		ImGuiIO& io = ImGui::GetIO();
-		io.DisplaySize = { (float)ScreenWidth , (float)ScreenHeight };
-
-		io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf"e, 15.0f);
-		io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf"e, 40.0f);
-
-		io.IniFilename = 0;
 	};
 };
 

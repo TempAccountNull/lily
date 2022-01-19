@@ -1,21 +1,43 @@
 #pragma once
 #include <Windows.h>
 #include <d3d11.h>
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "dxgi.lib")
 #include <wrl.h>
 
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_dx11.h"
-#include "imgui/imgui_impl_win32.h"
-#include "ue4math/vector.h"
-#include "common/encrypt_string.h"
-#include "common/util.h"
+#include "../imgui/imgui.h"
+#include "../imgui/imgui_impl_dx11.h"
+#include "../imgui/imgui_impl_win32.h"
+
+#include "../ue4math/vector.h"
+#include "encrypt_string.h"
+#include "util.h"
 
 class __declspec(novtable) Render {
-private:
-	float PosX = 0, PosY = 0;
-	float Width = (float)ScreenWidth, Height = (float)ScreenHeight;
+public:
+	const int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
+	const int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
 
-	void ImGuiRenderDrawData() const;
+protected:
+	template<class Interface>
+	using ComPtr = Microsoft::WRL::ComPtr<Interface>;
+
+private:
+	float PosX = 0;
+	float PosY = 0;
+	float Width = (float)ScreenWidth;
+	float Height = (float)ScreenHeight;
+
+	virtual void Present(HWND hWnd);
+	virtual ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const;
+	virtual bool IsScreenPosNeeded() const;
+
+	void ImGuiRenderDrawData() const {
+		ImGui::Render();
+		pD3D11DeviceContext->OMSetRenderTargets(1, GetRenderTargetView().GetAddressOf(), 0);
+		pD3D11DeviceContext->ClearRenderTargetView(GetRenderTargetView().Get(), COLOR_CLEAR_FLOAT4);
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+	}
 
 	void ProcessExitHotkey() {
 		if (!IsKeyPushing(VK_MENU) && !IsKeyPushing(VK_MBUTTON))
@@ -43,6 +65,9 @@ private:
 		if (!bRender) return;
 
 		ImGuiIO& io = ImGui::GetIO();
+		if (io.BackendPlatformUserData)
+			return;
+
 		io.MouseDown[0] = IsKeyPushing(VK_LBUTTON);
 		io.MouseDown[1] = IsKeyPushing(VK_RBUTTON);
 		io.MouseDown[2] = IsKeyPushing(VK_MBUTTON);
@@ -83,16 +108,10 @@ private:
 	}
 
 protected:
-	template<class Interface>
-	using ComPtr = Microsoft::WRL::ComPtr<Interface>;
+	constexpr static float COLOR_CLEAR_FLOAT4[4] = { 1.0f / 255.0f , 1.0f / 255.0f , 1.0f / 255.0f , 0.0f };
 
 	const ComPtr<ID3D11Device> pD3D11Device;
 	const ComPtr<ID3D11DeviceContext> pD3D11DeviceContext;
-
-	constexpr static auto CLEARVAL = 0;
-
-	constexpr static auto COLOR_CLEAR_RGB = RGB(CLEARVAL, CLEARVAL, CLEARVAL);
-	const ImVec4 COLOR_CLEAR_VEC4 = ImVec4(CLEARVAL / 255.0f, CLEARVAL / 255.0f, CLEARVAL / 255.0f, 0.0f);
 
 	void Clear() {
 		ImGui_ImplDX11_NewFrame();
@@ -102,22 +121,36 @@ protected:
 		Present(0);
 	}
 
-	virtual void Present(HWND hWnd);
-	virtual ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const;
-	virtual bool IsScreenPosNeeded() const;
-	
-	Render(ComPtr<ID3D11Device> pD3D11Device, ComPtr<ID3D11DeviceContext> pD3D11DeviceContext, int ScreenWidth, int ScreenHeight) :
-		pD3D11Device(pD3D11Device), pD3D11DeviceContext(pD3D11DeviceContext), ScreenWidth(ScreenWidth), ScreenHeight(ScreenHeight) {}
+	Render(float DefaultFontSize) {
+		const HRESULT hr = D3D11CreateDevice(0,
+			D3D_DRIVER_TYPE_HARDWARE, 0,
+			D3D11_CREATE_DEVICE_BGRA_SUPPORT, 0, 0, D3D11_SDK_VERSION,
+			(ID3D11Device**)pD3D11Device.GetAddressOf(), 0,
+			(ID3D11DeviceContext**)pD3D11DeviceContext.GetAddressOf());
 
-	virtual ~Render() {}
+		verify(SUCCEEDED(hr));
+
+		ImGui::CreateContext();
+		ImGui_ImplDX11_Init(pD3D11Device.Get(), pD3D11DeviceContext.Get());
+
+		ImGuiIO& io = ImGui::GetIO();
+		io.DisplaySize = { (float)ScreenWidth , (float)ScreenHeight };
+
+		io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf"e, DefaultFontSize);
+		io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf"e, 60.0f);
+		io.IniFilename = 0;
+	}
+
+	virtual ~Render() {
+		ImGui_ImplDX11_Shutdown();
+		ImGuiIO& io = ImGui::GetIO();
+		if (io.BackendPlatformUserData)
+			ImGui_ImplWin32_Shutdown();
+		ImGui::DestroyContext();
+	}
 
 public:
-	constexpr static unsigned MARGIN = 10;
-
-	constexpr static float FONTSIZE_SMALL = 15.0f;
-	constexpr static float FONTSIZE_NORMAL = 20;
-	constexpr static float FONTSIZE_BIG = 40;
-
+	constexpr static ImU32 COLOR_CLEAR = IM_COL32(0, 0, 0, 0);
 	constexpr static ImU32 COLOR_RED = IM_COL32(255, 0, 0, 255);
 	constexpr static ImU32 COLOR_GREEN = IM_COL32(0, 255, 0, 255);
 	constexpr static ImU32 COLOR_BLUE = IM_COL32(0, 0, 255, 255);
@@ -129,8 +162,6 @@ public:
 	constexpr static ImU32 COLOR_TEAL = IM_COL32(0, 255, 255, 255);
 	constexpr static ImU32 COLOR_GRAY = IM_COL32(192, 192, 192, 255);
 
-	const int ScreenWidth, ScreenHeight;
-
 	bool bRender = true;
 
 	float GetPosX() const { return PosX; }
@@ -140,12 +171,16 @@ public:
 	float GetTimeDelta() const { return TimeDelta; }
 	uint32_t GetFPS() const { return FPS; }
 
-	void RenderArea(HWND hWnd, auto func) {
+	void RenderArea(HWND hWnd, ImColor BgColor, auto func) {
 		ProcessExitHotkey();
 		UpdateTimeDelta();
 		UpdateRenderArea(hWnd);
 		if (hWnd == GetForegroundWindow())
 			InsertMouseInfo();
+
+		ImGuiIO& io = ImGui::GetIO();
+		if (io.BackendPlatformUserData)
+			ImGui_ImplWin32_NewFrame();
 
 		ImGui_ImplDX11_NewFrame();
 		ImGui::NewFrame();
@@ -158,7 +193,11 @@ public:
 
 		ImGui::SetNextWindowPos({ 0, 0 });
 		ImGui::SetNextWindowSize({ Width, Height });
-		ImGui::Begin("lily"e, 0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, (ImVec4)BgColor);
+		ImGui::Begin("root"e, 0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
+		ImGui::PopStyleColor();
+		ImGui::PopStyleVar();
 
 		func();
 
@@ -169,10 +208,10 @@ public:
 	}
 
 	static ImVec2 GetTextSize(float FontSize, const char* szText);
-	void DrawString(const FVector& Pos, float Margin, const char* szText, float Size, ImU32 Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const;
-	void DrawRatioBox(const FVector& from, const FVector& to, float HealthRatio, ImU32 ColorRemain, ImU32 ColorDamaged, ImU32 ColorEdge) const;
-	void DrawLine(const FVector& from, const FVector& to, ImU32 Color, float thickness = 1.0f) const;
-	void DrawCircle(const ImVec2& center, float radius, ImU32 Color, int num_segments = 0, float thickness = 1.0f) const;
-	void DrawRectOutlined(const FVector& from, const FVector& to, ImU32 Color, float rounding = 0, ImDrawFlags flags = 0, float thickness = 1.0f) const;
-	void DrawRectFilled(const FVector& from, const FVector& to, ImU32 Color, float rounding = 0, ImDrawFlags flags = 0) const;
+	void DrawString(const FVector& Pos, float Margin, const char* szText, float Size, ImColor Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const;
+	void DrawRatioBox(const FVector& from, const FVector& to, float HealthRatio, ImColor ColorRemain, ImColor ColorDamaged, ImColor ColorEdge) const;
+	void DrawLine(const FVector& from, const FVector& to, ImColor Color, float thickness = 1.0f) const;
+	void DrawCircle(const ImVec2& center, float radius, ImColor Color, int num_segments = 0, float thickness = 1.0f) const;
+	void DrawRectOutlined(const FVector& from, const FVector& to, ImColor Color, float rounding = 0, ImDrawFlags flags = 0, float thickness = 1.0f) const;
+	void DrawRectFilled(const FVector& from, const FVector& to, ImColor Color, float rounding = 0, ImDrawFlags flags = 0) const;
 };

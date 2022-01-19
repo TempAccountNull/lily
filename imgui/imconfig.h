@@ -13,6 +13,8 @@
 //-----------------------------------------------------------------------------
 
 #pragma once
+#include "../common/util.h"
+#include "../common/encrypt_string.h"
 
 //---- Define assertion handler. Defaults to calling assert().
 // If your macro uses multiple statements, make sure is enclosed in a 'do { .. } while (0)' block so it can be used as a single statement.
