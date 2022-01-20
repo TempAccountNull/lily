@@ -40,15 +40,13 @@ private:
 		DstData.Decrypt();
 	}
 
-	template<size_t N>
+	template <size_t N> requires (N >= Len)
 	void MoveArray(Type(&Dst)[N]) const noexcept {
-		static_assert(N >= Src.size() + 1, "Array size is less than string.");
 		MoveString(Dst);
 	}
 
-	template<size_t N>
+	template <size_t N> requires (N >= Len)
 	void MoveStdArray(std::array<Type, N>& Dst) const noexcept {
-		static_assert(N >= Src.size() + 1, "Array size is less than string.");
 		MoveString(Dst.data());
 	}
 
@@ -64,14 +62,14 @@ public:
 		return Dst;
 	}
 
-	template <size_t N>
+	template <size_t N> requires (N >= Len)
 	std::array<Type, N> GetStdArray() const noexcept {
 		std::array<Type, N> Result;
 		MoveStdArray<N>(Result);
 		return Result;
 	}
 
-	template <size_t N>
+	template <size_t N> requires (N >= Len)
 	operator const std::array<Type, N>() const noexcept {
 		return GetStdArray<N>();
 	}
@@ -98,7 +96,7 @@ public:
 	}
 
 	//Decrypt string and put into std::array.
-	template <size_t N>
+	template <size_t N> requires (N >= Len)
 	friend std::array<Type, N>& operator<<(std::array<Type, N>& Dst, const EncryptedString<Src> Str) noexcept {
 		Str.MoveStdArray(Dst);
 		return Dst;
