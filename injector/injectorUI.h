@@ -130,7 +130,7 @@ public:
 				std::string strMsg;
 				strMsg << "dbvm loaded. "e;
 				strMsg += std::to_string(dbvm.GetMemory() / 0x1000);
-				strMsg += " pages free"e;
+				strMsg += (const char*)" pages free"e;
 				ImGui::Text(strMsg.c_str());
 			}
 			else

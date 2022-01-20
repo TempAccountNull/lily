@@ -1,8 +1,5 @@
 #pragma once
-#include "common/encrypt_string.h"
-#include "common/compiletime.h"
-#include "common/hash_switch.h"
-#include "global.h"
+#include "common/util.h"
 
 inline bool IsPlayerCharacter(unsigned Hash) {
 	if (Hash == "PlayerFemale_A_C"h || Hash == "PlayerMale_A_C"h)

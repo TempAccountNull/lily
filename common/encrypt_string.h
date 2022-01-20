@@ -1,186 +1,124 @@
-#pragma warning(disable : 4455)
 #pragma once
-
 #include <string>
-#include <atomic>
 #include "fixed_string.hpp"
-#include "common/compiletime.h"
-
-static_assert(sizeof(char) == 1, "sizeof(char) must be 1");
-static_assert(sizeof(wchar_t) == 2, "sizeof(wchar_t) must be 2");
+#include "compiletime.h"
 
 template <class Type>
-__declspec(noinline) void DecryptString(Type* Dst, unsigned Seed) noexcept {
-	static_assert(sizeof(Type) <= 2, "Type must be character.");
-
-	unsigned i = 0;
-	do {
+__declspec(noinline) void _Decrypt(Type* Dst, unsigned Seed, size_t Len) noexcept {
+	for (size_t i = 0; i < Len; i++)
 		Dst[i] ^= (Type)CompileTime::Rand(Seed);
-	} while (Dst[i++]);
-}
+};
 
-template <class Type>
-__declspec(noinline) void DecryptStringWithCrtRand(Type* Dst, unsigned Seed) noexcept {
-	static_assert(sizeof(Type) <= 2, "Type must be character.");
+template<class Type, size_t Len, unsigned Seed>
+struct EncryptedData {
+	using StorageType = std::array<Type, Len>;
+	StorageType _data;
 
-	unsigned i = 0;
-	srand(Seed);
-	do {
-		Dst[i] ^= (Type)rand();
-	} while (Dst[i++]);
-}
+	constexpr EncryptedData(const StorageType& Src) noexcept {
+		unsigned _Seed = Seed;
+		for (size_t i = 0; i < Len; i++)
+			_data[i] = Src[i] ^ (Type)CompileTime::Rand(_Seed);
+	}
 
-template <fixstr::basic_fixed_string Src>
-char* MovString(char* Dst) noexcept {
-	constexpr auto Len = Src.size() + 1;
-	static_assert(Len <= 0x200, "String size must be less than 512");
-	using type_unsigned = typename std::make_unsigned<char>::type;
-	constexpr unsigned Seed = CompileTime::TimeSeed * CompileTime::Hash(Src.data());
-	constexpr auto Num = sizeof(uint32_t) / sizeof(char);
-
-	CompileTimeRepeat((Len - 1) / Num, Index, {
-		constexpr auto Base = Index * Num;
-		*(uint32_t*)(Dst + Base) = CompileTime::ConstEval(
-			((type_unsigned)(Src[Base + 0] ^ (char)CompileTime::Rand(Base + 0, Seed)) << (sizeof(char) * 8 * 0)) |
-			((type_unsigned)(Src[Base + 1] ^ (char)CompileTime::Rand(Base + 1, Seed)) << (sizeof(char) * 8 * 1)) |
-			((type_unsigned)(Src[Base + 2] ^ (char)CompileTime::Rand(Base + 2, Seed)) << (sizeof(char) * 8 * 2)) |
-			((type_unsigned)(Src[Base + 3] ^ (char)CompileTime::Rand(Base + 3, Seed)) << (sizeof(char) * 8 * 3))
-		);
-		//std::atomic_thread_fence(std::memory_order_acq_rel);
-		});
-
-	constexpr auto Base = (Len - 1) / Num * Num;
-	if constexpr (Base + 0 < Len) Dst[Base + 0] = CompileTime::ConstEval(Src[Base + 0] ^ (char)CompileTime::Rand(Base + 0, Seed));
-	if constexpr (Base + 1 < Len) Dst[Base + 1] = CompileTime::ConstEval(Src[Base + 1] ^ (char)CompileTime::Rand(Base + 1, Seed));
-	if constexpr (Base + 2 < Len) Dst[Base + 2] = CompileTime::ConstEval(Src[Base + 2] ^ (char)CompileTime::Rand(Base + 2, Seed));
-	if constexpr (Base + 3 < Len) Dst[Base + 3] = CompileTime::ConstEval(Src[Base + 3] ^ (char)CompileTime::Rand(Base + 3, Seed));
-
-	DecryptStringWithCrtRand(Dst, Seed);
-	//DecryptString(Dst, Seed);
-	return Dst;
-}
-
-template <fixstr::basic_fixed_string Src>
-wchar_t* MovString(wchar_t* Dst) noexcept {
-	constexpr auto Len = Src.size() + 1;
-	static_assert(Len <= 0x200, "String size must be less than 512");
-	using type_unsigned = typename std::make_unsigned<wchar_t>::type;
-	constexpr unsigned Seed = CompileTime::TimeSeed * CompileTime::Hash(Src.data());
-	constexpr auto Num = sizeof(uint32_t) / sizeof(wchar_t);
-
-	CompileTimeRepeat((Len - 1) / Num, Index, {
-		constexpr auto Base = Index * Num;
-		*(uint32_t*)(Dst + Base) = CompileTime::ConstEval(
-			((type_unsigned)(Src[Base + 0] ^ (wchar_t)CompileTime::Rand(Base + 0, Seed)) << (sizeof(wchar_t) * 8 * 0)) |
-			((type_unsigned)(Src[Base + 1] ^ (wchar_t)CompileTime::Rand(Base + 1, Seed)) << (sizeof(wchar_t) * 8 * 1))
-		);
-		//std::atomic_thread_fence(std::memory_order_acq_rel);
-		});
-
-	constexpr auto Base = (Len - 1) / Num * Num;
-	if constexpr (Base + 0 < Len) Dst[Base + 0] = CompileTime::ConstEval(Src[Base + 0] ^ (wchar_t)CompileTime::Rand(Base + 0, Seed));
-	if constexpr (Base + 1 < Len) Dst[Base + 1] = CompileTime::ConstEval(Src[Base + 1] ^ (wchar_t)CompileTime::Rand(Base + 1, Seed));
-
-	DecryptStringWithCrtRand(Dst, Seed);
-	//DecryptString(Dst, Seed);
-	return Dst;
-}
-
-template <fixstr::basic_fixed_string Src, size_t N, class Type = decltype(Src)::value_type>
-Type* MovArray(Type(&Dst)[N]) noexcept {
-	static_assert(N >= Src.size() + 1, "Array size is less than string.");
-	return MovString<Src>(Dst);
-}
-
-template <fixstr::basic_fixed_string Src, size_t N, class Type = decltype(Src)::value_type>
-std::array<Type, N>& MovStdArray(std::array<Type, N>& Dst) noexcept {
-	static_assert(N >= Src.size() + 1, "Array size is less than string.");
-	MovString<Src>(Dst.data());
-	return Dst;
-}
-
-template <fixstr::basic_fixed_string Src, class Type = decltype(Src)::value_type>
-std::basic_string<Type>& MovStdString(std::basic_string<Type>& Dst) noexcept {
-	Dst.resize(Src.size());
-	MovString<Src>(Dst.data());
-	return Dst;
-}
-
-template <fixstr::basic_fixed_string Src, class Type = decltype(Src)::value_type>
-const std::basic_string<Type> MakeStdString() noexcept {
-	std::basic_string<Type> Dst;
-	Dst.resize(Src.size());
-	MovString<Src>(Dst.data());
-	return Dst;
-}
-
-#define ElementType(Element) std::remove_const_t<std::remove_reference_t<decltype(*Element.begin())>>
+	void Decrypt() noexcept {
+		_Decrypt(_data.data(), Seed, Len);
+	};
+};
 
 template <fixstr::basic_fixed_string Src>
 class EncryptedString {
 private:
-	mutable ElementType(Src) Temp[Src.size() + 1];
+	using Type = std::remove_cvref_t<decltype(Src[0])>;
+	constexpr static auto Len = Src.size() + 1;
+	constexpr static unsigned Seed = CompileTime::Hash(Src.data());
+	using EncryptedType = EncryptedData<Type, Len, Seed>;
+
+	void MoveString(Type* Dst) const noexcept {
+		constexpr EncryptedType Data = Src._data;
+		EncryptedType& DstData = *(EncryptedType*)Dst;
+		DstData = Data;
+		DstData.Decrypt();
+	}
+
+	template<size_t N>
+	void MoveArray(Type(&Dst)[N]) const noexcept {
+		static_assert(N >= Src.size() + 1, "Array size is less than string.");
+		MoveString(Dst);
+	}
+
+	template<size_t N>
+	void MoveStdArray(std::array<Type, N>& Dst) const noexcept {
+		static_assert(N >= Src.size() + 1, "Array size is less than string.");
+		MoveString(Dst.data());
+	}
+
+	void MoveStdString(std::basic_string<Type>& Dst) const noexcept {
+		Dst.resize(Src.size());
+		MoveString(Dst.data());
+	}
+
 public:
-	//This constructor make compiler not initialize temp array to 0
+	std::basic_string<Type> GetStdString() const noexcept {
+		std::basic_string<Type> Dst;
+		MoveStdString(Dst);
+		return Dst;
+	}
+
+	template <size_t N>
+	std::array<Type, N> GetStdArray() const noexcept {
+		std::array<Type, N> Result;
+		MoveStdArray<N>(Result);
+		return Result;
+	}
+
+	template <size_t N>
+	operator const std::array<Type, N>() const noexcept {
+		return GetStdArray<N>();
+	}
+
+	operator const std::basic_string<Type>() const noexcept {
+		return GetStdString();
+	}
+
+private:
+	mutable Type _Buf[Src.size() + 1];
+
+public:
 	EncryptedString() noexcept {}
-	operator const ElementType(Src)* () const noexcept {
-		return MovArray<Src>(Temp);
+
+	operator const Type* () const noexcept {
+		MoveArray(_Buf);
+		return _Buf;
+	}
+
+	//Decrypt string and put into buffer.
+	friend Type* operator<<(Type* Dst, const EncryptedString<Src> Str) noexcept {
+		Str.MoveString(Dst);
+		return Dst;
+	}
+
+	//Decrypt string and put into std::array.
+	template <size_t N>
+	friend std::array<Type, N>& operator<<(std::array<Type, N>& Dst, const EncryptedString<Src> Str) noexcept {
+		Str.MoveStdArray(Dst);
+		return Dst;
+	}
+
+	//Decrypt string and put into std::basic_string.
+	friend std::basic_string<Type>& operator<<(std::basic_string<Type>& Dst, const EncryptedString<Src> Str) noexcept {
+		Str.MoveStdString(Dst);
+		return Dst;
 	}
 };
 
+#pragma warning(disable : 4455)
 #ifndef __INTELLISENSE__
 template <fixstr::basic_fixed_string Src>
-ElementType(Src)* operator<<(ElementType(Src)* Dst, const EncryptedString<Src> Str) noexcept {
-	return MovString<Src>(Dst);
-}
-
-template <fixstr::basic_fixed_string Src, size_t M>
-std::array<ElementType(Src), M>& operator<<(std::array<ElementType(Src), M>& Dst, const EncryptedString<Src> Str) noexcept {
-	return MovStdArray<Src, M>(Dst);
-}
-
-template <fixstr::basic_fixed_string Src>
-std::basic_string<ElementType(Src)>& operator<<(std::basic_string<ElementType(Src)>& Dst, const EncryptedString<Src> Str) noexcept {
-	return MovStdString<Src>(Dst);
-}
-
-template <fixstr::basic_fixed_string Src>
-const EncryptedString<Src> operator""e() noexcept {
-	return EncryptedString<Src>();
-}
-
-template <fixstr::basic_fixed_string Src>
-const std::basic_string<ElementType(Src)> operator""es() noexcept {
-	return MakeStdString<Src>();
-}
+const EncryptedString<Src> operator""e() noexcept { return EncryptedString<Src>(); }
 #else
-//Decrypt string and put into buffer.
-char* operator<<(char* Dst, const EncryptedString<"String"> Str);
-
-//Decrypt unicode string and put into buffer.
-wchar_t* operator<<(wchar_t* Dst, const EncryptedString<L"String"> Str);
-
-//Decrypt string and put into char std::array.
-template <size_t M> std::array<char, M>& operator<<(std::array<char, M>& Dst, const EncryptedString<"String"> Str);
-
-//Decrypt unicode string and put into wchar_t std::array.
-template <size_t M> std::array<wchar_t, M>& operator<<(std::array<wchar_t, M>& Dst, const EncryptedString<L"String"> Str);
-
-//Decrypt string and put into std::string.
-std::basic_string<char>& operator<<(std::basic_string<char>& Dst, const EncryptedString<"String"> Str);
-
-//Decrypt unicode string and put into std::wstring.
-std::basic_string<wchar_t>& operator<<(std::basic_string<wchar_t>& Dst, const EncryptedString<L"String"> Str);
-
-//Decrypt string and get const char* pointer.
-const EncryptedString<"String"> operator""e(const char*, size_t);
-
-//Decrypt unicode string and get const wchar_t* pointer.
-const EncryptedString<L"String"> operator""e(const wchar_t*, size_t);
-
-//Decrypt string and get std::string.
-std::string operator""es(const char*, size_t);
-
-//Decrypt unicode string and get std::wstring.
-std::wstring operator""es(const wchar_t*, size_t);
+const EncryptedString<fixstr::fixed_string<0>()> operator""e(const char*, size_t);
+const EncryptedString<fixstr::fixed_wstring<0>()> operator""e(const wchar_t*, size_t);
+const EncryptedString<fixstr::fixed_u8string<0>()> operator""e(const char8_t*, size_t);
+const EncryptedString<fixstr::fixed_u16string<0>()> operator""e(const char16_t*, size_t);
+const EncryptedString<fixstr::fixed_u32string<0>()> operator""e(const char32_t*, size_t);
 #endif

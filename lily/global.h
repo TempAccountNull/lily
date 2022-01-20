@@ -9,8 +9,6 @@ public:
 	static inline char DBVMPassword[21];
 	static inline DBVM dbvm;
 
-	static inline char Buf[0x200];
-
 	static void SetModuleInfo(auto Base, auto Size) {
 		ModuleBase = (uintptr_t)Base;
 		ModuleSize = (uintptr_t)Size;
@@ -45,13 +43,3 @@ private:
 		verify(dbvm.GetVersion());
 	};
 };
-
-#ifndef __INTELLISENSE__
-template <fixstr::basic_fixed_string Src>
-const ElementType(Src)* operator""eg() noexcept {
-	return MovString<Src>((ElementType(Src)*)Global::Buf);
-}
-#else
-const char* operator""eg(const char*, size_t);
-const wchar_t* operator""eg(const wchar_t*, size_t);
-#endif

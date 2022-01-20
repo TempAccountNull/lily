@@ -117,9 +117,6 @@
     <ClInclude Include="..\common\fixed_string.hpp">
       <Filter>common</Filter>
     </ClInclude>
-    <ClInclude Include="..\common\hash_switch.h">
-      <Filter>common</Filter>
-    </ClInclude>
     <ClInclude Include="..\common\ida_defs.h">
       <Filter>common</Filter>
     </ClInclude>

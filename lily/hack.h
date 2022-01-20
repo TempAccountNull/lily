@@ -39,8 +39,7 @@ private:
 
 	Render& render;
 
-	char* const szBuf = 0;
-	const size_t nBufSize = 0;
+	mutable char szBuf[0x100];
 
 	constexpr static unsigned DEBUGLOG_MAXSIZE = 0x4000;
 	constexpr static unsigned DEBUGLOG_REMOVESIZE = 0x1000;
@@ -60,7 +59,9 @@ public:
 	Kernel& kernel;
 	const DBVM& dbvm;
 
-	static ImColor GetItemColor(int ItemPriority) {
+	ImColor GetItemColor(int ItemPriority) {
+		if (ItemPriority < nItem)
+			return Render::COLOR_WHITE;
 		switch (ItemPriority) {
 		case 1: return Render::COLOR_YELLOW;
 		case 2: return Render::COLOR_ORANGE;
@@ -71,9 +72,8 @@ public:
 		}
 	}
 
-	Hack(PubgProcess& pubg, Render& render, char* szBuf, size_t nBufSize) :
-		pubg(pubg), kernel(pubg.kernel), dbvm(kernel.dbvm), render(render),
-		szBuf(szBuf), nBufSize(nBufSize), bESP(render.bRender) {
+	Hack(PubgProcess& pubg, Render& render) :
+		pubg(pubg), kernel(pubg.kernel), dbvm(kernel.dbvm), render(render), bESP(render.bRender) {
 		bESP = true;
 	}
 

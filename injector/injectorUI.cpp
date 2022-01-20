@@ -187,7 +187,7 @@ void InjectorUI::OnButtonDBVM() {
 		if (IsDBVMAlreadyLoaded) {
 			strMsg << "dbvm already loaded. "e;
 			strMsg += std::to_string(dbvm.GetMemory() / 0x1000);
-			strMsg += " pages free"e;
+			strMsg += (const char*)" pages free"e;
 			return true;
 		}
 
@@ -200,15 +200,15 @@ void InjectorUI::OnButtonDBVM() {
 		GetCurrentDirectoryA(sizeof(szCurrentDir), szCurrentDir);
 
 		std::string strPathSys = szCurrentDir;
-		strPathSys += "\\"e;
+		strPathSys += (const char*)"\\"e;
 		strPathSys += szSysFileName;
 
 		std::string strPathImg = szCurrentDir;
-		strPathImg += "\\vmdisk.img"e;
+		strPathImg += (const char*)"\\vmdisk.img"e;
 
 		if (!IsFileExist(strPathSys.c_str())) {
 			strMsg = szSysFileName;
-			strMsg += " does not exist"e;
+			strMsg += (const char*)" does not exist"e;
 			return false;
 		}
 
@@ -217,7 +217,7 @@ void InjectorUI::OnButtonDBVM() {
 			return false;
 		}
 
-		std::string strSubKey = "SYSTEM\\CurrentControlSet\\Services\\"es;
+		std::string strSubKey = "SYSTEM\\CurrentControlSet\\Services\\"e;
 		strSubKey += szServiceName;
 
 		HKEY hKey;
@@ -227,13 +227,13 @@ void InjectorUI::OnButtonDBVM() {
 		}
 
 		std::string strRegValue;
-		strRegValue = "\\Device\\"es + szServiceName;
+		strRegValue = (std::string)"\\Device\\"e + szServiceName;
 		RegSetValueExA(hKey, "A"e, 0, REG_SZ, (const BYTE*)strRegValue.c_str(), DWORD(strRegValue.size() + 1));
-		strRegValue = "\\DosDevices\\"es + szServiceName;
+		strRegValue = (std::string)"\\DosDevices\\"e + szServiceName;
 		RegSetValueExA(hKey, "B"e, 0, REG_SZ, (const BYTE*)strRegValue.c_str(), DWORD(strRegValue.size() + 1));
-		strRegValue = "\\BaseNamedObjects\\"es + szProcessEventName;
+		strRegValue = (std::string)"\\BaseNamedObjects\\"e + szProcessEventName;
 		RegSetValueExA(hKey, "C"e, 0, REG_SZ, (const BYTE*)strRegValue.c_str(), DWORD(strRegValue.size() + 1));
-		strRegValue = "\\BaseNamedObjects\\"es + szThreadEventName;
+		strRegValue = (std::string)"\\BaseNamedObjects\\"e + szThreadEventName;
 		RegSetValueExA(hKey, "D"e, 0, REG_SZ, (const BYTE*)strRegValue.c_str(), DWORD(strRegValue.size() + 1));
 		RegCloseKey(hKey);
 
@@ -243,7 +243,7 @@ void InjectorUI::OnButtonDBVM() {
 		}
 
 		hDevice = CreateFileA(
-			("\\\\.\\"es + szServiceName).c_str(),
+			((std::string)"\\\\.\\"e + szServiceName).c_str(),
 			GENERIC_READ | GENERIC_WRITE,
 			0,
 			NULL,
@@ -272,7 +272,7 @@ void InjectorUI::OnButtonDBVM() {
 			}
 		}
 
-		LaunchDBVM(hDevice, L"\\??\\"es + std::wstring(strPathImg.begin(), strPathImg.end()));
+		LaunchDBVM(hDevice, (std::wstring)L"\\??\\"e + std::wstring(strPathImg.begin(), strPathImg.end()));
 
 		dbvm.SetDefaultPassword();
 		if (!dbvm.GetVersion()) {
@@ -291,9 +291,9 @@ void InjectorUI::OnButtonDBVM() {
 
 		strMsg << "dbvm loaded. "e;
 		strMsg += std::to_string(dbvm.GetMemory() / 0x1000);
-		strMsg += " pages free"e;
+		strMsg += (const char*)" pages free"e;
 		if (IsHided)
-			strMsg += "\ndbvm hide completed."e;
+			strMsg += (const char*)"\ndbvm hide completed."e;
 
 		return true;
 	}();

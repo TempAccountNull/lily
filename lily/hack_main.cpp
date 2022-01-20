@@ -319,7 +319,7 @@ void Hack::Loop() {
 					if (RootComponent.AttachParent.Read(AttachParent) && AttachParent.Owner == MyPawnPtr)
 						return false;
 
-					if (!NameArr.GetNameByID(Actor.GetFName(), szBuf, nBufSize))
+					if (!NameArr.GetNameByID(Actor.GetFName(), szBuf, sizeof(szBuf)))
 						return false;
 
 					ActorNameHash = CompileTime::Hash(szBuf);
@@ -340,11 +340,11 @@ void Hack::Loop() {
 					if (DistanceToActor > 300.0f)
 						return;
 
-					GetProjName(ActorNameHash, szBuf);
-					if (strlen(szBuf) == 0)
+					const char* szProjName = GetProjName(ActorNameHash).data();
+					if (!*szProjName)
 						return;
 
-					sprintf(szBuf, "%s\n%.0fM"e, szBuf, DistanceToActor);
+					sprintf(szBuf, "%s\n%.0fM"e, szProjName, DistanceToActor);
 					DrawString(ActorLocationScreen, szBuf, Render::COLOR_RED, false);
 				}();
 
@@ -359,8 +359,9 @@ void Hack::Loop() {
 						return;
 					}
 
-					auto VehicleInfo = GetVehicleInfo(ActorNameHash, szBuf);
-					if (strlen(szBuf) == 0)
+					auto VehicleInfo = GetVehicleInfo(ActorNameHash);
+					const char* szVehicleName = std::get<0>(VehicleInfo).data();
+					if (!*szVehicleName)
 						return;
 
 					float Health = 100.0f;
@@ -368,7 +369,7 @@ void Hack::Loop() {
 					float Fuel = 100.0f;
 					float FuelMax = 100.0f;
 
-					switch (std::get<0>(VehicleInfo)) {
+					switch (std::get<1>(VehicleInfo)) {
 					case VehicleType1::Wheeled:
 					{
 						ATslWheeledVehicle WheeledVehicle;
@@ -406,15 +407,15 @@ void Hack::Loop() {
 					if (ActorNameHash == "BP_LootTruck_C"h && Health <= 0.0f)
 						return;
 
-					bool IsDestructible = (std::get<1>(VehicleInfo) == VehicleType2::Destructible);
+					bool IsDestructible = (std::get<2>(VehicleInfo) == VehicleType2::Destructible);
 
 					ImColor Color = Render::COLOR_BLUE;
-					if (std::get<2>(VehicleInfo) == VehicleType3::Special)
+					if (std::get<3>(VehicleInfo) == VehicleType3::Special)
 						Color = Render::COLOR_TEAL;
 					if (Health <= 0.0f || Fuel <= 0.0f)
 						Color = Render::COLOR_GRAY;
 
-					sprintf(szBuf, "%s\n%.0fM"e, szBuf, DistanceToActor);
+					sprintf(szBuf, "%s\n%.0fM"e, szVehicleName, DistanceToActor);
 					DrawString(ActorLocationScreen, szBuf, Color, false);
 
 					//Draw vehicle health, fuel
@@ -441,19 +442,18 @@ void Hack::Loop() {
 					if (!ItemPtr.Read(Item))
 						return false;
 
-					unsigned ItemHash = NameArr.GetNameHashByID(Item.GetItemID());
+					const unsigned ItemHash = NameArr.GetNameHashByID(Item.GetItemID());
 					if (!ItemHash)
 						return false;
 
-					int ItemPriority = std::get<0>(GetItemInfo(ItemHash, szBuf));
-					ImColor Color = GetItemColor(ItemPriority);
+					const auto ItemInfo = GetItemInfo(ItemHash);
+					const char* szItemName = std::get<0>(ItemInfo).data();
+					const int ItemPriority = std::get<1>(ItemInfo);
 
-					if (ItemPriority >= nItem)
-						DrawString(ItemLocation, szBuf, Color, false);
-					else if (bDebug)
-						DrawString(ItemLocation, szBuf, Render::COLOR_WHITE, false);
-					else
+					if (ItemPriority < nItem && !bDebug)
 						return false;
+
+					DrawString(ItemLocation, szItemName, GetItemColor(ItemPriority), false);
 					return true;
 				};
 
@@ -462,11 +462,11 @@ void Hack::Loop() {
 					if (!bBox || bFighterMode)
 						return;
 
-					GetPackageName(ActorNameHash, szBuf);
-					if (strlen(szBuf) == 0)
+					const char* szPackageName = GetPackageName(ActorNameHash).data();
+					if (!*szPackageName)
 						return;
 
-					sprintf(szBuf, "%s\n%.0fM"e, szBuf, DistanceToActor);
+					sprintf(szBuf, "%s\n%.0fM"e, szPackageName, DistanceToActor);
 					DrawString(ActorLocationScreen, szBuf, Render::COLOR_TEAL, false);
 
 					//DrawBoxContents

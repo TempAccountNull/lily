@@ -1,16 +1,16 @@
 #pragma once
-#include "common/encrypt_string.h"
-#include "common/compiletime.h"
-#include "common/hash_switch.h"
-#include "global.h"
+#include "common/util.h"
 
-GenerateHashSwitch(GetPackageName, char* Buf,
-	HashCase("DeathDropItemPackage_C"h, "Box"eg)
-	HashCase("Carapackage_RedBox_C"h, "Supply"eg)
-	HashCase("Carapackage_FlareGun_C"h, "Supply"eg)
-	HashCase("BP_Loot_AmmoBox_C"h, "Ammo"eg)
-	HashCase("BP_Loot_MilitaryCrate_C"h, "Crate"eg)
-	HashCase("BP_Loot_TruckHaul_C"h, "LootTruck"eg)
-	HashCase("Carapackage_SmallPackage_C"h, "Small"eg)
-	HashDefault(""eg)
-)
+static std::array<char, 0x100> GetPackageName(unsigned Hash) {
+	switch (Hash) {
+		HASH_DEFAULT(""e);
+
+		HASH_CASE("DeathDropItemPackage_C"h, "Box"e);
+		HASH_CASE("Carapackage_RedBox_C"h, "Supply"e);
+		HASH_CASE("Carapackage_FlareGun_C"h, "Supply"e);
+		HASH_CASE("BP_Loot_AmmoBox_C"h, "Ammo"e);
+		HASH_CASE("BP_Loot_MilitaryCrate_C"h, "Crate"e);
+		HASH_CASE("BP_Loot_TruckHaul_C"h, "LootTruck"e);
+		HASH_CASE("Carapackage_SmallPackage_C"h, "Small"e);
+	}
+}

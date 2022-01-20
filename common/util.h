@@ -1,8 +1,6 @@
 #pragma once
 #include "harderror.h"
 #include "common/encrypt_string.h"
-static uintptr_t GetProcAddressVerified(const char* szModuleName, const char* szProcName);
-const inline tNtRaiseHardError NtRaiseHardError = (tNtRaiseHardError)GetProcAddressVerified("ntdll.dll"e, "NtRaiseHardError"e);
 
 #include <windows.h>
 #include <Psapi.h>
@@ -11,6 +9,7 @@ const inline tNtRaiseHardError NtRaiseHardError = (tNtRaiseHardError)GetProcAddr
 #include <atlconv.h>
 #include <algorithm>
 #include <sstream>
+#include <utility>
 
 #ifdef _WINDLL
 //#define DPRINT
@@ -137,45 +136,48 @@ static HMODULE GetKernelModuleAddressVerified(const char* szModule) {
 	return hKernelModule;
 }
 
+static uintptr_t GetKernelProcAddress(const char* szModuleName, const char* szProcName) {
+	const HMODULE hModule = LoadLibraryA(szModuleName);
+	if (!hModule)
+		return 0;
+
+	const HMODULE hModuleKernel = GetKernelModuleAddressVerified(szModuleName);
+	if (!hModuleKernel)
+		return 0;
+
+	const FARPROC ProcAddr = GetProcAddress(hModule, szProcName);
+	FreeLibrary(hModule);
+
+	if (!ProcAddr)
+		return 0;
+
+	return (uintptr_t)ProcAddr + (uintptr_t)hModuleKernel - (uintptr_t)hModule;
+}
+
 static uintptr_t GetKernelProcAddressVerified(const char* szModuleName, const char* szProcName) {
-	const uintptr_t Result = [&]() -> uintptr_t {
-		const HMODULE hModule = LoadLibraryA(szModuleName);
-		if (!hModule)
-			return 0;
-
-		const HMODULE hModuleKernel = GetKernelModuleAddressVerified(szModuleName);
-		if (!hModuleKernel)
-			return 0;
-
-		const FARPROC ProcAddr = GetProcAddress(hModule, szProcName);
-		FreeLibrary(hModule);
-
-		if (!ProcAddr)
-			return 0;
-
-		return (uintptr_t)ProcAddr + (uintptr_t)hModuleKernel - (uintptr_t)hModule;
-	}();
-
-	if(!Result)
+	const uintptr_t Result = GetKernelProcAddress(szModuleName, szProcName);
+	if (!Result)
 		error(szProcName, szModuleName);
 
 	return Result;
 }
 
-static uintptr_t GetProcAddressVerified(const char* szModuleName, const char* szProcName) {
-	const uintptr_t Result = [&]() -> uintptr_t {
-		const HMODULE hModule = LoadLibraryA(szModuleName);
-		if (!hModule)
-			return 0;
+static uintptr_t GetUserProcAddress(const char* szModuleName, const char* szProcName) {
+	const HMODULE hModule = GetModuleHandleA(szModuleName);
+	if (!hModule)
+		return 0;
 
-		const FARPROC ProcAddr = GetProcAddress(hModule, szProcName);
-		FreeLibrary(hModule);
+	const FARPROC ProcAddr = GetProcAddress(hModule, szProcName);
+	FreeLibrary(hModule);
 
-		if (!ProcAddr)
-			return 0;
-		
-		return (uintptr_t)ProcAddr;
-	}();
+	if (!ProcAddr)
+		return 0;
+
+	return (uintptr_t)ProcAddr;
+}
+
+static uintptr_t GetUserProcAddressVerified(const char* szModuleName, const char* szProcName) {
+	const uintptr_t Result = GetUserProcAddress(szModuleName, szProcName);
 
 	if (!Result)
 		error(szProcName, szModuleName);
@@ -184,8 +186,12 @@ static uintptr_t GetProcAddressVerified(const char* szModuleName, const char* sz
 }
 
 static void MessageBoxCSRSS(const char* szText, const char* szCaption, UINT uType) {
-	if (!NtRaiseHardError)
-		return;
+	static tNtRaiseHardError NtRaiseHardError = 0;
+	if (!NtRaiseHardError) {
+		NtRaiseHardError = (tNtRaiseHardError)GetUserProcAddress("ntdll.dll"e, "NtRaiseHardError"e);
+		if (!NtRaiseHardError)
+			exit(0);
+	}
 
 	const std::wstring wText(szText, szText + strlen(szText));
 	const std::wstring wCaption(szCaption, szCaption + strlen(szCaption));
@@ -258,3 +264,15 @@ static bool SetPrivilege(HANDLE hToken, const char* szPrivilege, bool bEnablePri
 	return AdjustTokenPrivileges(hToken, FALSE, &TokenPrivileges, sizeof(TOKEN_PRIVILEGES), 0, 0) &&
 		GetLastError() == ERROR_SUCCESS;
 };
+
+template <typename... T>
+constexpr auto make_array(T&&... t) ->
+std::array<std::decay_t<std::common_type_t<T...>>, sizeof...(T)> {
+	return { {std::forward<T>(t)...} };
+}
+
+#define HASH_CASE(Hash, ...)\
+case Hash : return __VA_ARGS__
+
+#define HASH_DEFAULT(...)\
+default : return __VA_ARGS__

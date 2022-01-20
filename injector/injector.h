@@ -159,14 +159,14 @@ private:
 			if (!hRemoteDLL) {
 				//System32 folder
 				std::string strSystemPathDLL = szSystemDirectory;
-				strSystemPathDLL += "\\"e;
+				strSystemPathDLL += (const char*)"\\"e;
 				strSystemPathDLL += strDLLName;
 				hRemoteDLL = RemoteLoadLibraryExA(strSystemPathDLL.c_str());
 			}
 			if (!hRemoteDLL) {
 				//Injector folder
 				std::string strPathDLL = szDLLDir;
-				strPathDLL += "\\"e;
+				strPathDLL += (const char*)"\\"e;
 				strPathDLL += strDLLName;
 				hRemoteDLL = RemoteLoadLibraryExA(strPathDLL.c_str());
 			}
@@ -217,11 +217,11 @@ private:
 					strMsg += strDLLName;
 
 					if (HIWORD(szFuncName)) {
-						strMsg += " "e;
+						strMsg += (const char*)" "e;
 						strMsg += szFuncName;
 					}
 					else {
-						strMsg += " ordinal "e;
+						strMsg += (const char*)" ordinal "e;
 						strMsg += std::to_string(LOWORD(szFuncName));
 					}
 					return false;
@@ -435,7 +435,7 @@ private:
 			}
 			if (RemoteGetModuleHandleA(szIntoDLL)) {
 				strMsg = szIntoDLL;
-				strMsg += " is already loaded in target process"e;
+				strMsg += (const char*)" is already loaded in target process"e;
 				return 0;
 			}
 
@@ -456,7 +456,7 @@ private:
 			if (MemInfo.RegionSize < BinaryImageSize) {
 				strMsg << "Not enough .text section size\nCurrent size : "e;
 				strMsg += std::to_string(MemInfo.RegionSize);
-				strMsg += "\nRequired size : "e;
+				strMsg += (const char*)"\nRequired size : "e;
 				strMsg += std::to_string(BinaryImageSize);
 				return 0;
 			}
@@ -571,7 +571,7 @@ public:
 		char szDLLPath[MAX_PATH];
 		GetFinalPathNameByHandleA(hFile, szDLLPath, MAX_PATH, FILE_NAME_OPENED);
 		std::string strDLLDir = szDLLPath;
-		strDLLDir = strDLLDir.substr(0, strDLLDir.find_last_of("\\\\"e));
+		strDLLDir = strDLLDir.substr(0, strDLLDir.find_last_of((const char*)"\\\\"e));
 
 		CloseHandle(hFile);
 

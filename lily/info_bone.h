@@ -1,5 +1,5 @@
 #pragma once
-#include <utility>
+#include "common/util.h"
 
 //20211127
 enum Bones : int
@@ -220,18 +220,6 @@ enum Bones : int
 	VB_camera_fpp_clavicle_r = 213,
 	VB_lowerarm_l_hand_l = 214,
 };
-
-template <typename... T>
-constexpr auto make_array(T&&... values) ->
-std::array<
-	typename std::decay<
-	typename std::common_type<T...>::type>::type,
-	sizeof...(T)> {
-	return std::array<
-		typename std::decay<
-		typename std::common_type<T...>::type>::type,
-		sizeof...(T)>{std::forward<T>(values)...};
-}
 
 auto GetBoneIndexArray() {
 	return make_array(

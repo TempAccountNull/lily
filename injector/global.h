@@ -5,8 +5,6 @@
 
 class Global {
 public:
-	static inline char Buf[0x200];
-
 	static void SetModuleInfo(auto Base, auto Size) {
 		ModuleBase = (uintptr_t)Base;
 		ModuleSize = (uintptr_t)Size;

@@ -206,7 +206,7 @@ namespace fixstr
             if constexpr (pos >= size)
                 return 0;
 
-            constexpr size_type rcount = std::min(count, size - pos);
+            constexpr size_type rcount = count < (size - pos) ? count : (size - pos);
 
             return rcount;
         }
