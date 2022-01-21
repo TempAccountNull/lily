@@ -6,26 +6,27 @@
 template<std::array Data, unsigned Seed>
 struct EncryptedData {
 public:
-	using Type = std::remove_cvref_t<decltype(Data[0])>;
+	using TStdArray = std::remove_cvref_t<decltype(Data)>;
+	using TElem = std::remove_cvref_t<decltype(Data[0])>;
 	constexpr static size_t Size = Data.size();
-	constexpr static std::array<Type, Size> _Data = [] {
-		std::array<Type, Size> temp{};
+	constexpr static TStdArray _Data = [] {
+		TStdArray temp{};
 		unsigned _Seed = Seed;
 		for (size_t i = 0; i < Size; i++)
-			temp[i] = Data[i] ^ (Type)CompileTime::Rand(_Seed);
+			temp[i] = Data[i] ^ (TElem)CompileTime::Rand(_Seed);
 		return temp;
 	}();
 
 	consteval EncryptedData() {}
 
-	__forceinline void Decrypt(Type* Dst) const {
-		constexpr decltype(_Data) HardCodedData = _Data;
-		*(std::array<Type, Size>*)Dst = HardCodedData;
+	__forceinline void Decrypt(TElem* Dst) const {
+		constexpr TStdArray HardCodedData = _Data;
+		*(TStdArray*)Dst = HardCodedData;
 
 		//+[] makes lambda not inlined.
-		auto _Decrypt = +[](Type* Dst, size_t Size, unsigned _Seed) {
+		auto _Decrypt = +[](TElem* Dst, size_t Size, unsigned _Seed) {
 			for (size_t i = 0; i < Size; i++)
-				Dst[i] ^= (Type)CompileTime::Rand(_Seed);
+				Dst[i] ^= (TElem)CompileTime::Rand(_Seed);
 		};
 
 		_Decrypt(Dst, Size, Seed);
@@ -35,23 +36,23 @@ public:
 template <fixstr::basic_fixed_string Src>
 class EncryptedString {
 private:
-	using Type = std::remove_cvref_t<decltype(Src[0])>;
+	using TElem = std::remove_cvref_t<decltype(Src[0])>;
 	constexpr static auto Size = Src.size() + 1;
 	constexpr static auto Data = EncryptedData<Src._data, CompileTime::Hash(Src.data())>();
 
 	template <size_t N>
-	using TArray = Type(&)[N];
+	using TArray = TElem(&)[N];
 	template <size_t N>
-	using TStdArray = std::array<Type, N>;
+	using TStdArray = std::array<TElem, N>;
 	template <size_t N>
-	using TFixedString = fixstr::basic_fixed_string<Type, N>;
-	using TStdString = std::basic_string<Type>;
+	using TFixedString = fixstr::basic_fixed_string<TElem, N>;
+	using TStdString = std::basic_string<TElem>;
 
 public:
 	EncryptedString() noexcept {}
 	~EncryptedString() noexcept {}
 
-	void MoveString(Type* Dst) const noexcept {
+	void MoveString(TElem* Dst) const noexcept {
 		Data.Decrypt(Dst);
 	}
 
@@ -110,16 +111,16 @@ public:
 		return GetStdString();
 	}
 
-	friend Type* operator<<(Type* Dst, const EncryptedString<Src> Str) noexcept {
+	friend TElem* operator<<(TElem* Dst, const EncryptedString<Src> Str) noexcept {
 		Str.MoveString(Dst);
 		return Dst;
 	}
 
 private:
-	mutable Type _Buf[Size];
+	mutable TElem _Buf[Size];
 
 public:
-	operator const Type* () const noexcept {
+	operator const TElem* () const noexcept {
 		MoveArray(_Buf);
 		return _Buf;
 	}
