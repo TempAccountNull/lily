@@ -127,8 +127,7 @@ public:
 			ImGui::Begin("injector"e, 0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
 
 			if (dbvm.GetVersion()) {
-				std::string strMsg;
-				strMsg << "dbvm loaded. "e;
+				std::string strMsg = "dbvm loaded. "e;
 				strMsg += std::to_string(dbvm.GetMemory() / 0x1000);
 				strMsg += (const char*)" pages free"e;
 				ImGui::Text(strMsg.c_str());

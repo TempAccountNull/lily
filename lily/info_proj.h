@@ -1,9 +1,10 @@
 #pragma once
 #include "common/util.h"
 
-static std::array<char, 0x100> GetProjName(unsigned Hash) {
+static fixstr::basic_fixed_string<char, 0x100> GetProjName(unsigned Hash) {
 	switch (Hash) {
 		HASH_DEFAULT(""e);
+
 		HASH_CASE("ProjGrenade_C"h, "Grenade"e);
 		HASH_CASE("ProjFlashBang_C"h, "Flash"e);
 		HASH_CASE("ProjMolotov_C"h, "Molotov"e);

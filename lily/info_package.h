@@ -1,7 +1,7 @@
 #pragma once
 #include "common/util.h"
 
-static std::array<char, 0x100> GetPackageName(unsigned Hash) {
+static fixstr::basic_fixed_string<char, 0x100> GetPackageName(unsigned Hash) {
 	switch (Hash) {
 		HASH_DEFAULT(""e);
 

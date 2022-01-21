@@ -1,10 +1,15 @@
 #pragma once
-#include <tuple>
 #include "common/util.h"
 
-static std::tuple<std::array<char, 0x100>, int> GetItemInfo(unsigned Hash) {
+struct ItemInfo {
+	fixstr::basic_fixed_string<char, 0x100> ItemName;
+	int ItemPriority;
+};
+
+static ItemInfo GetItemInfo(unsigned Hash) {
 	switch (Hash) {
 		HASH_DEFAULT({ ""e, 0 });
+
 		HASH_CASE("Item_Ammo_12Guage_C"h, { "12"e, 2 });
 		HASH_CASE("Item_Ammo_300Magnum_C"h, { "300"e, 4 });
 		HASH_CASE("Item_Ammo_45ACP_C"h, { "45"e, 1 });

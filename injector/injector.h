@@ -101,29 +101,29 @@ private:
 		IMAGE_DOS_HEADER dosHd;
 		GetBinaryData(0, 0, dosHd);
 		if (dosHd.e_magic != IMAGE_DOS_SIGNATURE) {
-			strMsg << "Invalid DOS signature"e;
+			strMsg = (std::string)"Invalid DOS signature"e;
 			return false;
 		}
 
 		OffsetNtHeader = dosHd.e_lfanew;
 		GetBinaryData(OffsetNtHeader, 0, ntHd);
 		if (ntHd.Signature != IMAGE_NT_SIGNATURE) {
-			strMsg << "Invalid NT signature"e;
+			strMsg = (std::string)"Invalid NT signature"e;
 			return false;
 		}
 
 		if (!(ntHd.FileHeader.Characteristics & IMAGE_FILE_EXECUTABLE_IMAGE)) {
-			strMsg << "File is not executable"e;
+			strMsg = (std::string)"File is not executable"e;
 			return false;
 		}
 
 		if (ntHd.OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
-			strMsg << "File is not 64bit application"e;
+			strMsg = (std::string)"File is not 64bit application"e;
 			return false;
 		}
 
 		if (!process.IsPlatformMatched()) {
-			strMsg << "Target process is not 64bit process"e;
+			strMsg = (std::string)"Target process is not 64bit process"e;
 			return false;
 		}
 
@@ -139,7 +139,7 @@ private:
 
 		char szSystemDirectory[MAX_PATH];
 		if (!GetSystemDirectoryA(szSystemDirectory, sizeof(szSystemDirectory))) {
-			strMsg << "GetSystemDirectoryA Failed"e;
+			strMsg = (std::string)"GetSystemDirectoryA Failed"e;
 			return false;
 		}
 
@@ -173,7 +173,7 @@ private:
 
 			char szFileName[MAX_PATH];
 			if (!hRemoteDLL || !process.RemoteGetModuleFileNameExA(hRemoteDLL, szFileName, sizeof(szFileName))) {
-				strMsg << "RemoteLoadLibrary failed : "e;
+				strMsg = (std::string)"RemoteLoadLibrary failed : "e;
 				strMsg += strDLLName;
 				return false;
 			}
@@ -213,7 +213,7 @@ private:
 				}();
 
 				if (!pRemoteFuncAddress) {
-					strMsg << "RemoteGetProcAddress failed : "e;
+					strMsg = (std::string)"RemoteGetProcAddress failed : "e;
 					strMsg += strDLLName;
 
 					if (HIWORD(szFuncName)) {
@@ -291,7 +291,7 @@ private:
 				case IMAGE_REL_BASED_ABSOLUTE:
 					break;
 				default:
-					strMsg << "Unknown base relocation type"e;
+					strMsg = (std::string)"Unknown base relocation type"e;
 					strMsg += std::to_string(RelocType);
 					return false;
 				}
@@ -419,18 +419,18 @@ private:
 			pRemoteImageBase = process.RemoteVirtualAlloc(pAllocAddress, BinaryImageSize,
 				MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 			if (!pRemoteImageBase || (pAllocAddress && pAllocAddress != pRemoteImageBase)) {
-				strMsg << "RemoteVirtualAlloc failed"e;
+				strMsg = (std::string)"RemoteVirtualAlloc failed"e;
 				return 0;
 			}
 			break;
 		}
 		case EInjectionType::IntoDLL: {
 			if (!IsRelocatable) {
-				strMsg << "Image is not relocatable"e;
+				strMsg = (std::string)"Image is not relocatable"e;
 				return 0;
 			}
 			if (!szIntoDLL || !strlen(szIntoDLL)) {
-				strMsg << "No DLL specified"e;
+				strMsg = (std::string)"No DLL specified"e;
 				return 0;
 			}
 			if (RemoteGetModuleHandleA(szIntoDLL)) {
@@ -441,7 +441,7 @@ private:
 
 			pRemoteImageBase = RemoteLoadLibraryExA(szIntoDLL, DONT_RESOLVE_DLL_REFERENCES);
 			if (!pRemoteImageBase) {
-				strMsg << "RemoteLoadLibrary failed : "e;
+				strMsg = (std::string)"RemoteLoadLibrary failed : "e;
 				strMsg += szIntoDLL;
 				return 0;
 			}
@@ -449,12 +449,12 @@ private:
 
 			MEMORY_BASIC_INFORMATION MemInfo;
 			if (!process.RemoteVirtualQuery(pRemoteImageBase, &MemInfo, sizeof(MemInfo))) {
-				strMsg << "VirtualQueryEx Failed"e;
+				strMsg = (std::string)"VirtualQueryEx Failed"e;
 				return 0;
 			}
 
 			if (MemInfo.RegionSize < BinaryImageSize) {
-				strMsg << "Not enough .text section size\nCurrent size : "e;
+				strMsg = (std::string)"Not enough .text section size\nCurrent size : "e;
 				strMsg += std::to_string(MemInfo.RegionSize);
 				strMsg += (const char*)"\nRequired size : "e;
 				strMsg += std::to_string(BinaryImageSize);
@@ -462,7 +462,7 @@ private:
 			}
 
 			if (!process.BypassCFG()) {
-				strMsg << "BypassCFG Failed"e;
+				strMsg = (std::string)"BypassCFG Failed"e;
 				return 0;
 			}
 			break;
@@ -478,12 +478,12 @@ private:
 
 		std::vector<uint8_t> ZeroFill(BinaryImageSize, 0);
 		if (!process.RemoteWriteProcessMemory(pRemoteImageBase, ZeroFill.data(), BinaryImageSize, 0)) {
-			strMsg << "Initializing space failed"e;
+			strMsg = (std::string)"Initializing space failed"e;
 			return 0;
 		}
 
 		if (!InsertBinary(OffsetNtHeader, ntHd, (uintptr_t)pRemoteImageBase)) {
-			strMsg << "Inserting binary failed"e;
+			strMsg = (std::string)"Inserting binary failed"e;
 			return 0;
 		}
 
@@ -497,12 +497,12 @@ private:
 
 		bool IsTLSCallbackExist = false;
 		if (!CallTLSCallbacks(OffsetNtHeader, ntHd, (uintptr_t)pRemoteImageBase, IsTLSCallbackExist)) {
-			strMsg << "Calling TLS Callback failed"e;
+			strMsg = (std::string)"Calling TLS Callback failed"e;
 			return 0;
 		}
 
 		if (InjectionType == EInjectionType::NxBitSwap && !IsTLSCallbackExist && !IsDLL) {
-			strMsg << "Executable does not have TLS callback"e;
+			strMsg = (std::string)"Executable does not have TLS callback"e;
 			return 0;
 		}
 
@@ -540,7 +540,7 @@ private:
 		}();
 
 		if (!bSuccess) {
-			strMsg << "Calling entrypoint failed"e;
+			strMsg = (std::string)"Calling entrypoint failed"e;
 			return 0;
 		}
 

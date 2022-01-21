@@ -360,7 +360,7 @@ void Hack::Loop() {
 					}
 
 					auto VehicleInfo = GetVehicleInfo(ActorNameHash);
-					const char* szVehicleName = std::get<0>(VehicleInfo).data();
+					const char* szVehicleName = VehicleInfo.VehicleName.data();
 					if (!*szVehicleName)
 						return;
 
@@ -369,7 +369,7 @@ void Hack::Loop() {
 					float Fuel = 100.0f;
 					float FuelMax = 100.0f;
 
-					switch (std::get<1>(VehicleInfo)) {
+					switch (VehicleInfo.Type1) {
 					case VehicleType1::Wheeled:
 					{
 						ATslWheeledVehicle WheeledVehicle;
@@ -407,10 +407,10 @@ void Hack::Loop() {
 					if (ActorNameHash == "BP_LootTruck_C"h && Health <= 0.0f)
 						return;
 
-					bool IsDestructible = (std::get<2>(VehicleInfo) == VehicleType2::Destructible);
+					bool IsDestructible = (VehicleInfo.Type2 == VehicleType2::Destructible);
 
 					ImColor Color = Render::COLOR_BLUE;
-					if (std::get<3>(VehicleInfo) == VehicleType3::Special)
+					if (VehicleInfo.Type3 == VehicleType3::Special)
 						Color = Render::COLOR_TEAL;
 					if (Health <= 0.0f || Fuel <= 0.0f)
 						Color = Render::COLOR_GRAY;
@@ -447,8 +447,8 @@ void Hack::Loop() {
 						return false;
 
 					const auto ItemInfo = GetItemInfo(ItemHash);
-					const char* szItemName = std::get<0>(ItemInfo).data();
-					const int ItemPriority = std::get<1>(ItemInfo);
+					const char* szItemName = ItemInfo.ItemName.data();
+					const int ItemPriority = ItemInfo.ItemPriority;
 
 					if (ItemPriority < nItem && !bDebug)
 						return false;

@@ -185,14 +185,14 @@ void InjectorUI::OnButtonDBVM() {
 		}();
 
 		if (IsDBVMAlreadyLoaded) {
-			strMsg << "dbvm already loaded. "e;
+			strMsg = (std::string)"dbvm already loaded. "e;
 			strMsg += std::to_string(dbvm.GetMemory() / 0x1000);
 			strMsg += (const char*)" pages free"e;
 			return true;
 		}
 
 		if (!DBVM::IsDBVMCapable()) {
-			strMsg << "Your system DOES NOT support DBVM."e;
+			strMsg = (std::string)"Your system DOES NOT support DBVM."e;
 			return false;
 		}
 
@@ -213,7 +213,7 @@ void InjectorUI::OnButtonDBVM() {
 		}
 
 		if (!IsFileExist(strPathImg.c_str())) {
-			strMsg << "vmdisk.img does not exist."e;
+			strMsg = (std::string)"vmdisk.img does not exist."e;
 			return false;
 		}
 
@@ -222,7 +222,7 @@ void InjectorUI::OnButtonDBVM() {
 
 		HKEY hKey;
 		if (RegCreateKeyA(HKEY_LOCAL_MACHINE, strSubKey.c_str(), &hKey) || RegOpenKeyA(HKEY_LOCAL_MACHINE, strSubKey.c_str(), &hKey)) {
-			strMsg << "Cannot open registry."e;
+			strMsg = (std::string)"Cannot open registry."e;
 			return false;
 		}
 
@@ -238,7 +238,7 @@ void InjectorUI::OnButtonDBVM() {
 		RegCloseKey(hKey);
 
 		if (!StartDriver(szServiceName, strPathSys.c_str())) {
-			strMsg << "Could not launch DBVM: StartService Failed."e;
+			strMsg = (std::string)"Could not launch DBVM: StartService Failed."e;
 			return false;
 		}
 
@@ -253,21 +253,21 @@ void InjectorUI::OnButtonDBVM() {
 		);
 
 		if (hDevice == INVALID_HANDLE_VALUE) {
-			strMsg << "Could not launch DBVM: INVALID_HANDLE_VALUE."e;
+			strMsg = (std::string)"Could not launch DBVM: INVALID_HANDLE_VALUE."e;
 			return false;
 		}
 
 		if (dbvm.IsAMD()) {
 			uint64_t msr = ReadMSR(hDevice, 0xC0010114);
 			if ((msr & (1 << 3)) && (msr & (1 << 4))) {
-				strMsg << "Could not launch DBVM: The AMD-v feature has been disabled in your BIOS."e;
+				strMsg = (std::string)"Could not launch DBVM: The AMD-v feature has been disabled in your BIOS."e;
 				return false;
 			}
 		}
 		else {
 			uint64_t msr = ReadMSR(hDevice, 0x3A);
 			if ((msr & 1) && !(msr & (1 << 2))) {
-				strMsg << "Could not launch DBVM: The Intel-VT feature has been disabled in your BIOS."e;
+				strMsg = (std::string)"Could not launch DBVM: The Intel-VT feature has been disabled in your BIOS."e;
 				return false;
 			}
 		}
@@ -276,7 +276,7 @@ void InjectorUI::OnButtonDBVM() {
 
 		dbvm.SetDefaultPassword();
 		if (!dbvm.GetVersion()) {
-			strMsg << "Could not launch DBVM: DeviceIoControl Failed."e;
+			strMsg = (std::string)"Could not launch DBVM: DeviceIoControl Failed."e;
 			return false;
 		}
 
@@ -289,7 +289,7 @@ void InjectorUI::OnButtonDBVM() {
 			IsHided = true;
 		}
 
-		strMsg << "dbvm loaded. "e;
+		strMsg = (std::string)"dbvm loaded. "e;
 		strMsg += std::to_string(dbvm.GetMemory() / 0x1000);
 		strMsg += (const char*)" pages free"e;
 		if (IsHided)
@@ -333,19 +333,19 @@ void InjectorUI::OnButtonInject() {
 	bInjected = [&] {
 		FILE* in = fopen(szImageName, "r"e);
 		if (!in) {
-			strMsg << "Image not exist."e;
+			strMsg = (std::string)"Image not exist."e;
 			return false;
 		}
 		fclose(in);
 
 		if (InjectionType == EInjectionType::NxBitSwap && !dbvm.GetVersion()) {
-			strMsg << "DBVM is not loaded."e;
+			strMsg = (std::string)"DBVM is not loaded."e;
 			return false;
 		}
 
 		const DWORD dwPid = GetPID(szProcessName, bCreateProcess);
 		if (!dwPid) {
-			strMsg << "No target process"e;
+			strMsg = (std::string)"No target process"e;
 			return false;
 		}
 

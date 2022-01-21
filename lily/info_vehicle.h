@@ -1,5 +1,4 @@
 #pragma once
-#include <tuple>
 #include "common/util.h"
 
 enum class VehicleType1 {
@@ -18,7 +17,14 @@ enum class VehicleType3 {
 	Special
 };
 
-static std::tuple<std::array<char, 0x100>, VehicleType1, VehicleType2, VehicleType3> GetVehicleInfo(unsigned Hash) {
+struct VehicleInfo {
+	fixstr::basic_fixed_string<char, 0x100> VehicleName;
+	VehicleType1 Type1;
+	VehicleType2 Type2;
+	VehicleType3 Type3;
+};
+
+static VehicleInfo GetVehicleInfo(unsigned Hash) {
 	switch (Hash) {
 		HASH_DEFAULT({ ""e, VehicleType1::None, VehicleType2::Destructible, VehicleType3::Normal });
 

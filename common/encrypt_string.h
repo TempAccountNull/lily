@@ -3,120 +3,138 @@
 #include "fixed_string.hpp"
 #include "compiletime.h"
 
-template <class Type>
-__declspec(noinline) void _Decrypt(Type* Dst, unsigned Seed, size_t Len) noexcept {
-	for (size_t i = 0; i < Len; i++)
-		Dst[i] ^= (Type)CompileTime::Rand(Seed);
-};
-
-template<class Type, size_t Len, unsigned Seed>
+template<std::array Data, unsigned Seed>
 struct EncryptedData {
-	using StorageType = std::array<Type, Len>;
-	StorageType _data;
-
-	constexpr EncryptedData(const StorageType& Src) noexcept {
+public:
+	using Type = std::remove_cvref_t<decltype(Data[0])>;
+	constexpr static size_t Size = Data.size();
+	constexpr static std::array<Type, Size> _Data = [] {
+		std::array<Type, Size> temp{};
 		unsigned _Seed = Seed;
-		for (size_t i = 0; i < Len; i++)
-			_data[i] = Src[i] ^ (Type)CompileTime::Rand(_Seed);
-	}
+		for (size_t i = 0; i < Size; i++)
+			temp[i] = Data[i] ^ (Type)CompileTime::Rand(_Seed);
+		return temp;
+	}();
 
-	void Decrypt() noexcept {
-		_Decrypt(_data.data(), Seed, Len);
-	};
+	consteval EncryptedData() {}
+
+	__forceinline void Decrypt(Type* Dst) const {
+		constexpr decltype(_Data) HardCodedData = _Data;
+		*(std::array<Type, Size>*)Dst = HardCodedData;
+
+		//+[] makes lambda not inlined.
+		auto _Decrypt = +[](Type* Dst, size_t Size, unsigned _Seed) {
+			for (size_t i = 0; i < Size; i++)
+				Dst[i] ^= (Type)CompileTime::Rand(_Seed);
+		};
+
+		_Decrypt(Dst, Size, Seed);
+	}
 };
 
 template <fixstr::basic_fixed_string Src>
 class EncryptedString {
 private:
 	using Type = std::remove_cvref_t<decltype(Src[0])>;
-	constexpr static auto Len = Src.size() + 1;
-	constexpr static unsigned Seed = CompileTime::Hash(Src.data());
-	using EncryptedType = EncryptedData<Type, Len, Seed>;
+	constexpr static auto Size = Src.size() + 1;
+	constexpr static auto Data = EncryptedData<Src._data, CompileTime::Hash(Src.data())>();
+
+	template <size_t N>
+	using TArray = Type(&)[N];
+	template <size_t N>
+	using TStdArray = std::array<Type, N>;
+	template <size_t N>
+	using TFixedString = fixstr::basic_fixed_string<Type, N>;
+	using TStdString = std::basic_string<Type>;
+
+public:
+	EncryptedString() noexcept {}
+	~EncryptedString() noexcept {}
 
 	void MoveString(Type* Dst) const noexcept {
-		constexpr EncryptedType Data = Src._data;
-		EncryptedType& DstData = *(EncryptedType*)Dst;
-		DstData = Data;
-		DstData.Decrypt();
+		Data.Decrypt(Dst);
 	}
 
-	template <size_t N> requires (N >= Len)
-	void MoveArray(Type(&Dst)[N]) const noexcept {
+	template <size_t N>
+	void MoveArray(TArray<N> Dst) const noexcept {
+		static_assert(N >= Size, "Too less array size");
 		MoveString(Dst);
 	}
 
-	template <size_t N> requires (N >= Len)
-	void MoveStdArray(std::array<Type, N>& Dst) const noexcept {
+	template <size_t N>
+	void MoveStdArray(TStdArray<N>& Dst) const noexcept {
+		MoveArray<N>(Dst._Elems);
+	}
+
+	template <size_t N>
+	void MoveFixedString(TFixedString<N>& Dst) const noexcept {
+		MoveArray<N + 1>(Dst._data._Elems);
+	}
+
+	void MoveStdString(TStdString& Dst) const noexcept {
+		Dst.resize(Size - 1);
 		MoveString(Dst.data());
 	}
 
-	void MoveStdString(std::basic_string<Type>& Dst) const noexcept {
-		Dst.resize(Src.size());
-		MoveString(Dst.data());
+	template <size_t N>
+	TStdArray<N> GetStdArray() const noexcept {
+		TStdArray<N> Dst;
+		MoveStdArray<N>(Dst);
+		return Dst;
 	}
 
-public:
-	std::basic_string<Type> GetStdString() const noexcept {
-		std::basic_string<Type> Dst;
+	template <size_t N>
+	TFixedString<N> GetFixedString() const noexcept {
+		TFixedString<N> Dst;
+		MoveFixedString<N>(Dst);
+		return Dst;
+	}
+
+	TStdString GetStdString() const noexcept {
+		TStdString Dst;
 		MoveStdString(Dst);
 		return Dst;
 	}
 
-	template <size_t N> requires (N >= Len)
-	std::array<Type, N> GetStdArray() const noexcept {
-		std::array<Type, N> Result;
-		MoveStdArray<N>(Result);
-		return Result;
-	}
-
-	template <size_t N> requires (N >= Len)
-	operator const std::array<Type, N>() const noexcept {
+	template <size_t N>
+	operator const TStdArray<N>() const noexcept {
 		return GetStdArray<N>();
 	}
 
-	operator const std::basic_string<Type>() const noexcept {
+	template <size_t N>
+	operator const TFixedString<N>() const noexcept {
+		return GetFixedString<N>();
+	}
+
+	operator const TStdString() const noexcept {
 		return GetStdString();
 	}
 
-private:
-	mutable Type _Buf[Src.size() + 1];
-
-public:
-	EncryptedString() noexcept {}
-
-	operator const Type* () const noexcept {
-		MoveArray(_Buf);
-		return _Buf;
-	}
-
-	//Decrypt string and put into buffer.
 	friend Type* operator<<(Type* Dst, const EncryptedString<Src> Str) noexcept {
 		Str.MoveString(Dst);
 		return Dst;
 	}
 
-	//Decrypt string and put into std::array.
-	template <size_t N> requires (N >= Len)
-	friend std::array<Type, N>& operator<<(std::array<Type, N>& Dst, const EncryptedString<Src> Str) noexcept {
-		Str.MoveStdArray(Dst);
-		return Dst;
-	}
+private:
+	mutable Type _Buf[Size];
 
-	//Decrypt string and put into std::basic_string.
-	friend std::basic_string<Type>& operator<<(std::basic_string<Type>& Dst, const EncryptedString<Src> Str) noexcept {
-		Str.MoveStdString(Dst);
-		return Dst;
+public:
+	operator const Type* () const noexcept {
+		MoveArray(_Buf);
+		return _Buf;
 	}
 };
 
 #pragma warning(disable : 4455)
 #ifndef __INTELLISENSE__
 template <fixstr::basic_fixed_string Src>
-const EncryptedString<Src> operator""e() noexcept { return EncryptedString<Src>(); }
+auto operator""e() noexcept {
+	return EncryptedString<Src>();
+}
 #else
-const EncryptedString<fixstr::fixed_string<0>()> operator""e(const char*, size_t);
-const EncryptedString<fixstr::fixed_wstring<0>()> operator""e(const wchar_t*, size_t);
-const EncryptedString<fixstr::fixed_u8string<0>()> operator""e(const char8_t*, size_t);
-const EncryptedString<fixstr::fixed_u16string<0>()> operator""e(const char16_t*, size_t);
-const EncryptedString<fixstr::fixed_u32string<0>()> operator""e(const char32_t*, size_t);
+EncryptedString<"str"> operator""e(const char*, size_t) {}
+EncryptedString<L"str"> operator""e(const wchar_t*, size_t) {}
+EncryptedString<u8"str"> operator""e(const char8_t*, size_t) {}
+EncryptedString<u"str"> operator""e(const char16_t*, size_t) {}
+EncryptedString<U"str"> operator""e(const char32_t*, size_t) {}
 #endif

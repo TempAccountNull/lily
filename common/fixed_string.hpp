@@ -102,7 +102,11 @@ namespace fixstr
     {
         // exposition only
         using storage_type = std::array<TChar, N + 1>;
+#ifndef __INTELLISENSE__
+        storage_type _data;
+#else
         storage_type _data{};
+#endif
 
         using traits_type = TTraits;
         using value_type = TChar;
@@ -228,7 +232,7 @@ namespace fixstr
             -> substr_result_type<pos, count>
             // clang-format on
         {
-            substr_result_type<pos, count> result;
+            substr_result_type<pos, count> result{};
             details::copy(begin() + pos, begin() + pos + result.size(), result.begin());
             return result;
         }
