@@ -24,19 +24,24 @@
 #endif
 
 static void MessageBoxCSRSS(const char* szText, const char* szCaption, UINT uType);
+static void MessageBoxCSRSS(const wchar_t* szText, const wchar_t* szCaption, UINT uType);
 
-static void error(const char* szMsg, const char* szTitle = "Error!"e) {
+static void error(const char* Msg, const char* Title = "Error"e) {
 #ifdef DEBUG
-	MessageBoxA(0, szMsg, szTitle, MB_ICONERROR | MB_TOPMOST);
+	MessageBoxA(0, Msg, Title, MB_ICONERROR | MB_TOPMOST);
 #else
-	MessageBoxCSRSS(szMsg, szTitle, MB_ICONERROR);
+	MessageBoxCSRSS(Msg, Title, MB_ICONERROR);
 #endif
 	exit(0);
 }
 
-static void error(const wchar_t* wMsg, const wchar_t* wTitle = L"Error!"e) {
-	USES_CONVERSION;
-	error(W2A(wMsg), W2A(wTitle));
+static void error(const wchar_t* Msg, const wchar_t* Title = L"Error"e) {
+#ifdef DEBUG
+	MessageBoxW(0, Msg, Title, MB_ICONERROR | MB_TOPMOST);
+#else
+	MessageBoxCSRSS(Msg, Title, MB_ICONERROR);
+#endif
+	exit(0);
 }
 
 template<fixstr::basic_fixed_string path>
@@ -74,7 +79,7 @@ static std::string ws2s(const std::wstring& wstr) {
 
 static std::wstring to_hex_string(uintptr_t i) {
 	std::wstringstream s;
-	s << L"0x" << std::hex << i;
+	s << L"0x"e << std::hex << i;
 	return s.str();
 }
 
@@ -107,7 +112,7 @@ static void* VirtualAllocVerified(size_t Size, DWORD dwProtect) {
 	}();
 
 	if (!pResult)
-		error("VirtualAlloc failed"e);
+		error("VirtualAlloc"e);
 
 	return pResult;
 }
@@ -131,7 +136,7 @@ static HMODULE GetKernelModuleAddressVerified(const char* szModule) {
 	}();
 
 	if (!hKernelModule)
-		error(szModule, "Kernel module not exist."e);
+		error(szModule);
 
 	return hKernelModule;
 }
@@ -185,7 +190,7 @@ static uintptr_t GetUserProcAddressVerified(const char* szModuleName, const char
 	return Result;
 }
 
-static void MessageBoxCSRSS(const char* szText, const char* szCaption, UINT uType) {
+static void MessageBoxCSRSS(const wchar_t* Text, const wchar_t* Caption, UINT uType) {
 	static tNtRaiseHardError NtRaiseHardError = 0;
 	if (!NtRaiseHardError) {
 		NtRaiseHardError = (tNtRaiseHardError)GetUserProcAddress("ntdll.dll"e, "NtRaiseHardError"e);
@@ -193,17 +198,22 @@ static void MessageBoxCSRSS(const char* szText, const char* szCaption, UINT uTyp
 			exit(0);
 	}
 
-	const std::wstring wText(szText, szText + strlen(szText));
-	const std::wstring wCaption(szCaption, szCaption + strlen(szCaption));
-	const UNICODE_STRING uText = { (USHORT)(wText.size() * 2), (USHORT)(wText.size() * 2), (PWCH)wText.c_str() };
-	const UNICODE_STRING uCaption = { (USHORT)(wCaption.size() * 2), (USHORT)(wCaption.size() * 2), (PWCH)wCaption.c_str() };
+	const USHORT LenText = (USHORT)(wcslen(Text) * sizeof(wchar_t));
+	const USHORT LenCaption = (USHORT)(wcslen(Caption) * sizeof(wchar_t));
+	const UNICODE_STRING uText = { LenText, LenText, (PWSTR)Text };
+	const UNICODE_STRING uCaption = { LenCaption, LenCaption, (PWSTR)Caption };
 	HARDERROR_RESPONSE Response;
 
 	uintptr_t Params[] = { (uintptr_t)&uText, (uintptr_t)&uCaption, (uintptr_t)uType };
 	constexpr auto NumOfParams = sizeof(Params) / sizeof(*Params);
-
 	constexpr auto STATUS_SERVICE_NOTIFICATION = 0x40000018;
+
 	NtRaiseHardError(STATUS_SERVICE_NOTIFICATION, NumOfParams, (1 << 0) | (1 << 1), Params, OptionOkNoWait, &Response);
+}
+
+static void MessageBoxCSRSS(const char* Text, const char* Caption, UINT uType) {
+	USES_CONVERSION;
+	MessageBoxCSRSS(A2W(Text), A2W(Caption), uType);
 }
 
 static DWORD GetPIDFromHWND(HWND hWnd) {

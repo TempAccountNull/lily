@@ -6,49 +6,40 @@ void Hack::DrawHotkey() const {
 	if (NoticeTimeRemain == 0)
 		return;
 
-	szBuf[0] = 0;
+	std::string strNotice;
 
-	if (bFighterMode)	strcat(szBuf, "Fighter Mode(~) : ON"e);
-	else				strcat(szBuf, "Fighter Mode(~) : OFF"e);
-	strcat(szBuf, "\n"e);
+	auto AddOnOff = [&](const std::string& strFuncName, bool bOnOff) {
+		strNotice += strFuncName;
+		if (bOnOff)
+			strNotice += (std::string)" : ON\n"e;
+		else
+			strNotice += (std::string)" : OFF\n"e;
+	};
 
-	if (bESP)			strcat(szBuf, "ESP(F1) : ON"e);
-	else				strcat(szBuf, "ESP(F1) : OFF"e);
-	strcat(szBuf, "\n"e);
+	AddOnOff("Fighter Mode(~)"e, bFighterMode);
+	AddOnOff("ESP(F1)"e, bESP);
+	AddOnOff("Vehicle(F2)"e, bVehicle);
+	AddOnOff("Box(F3)"e, bBox);
 
-	if (bVehicle)		strcat(szBuf, "Vehicle(F2) : ON"e);
-	else				strcat(szBuf, "Vehicle(F2) : OFF"e);
-	strcat(szBuf, "\n"e);
+	strNotice += (std::string)"Item(F4) : "e;
+	strNotice += nItem > 0 ? std::to_string(nItem) : "OFF"e;
+	strNotice += (std::string)"\n"e;
 
-	if (bBox)			strcat(szBuf, "Box(F3) : ON"e);
-	else				strcat(szBuf, "Box(F3) : OFF"e);
-	strcat(szBuf, "\n"e);
+	strNotice += (std::string)"Aimbot(F5) : "e;
+	strNotice +=
+		nAimbot == 1 ? (std::string)"Normal"e :
+		nAimbot == 2 ? (std::string)"Silent"e :
+		nAimbot == 3 ? (std::string)"Aimbot(F5) : Silent (Dangerous!)"e :
+		"OFF"e;
+	strNotice += (std::string)"\n"e;
 
-	if (nItem == 0)		strcat(szBuf, "Item(F4) : OFF"e);
-	if (nItem == 1)		strcat(szBuf, "Item(F4) : 1"e);
-	if (nItem == 2)		strcat(szBuf, "Item(F4) : 2"e);
-	if (nItem == 3)		strcat(szBuf, "Item(F4) : 3"e);
-	if (nItem == 4)		strcat(szBuf, "Item(F4) : 4"e);
-	strcat(szBuf, "\n"e);
+	AddOnOff("Enable TurnBack Shortkey(F6, CapsLock)"e, bTurnBackShortKey);
+	AddOnOff("TeamKill(F10)"e, bTeamKill);
 
-	if (nAimbot == 0)	strcat(szBuf, "Aimbot(F5) : OFF"e);
-	if (nAimbot == 1)	strcat(szBuf, "Aimbot(F5) : Normal"e);
-	if (nAimbot == 2)	strcat(szBuf, "Aimbot(F5) : Silent"e);
-	if (nAimbot == 3)	strcat(szBuf, "Aimbot(F5) : Silent (Dangerous!)"e);
-	strcat(szBuf, "\n"e);
-
-	if (bTurnBackShortKey)	strcat(szBuf, "Enable TurnBack Shortkey(F6, CapsLock) : ON"e);
-	else					strcat(szBuf, "Enable TurnBack Shortkey(F6, CapsLock) : OFF"e);
-	strcat(szBuf, "\n"e);
-
-	if (bTeamKill)		strcat(szBuf, "TeamKill(F10) : ON"e);
-	else				strcat(szBuf, "TeamKill(F10) : OFF"e);
-	strcat(szBuf, "\n"e);
-
-	strcat(szBuf, "Current Rnage (+-) : "e);
-	strcat(szBuf, std::to_string(nRange).c_str());
-	strcat(szBuf, "M"e);
-	DrawNotice(szBuf, Render::COLOR_TEAL);
+	strNotice += (std::string)"Current Rnage (+-) : "e;
+	strNotice += std::to_string(nRange);
+	strNotice += (std::string)"M"e;
+	DrawNotice(strNotice.c_str(), Render::COLOR_TEAL);
 }
 
 void Hack::ProcessImGui() {

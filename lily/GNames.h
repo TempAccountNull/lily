@@ -68,7 +68,7 @@ public:
 		char szBuf[NAME_SIZE];
 		if (!GetNameByID(ID, szBuf, sizeof(szBuf)))
 			return 0;
-		return CompileTime::Hash(szBuf);
+		return CompileTime::StrHash(szBuf);
 	}
 
 	unsigned GetNameHashByObject(NativePtr<UObject> Ptr) const {

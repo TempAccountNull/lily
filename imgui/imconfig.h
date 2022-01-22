@@ -13,6 +13,8 @@
 //-----------------------------------------------------------------------------
 
 #pragma once
+//find string
+//(?<!\/\/.*)(?<!IMGUI_DEBUG_LOG.*)(?<!STBTT__CSERR.*)(?<!IM_ASSERT.*)(?<!__asm__ volatile.*)(?<!\".*)(?<!#if.*)(?<!__pragma.*)(?<!#pragma.*)(?<!#error.*)(?<!#include.*)(?<!extern.*)(?<!static_assert.*)(?<!operator.*)(?<!^[\p{Zs}\t]*//.*)(?<!/\*(?:(?!\*/)[\s\S\r])*?)(\"([^\"\n\r]|\\.)*\")(?!e)(?!eg)(?!h)
 #include "../common/util.h"
 #include "../common/encrypt_string.h"
 

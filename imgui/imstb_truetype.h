@@ -278,46 +278,46 @@
 //  Incomplete text-in-3d-api example, which draws quads properly aligned to be lossless
 //
 #if 0
-#define STB_TRUETYPE_IMPLEMENTATION  // force following include to generate implementation
-#include "stb_truetype.h"
-
-unsigned char ttf_buffer[1<<20];
-unsigned char temp_bitmap[512*512];
-
-stbtt_bakedchar cdata[96]; // ASCII 32..126 is 95 glyphs
-GLuint ftex;
-
-void my_stbtt_initfont(void)
-{
-   fread(ttf_buffer, 1, 1<<20, fopen("c:/windows/fonts/times.ttf", "rb"));
-   stbtt_BakeFontBitmap(ttf_buffer,0, 32.0, temp_bitmap,512,512, 32,96, cdata); // no guarantee this fits!
-   // can free ttf_buffer at this point
-   glGenTextures(1, &ftex);
-   glBindTexture(GL_TEXTURE_2D, ftex);
-   glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 512,512, 0, GL_ALPHA, GL_UNSIGNED_BYTE, temp_bitmap);
-   // can free temp_bitmap at this point
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-}
-
-void my_stbtt_print(float x, float y, char *text)
-{
-   // assume orthographic projection with units = screen pixels, origin at top left
-   glEnable(GL_TEXTURE_2D);
-   glBindTexture(GL_TEXTURE_2D, ftex);
-   glBegin(GL_QUADS);
-   while (*text) {
-      if (*text >= 32 && *text < 128) {
-         stbtt_aligned_quad q;
-         stbtt_GetBakedQuad(cdata, 512,512, *text-32, &x,&y,&q,1);//1=opengl & d3d10+,0=d3d9
-         glTexCoord2f(q.s0,q.t1); glVertex2f(q.x0,q.y0);
-         glTexCoord2f(q.s1,q.t1); glVertex2f(q.x1,q.y0);
-         glTexCoord2f(q.s1,q.t0); glVertex2f(q.x1,q.y1);
-         glTexCoord2f(q.s0,q.t0); glVertex2f(q.x0,q.y1);
-      }
-      ++text;
-   }
-   glEnd();
-}
+//#define STB_TRUETYPE_IMPLEMENTATION  // force following include to generate implementation
+//#include "stb_truetype.h"
+//
+//unsigned char ttf_buffer[1<<20];
+//unsigned char temp_bitmap[512*512];
+//
+//stbtt_bakedchar cdata[96]; // ASCII 32..126 is 95 glyphs
+//GLuint ftex;
+//
+//void my_stbtt_initfont(void)
+//{
+//   fread(ttf_buffer, 1, 1<<20, fopen("c:/windows/fonts/times.ttf", "rb"));
+//   stbtt_BakeFontBitmap(ttf_buffer,0, 32.0, temp_bitmap,512,512, 32,96, cdata); // no guarantee this fits!
+//   // can free ttf_buffer at this point
+//   glGenTextures(1, &ftex);
+//   glBindTexture(GL_TEXTURE_2D, ftex);
+//   glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 512,512, 0, GL_ALPHA, GL_UNSIGNED_BYTE, temp_bitmap);
+//   // can free temp_bitmap at this point
+//   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//}
+//
+//void my_stbtt_print(float x, float y, char *text)
+//{
+//   // assume orthographic projection with units = screen pixels, origin at top left
+//   glEnable(GL_TEXTURE_2D);
+//   glBindTexture(GL_TEXTURE_2D, ftex);
+//   glBegin(GL_QUADS);
+//   while (*text) {
+//      if (*text >= 32 && *text < 128) {
+//         stbtt_aligned_quad q;
+//         stbtt_GetBakedQuad(cdata, 512,512, *text-32, &x,&y,&q,1);//1=opengl & d3d10+,0=d3d9
+//         glTexCoord2f(q.s0,q.t1); glVertex2f(q.x0,q.y0);
+//         glTexCoord2f(q.s1,q.t1); glVertex2f(q.x1,q.y0);
+//         glTexCoord2f(q.s1,q.t0); glVertex2f(q.x1,q.y1);
+//         glTexCoord2f(q.s0,q.t0); glVertex2f(q.x0,q.y1);
+//      }
+//      ++text;
+//   }
+//   glEnd();
+//}
 #endif
 //
 //
@@ -326,30 +326,30 @@ void my_stbtt_print(float x, float y, char *text)
 // Complete program (this compiles): get a single bitmap, print as ASCII art
 //
 #if 0
-#include <stdio.h>
-#define STB_TRUETYPE_IMPLEMENTATION  // force following include to generate implementation
-#include "stb_truetype.h"
-
-char ttf_buffer[1<<25];
-
-int main(int argc, char **argv)
-{
-   stbtt_fontinfo font;
-   unsigned char *bitmap;
-   int w,h,i,j,c = (argc > 1 ? atoi(argv[1]) : 'a'), s = (argc > 2 ? atoi(argv[2]) : 20);
-
-   fread(ttf_buffer, 1, 1<<25, fopen(argc > 3 ? argv[3] : "c:/windows/fonts/arialbd.ttf", "rb"));
-
-   stbtt_InitFont(&font, ttf_buffer, stbtt_GetFontOffsetForIndex(ttf_buffer,0));
-   bitmap = stbtt_GetCodepointBitmap(&font, 0,stbtt_ScaleForPixelHeight(&font, s), c, &w, &h, 0,0);
-
-   for (j=0; j < h; ++j) {
-      for (i=0; i < w; ++i)
-         putchar(" .:ioVM@"[bitmap[j*w+i]>>5]);
-      putchar('\n');
-   }
-   return 0;
-}
+//#include <stdio.h>
+//#define STB_TRUETYPE_IMPLEMENTATION  // force following include to generate implementation
+//#include "stb_truetype.h"
+//
+//char ttf_buffer[1<<25];
+//
+//int main(int argc, char **argv)
+//{
+//   stbtt_fontinfo font;
+//   unsigned char *bitmap;
+//   int w,h,i,j,c = (argc > 1 ? atoi(argv[1]) : 'a'), s = (argc > 2 ? atoi(argv[2]) : 20);
+//
+//   fread(ttf_buffer, 1, 1<<25, fopen(argc > 3 ? argv[3] : "c:/windows/fonts/arialbd.ttf", "rb"));
+//
+//   stbtt_InitFont(&font, ttf_buffer, stbtt_GetFontOffsetForIndex(ttf_buffer,0));
+//   bitmap = stbtt_GetCodepointBitmap(&font, 0,stbtt_ScaleForPixelHeight(&font, s), c, &w, &h, 0,0);
+//
+//   for (j=0; j < h; ++j) {
+//      for (i=0; i < w; ++i)
+//         putchar(" .:ioVM@"[bitmap[j*w+i]>>5]);
+//      putchar('\n');
+//   }
+//   return 0;
+//}
 #endif
 //
 // Output:
@@ -370,47 +370,47 @@ int main(int argc, char **argv)
 // Complete program: print "Hello World!" banner, with bugs
 //
 #if 0
-char buffer[24<<20];
-unsigned char screen[20][79];
-
-int main(int arg, char **argv)
-{
-   stbtt_fontinfo font;
-   int i,j,ascent,baseline,ch=0;
-   float scale, xpos=2; // leave a little padding in case the character extends left
-   char *text = "Heljo World!"; // intentionally misspelled to show 'lj' brokenness
-
-   fread(buffer, 1, 1000000, fopen("c:/windows/fonts/arialbd.ttf", "rb"));
-   stbtt_InitFont(&font, buffer, 0);
-
-   scale = stbtt_ScaleForPixelHeight(&font, 15);
-   stbtt_GetFontVMetrics(&font, &ascent,0,0);
-   baseline = (int) (ascent*scale);
-
-   while (text[ch]) {
-      int advance,lsb,x0,y0,x1,y1;
-      float x_shift = xpos - (float) floor(xpos);
-      stbtt_GetCodepointHMetrics(&font, text[ch], &advance, &lsb);
-      stbtt_GetCodepointBitmapBoxSubpixel(&font, text[ch], scale,scale,x_shift,0, &x0,&y0,&x1,&y1);
-      stbtt_MakeCodepointBitmapSubpixel(&font, &screen[baseline + y0][(int) xpos + x0], x1-x0,y1-y0, 79, scale,scale,x_shift,0, text[ch]);
-      // note that this stomps the old data, so where character boxes overlap (e.g. 'lj') it's wrong
-      // because this API is really for baking character bitmaps into textures. if you want to render
-      // a sequence of characters, you really need to render each bitmap to a temp buffer, then
-      // "alpha blend" that into the working buffer
-      xpos += (advance * scale);
-      if (text[ch+1])
-         xpos += scale*stbtt_GetCodepointKernAdvance(&font, text[ch],text[ch+1]);
-      ++ch;
-   }
-
-   for (j=0; j < 20; ++j) {
-      for (i=0; i < 78; ++i)
-         putchar(" .:ioVM@"[screen[j][i]>>5]);
-      putchar('\n');
-   }
-
-   return 0;
-}
+//char buffer[24<<20];
+//unsigned char screen[20][79];
+//
+//int main(int arg, char **argv)
+//{
+//   stbtt_fontinfo font;
+//   int i,j,ascent,baseline,ch=0;
+//   float scale, xpos=2; // leave a little padding in case the character extends left
+//   char *text = "Heljo World!"; // intentionally misspelled to show 'lj' brokenness
+//
+//   fread(buffer, 1, 1000000, fopen("c:/windows/fonts/arialbd.ttf", "rb"));
+//   stbtt_InitFont(&font, buffer, 0);
+//
+//   scale = stbtt_ScaleForPixelHeight(&font, 15);
+//   stbtt_GetFontVMetrics(&font, &ascent,0,0);
+//   baseline = (int) (ascent*scale);
+//
+//   while (text[ch]) {
+//      int advance,lsb,x0,y0,x1,y1;
+//      float x_shift = xpos - (float) floor(xpos);
+//      stbtt_GetCodepointHMetrics(&font, text[ch], &advance, &lsb);
+//      stbtt_GetCodepointBitmapBoxSubpixel(&font, text[ch], scale,scale,x_shift,0, &x0,&y0,&x1,&y1);
+//      stbtt_MakeCodepointBitmapSubpixel(&font, &screen[baseline + y0][(int) xpos + x0], x1-x0,y1-y0, 79, scale,scale,x_shift,0, text[ch]);
+//      // note that this stomps the old data, so where character boxes overlap (e.g. 'lj') it's wrong
+//      // because this API is really for baking character bitmaps into textures. if you want to render
+//      // a sequence of characters, you really need to render each bitmap to a temp buffer, then
+//      // "alpha blend" that into the working buffer
+//      xpos += (advance * scale);
+//      if (text[ch+1])
+//         xpos += scale*stbtt_GetCodepointKernAdvance(&font, text[ch],text[ch+1]);
+//      ++ch;
+//   }
+//
+//   for (j=0; j < 20; ++j) {
+//      for (i=0; i < 78; ++i)
+//         putchar(" .:ioVM@"[screen[j][i]>>5]);
+//      putchar('\n');
+//   }
+//
+//   return 0;
+//}
 #endif
 
 
@@ -1278,10 +1278,10 @@ static int stbtt__isfont(stbtt_uint8 *font)
 {
    // check the version number
    if (stbtt_tag4(font, '1',0,0,0))  return 1; // TrueType 1
-   if (stbtt_tag(font, "typ1"))   return 1; // TrueType with type 1 font -- we don't support this!
-   if (stbtt_tag(font, "OTTO"))   return 1; // OpenType with CFF
+   if (stbtt_tag(font, "typ1"eg))   return 1; // TrueType with type 1 font -- we don't support this!
+   if (stbtt_tag(font, "OTTO"eg))   return 1; // OpenType with CFF
    if (stbtt_tag4(font, 0,1,0,0)) return 1; // OpenType 1.0
-   if (stbtt_tag(font, "true"))   return 1; // Apple specification for TrueType fonts
+   if (stbtt_tag(font, "true"eg))   return 1; // Apple specification for TrueType fonts
    return 0;
 }
 
@@ -1306,7 +1306,7 @@ static int stbtt_GetFontOffsetForIndex_internal(unsigned char *font_collection, 
       return index == 0 ? 0 : -1;
 
    // check if it's a TTC
-   if (stbtt_tag(font_collection, "ttcf")) {
+   if (stbtt_tag(font_collection, "ttcf"eg)) {
       // version 1?
       if (ttULONG(font_collection+4) == 0x00010000 || ttULONG(font_collection+4) == 0x00020000) {
          stbtt_int32 n = ttLONG(font_collection+8);
@@ -1325,7 +1325,7 @@ static int stbtt_GetNumberOfFonts_internal(unsigned char *font_collection)
       return 1;
 
    // check if it's a TTC
-   if (stbtt_tag(font_collection, "ttcf")) {
+   if (stbtt_tag(font_collection, "ttcf"eg)) {
       // version 1?
       if (ttULONG(font_collection+4) == 0x00010000 || ttULONG(font_collection+4) == 0x00020000) {
          return ttLONG(font_collection+8);
@@ -1356,14 +1356,14 @@ static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, in
    info->fontstart = fontstart;
    info->cff = stbtt__new_buf(NULL, 0);
 
-   cmap = stbtt__find_table(data, fontstart, "cmap");       // required
-   info->loca = stbtt__find_table(data, fontstart, "loca"); // required
-   info->head = stbtt__find_table(data, fontstart, "head"); // required
-   info->glyf = stbtt__find_table(data, fontstart, "glyf"); // required
-   info->hhea = stbtt__find_table(data, fontstart, "hhea"); // required
-   info->hmtx = stbtt__find_table(data, fontstart, "hmtx"); // required
-   info->kern = stbtt__find_table(data, fontstart, "kern"); // not required
-   info->gpos = stbtt__find_table(data, fontstart, "GPOS"); // not required
+   cmap = stbtt__find_table(data, fontstart, "cmap"e);       // required
+   info->loca = stbtt__find_table(data, fontstart, "loca"e); // required
+   info->head = stbtt__find_table(data, fontstart, "head"e); // required
+   info->glyf = stbtt__find_table(data, fontstart, "glyf"e); // required
+   info->hhea = stbtt__find_table(data, fontstart, "hhea"e); // required
+   info->hmtx = stbtt__find_table(data, fontstart, "hmtx"e); // required
+   info->kern = stbtt__find_table(data, fontstart, "kern"e); // not required
+   info->gpos = stbtt__find_table(data, fontstart, "GPOS"e); // not required
 
    if (!cmap || !info->head || !info->hhea || !info->hmtx)
       return 0;
@@ -1376,7 +1376,7 @@ static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, in
       stbtt_uint32 cstype = 2, charstrings = 0, fdarrayoff = 0, fdselectoff = 0;
       stbtt_uint32 cff;
 
-      cff = stbtt__find_table(data, fontstart, "CFF ");
+      cff = stbtt__find_table(data, fontstart, "CFF "e);
       if (!cff) return 0;
 
       info->fontdicts = stbtt__new_buf(NULL, 0);
@@ -1420,7 +1420,7 @@ static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, in
       info->charstrings = stbtt__cff_get_index(&b);
    }
 
-   t = stbtt__find_table(data, fontstart, "maxp");
+   t = stbtt__find_table(data, fontstart, "maxp"e);
    if (t)
       info->numGlyphs = ttUSHORT(data+t+4);
    else
@@ -2587,7 +2587,7 @@ STBTT_DEF void stbtt_GetFontVMetrics(const stbtt_fontinfo *info, int *ascent, in
 
 STBTT_DEF int  stbtt_GetFontVMetricsOS2(const stbtt_fontinfo *info, int *typoAscent, int *typoDescent, int *typoLineGap)
 {
-   int tab = stbtt__find_table(info->data, info->fontstart, "OS/2");
+   int tab = stbtt__find_table(info->data, info->fontstart, "OS/2"e);
    if (!tab)
       return 0;
    if (typoAscent ) *typoAscent  = ttSHORT(info->data+tab + 68);
@@ -4656,7 +4656,7 @@ STBTT_DEF const char *stbtt_GetFontNameString(const stbtt_fontinfo *font, int *l
    stbtt_int32 i,count,stringOffset;
    stbtt_uint8 *fc = font->data;
    stbtt_uint32 offset = font->fontstart;
-   stbtt_uint32 nm = stbtt__find_table(fc, offset, "name");
+   stbtt_uint32 nm = stbtt__find_table(fc, offset, "name"e);
    if (!nm) return NULL;
 
    count = ttUSHORT(fc+nm+2);
@@ -4727,11 +4727,11 @@ static int stbtt__matches(stbtt_uint8 *fc, stbtt_uint32 offset, stbtt_uint8 *nam
 
    // check italics/bold/underline flags in macStyle...
    if (flags) {
-      hd = stbtt__find_table(fc, offset, "head");
+      hd = stbtt__find_table(fc, offset, "head"e);
       if ((ttUSHORT(fc+hd+44) & 7) != (flags & 7)) return 0;
    }
 
-   nm = stbtt__find_table(fc, offset, "name");
+   nm = stbtt__find_table(fc, offset, "name"e);
    if (!nm) return 0;
 
    if (flags) {

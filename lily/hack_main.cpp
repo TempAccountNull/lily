@@ -322,7 +322,7 @@ void Hack::Loop() {
 					if (!NameArr.GetNameByID(Actor.GetFName(), szBuf, sizeof(szBuf)))
 						return false;
 
-					ActorNameHash = CompileTime::Hash(szBuf);
+					ActorNameHash = CompileTime::StrHash(szBuf);
 
 					if (bDebug) {
 						FVector v2_DebugLoc = ActorLocationScreen;

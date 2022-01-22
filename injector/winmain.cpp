@@ -31,13 +31,16 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nC
     GetModuleInformation((HANDLE)-1, GetModuleHandleA(0), &ModuleInfo, sizeof(ModuleInfo));
     Global::SetModuleInfo(ModuleInfo.lpBaseOfDll, ModuleInfo.SizeOfImage);
 
-    WNDCLASS WndClass = { };
-    WndClass.lpfnWndProc = WndProc;
-    WndClass.hInstance = hInstance;
-    WndClass.lpszClassName = "Injector"e;
+    auto szInjector = "Injector"e;
+
+    const WNDCLASS WndClass = {
+        .lpfnWndProc = WndProc,
+        .hInstance = hInstance,
+        .lpszClassName = szInjector
+    };
     RegisterClass(&WndClass);
 
-    HWND hWnd = CreateWindowExA(0, "Injector"e, ""e, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
+    HWND hWnd = CreateWindowExA(0, szInjector, ""e, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
         CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, 0, 0, hInstance, 0);
 
     if (!hWnd)

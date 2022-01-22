@@ -1,4 +1,5 @@
 #pragma once
+#include <utility>
 
 class CompileTime {
 private:
@@ -25,11 +26,16 @@ public:
 	}
 
 	template<class Type>
-	constexpr static unsigned Hash(const Type* str) {
+	constexpr static unsigned Hash(const Type* Data, size_t Size) {
 		unsigned Result = unsigned(5381 + TimeSeed);
-		int i = (int)StrLen(str) - 1;
-		while (i >= 0) Result = (unsigned)str[i--] + 33 * Result;
+		for (auto i = 0; i < Size; i++)
+			Result = Data[i] + 33 * Result;
 		return Result;
+	}
+
+	template<class Type>
+	constexpr static unsigned StrHash(const Type* Str) {
+		return Hash(Str, StrLen(Str) + 1);
 	}
 
 	consteval static unsigned Rand(unsigned Count, unsigned Seed) {
@@ -39,11 +45,18 @@ public:
 	}
 
 	consteval static auto ConstEval(auto Val) { return Val; }
+
+	template <size_t N>
+	constexpr static void Repeat(auto f) {
+		[f] <auto... Index>(std::index_sequence<Index...>) [[msvc::forceinline]] {
+			(f.operator() < Index > (), ...);
+		}(std::make_index_sequence<N>());
+	}
 };
 
 #pragma warning(disable : 4455)
-consteval static unsigned operator""h(const char* str, size_t len) { return CompileTime::Hash(str); }
-consteval static unsigned operator""h(const wchar_t* str, size_t len) { return CompileTime::Hash(str); }
-consteval static unsigned operator""h(const char8_t* str, size_t len) { return CompileTime::Hash(str); }
-consteval static unsigned operator""h(const char16_t* str, size_t len) { return CompileTime::Hash(str); }
-consteval static unsigned operator""h(const char32_t* str, size_t len) { return CompileTime::Hash(str); }
+consteval static unsigned operator""h(const char* str, size_t len) { return CompileTime::StrHash(str); }
+consteval static unsigned operator""h(const wchar_t* str, size_t len) { return CompileTime::StrHash(str); }
+consteval static unsigned operator""h(const char8_t* str, size_t len) { return CompileTime::StrHash(str); }
+consteval static unsigned operator""h(const char16_t* str, size_t len) { return CompileTime::StrHash(str); }
+consteval static unsigned operator""h(const char32_t* str, size_t len) { return CompileTime::StrHash(str); }
