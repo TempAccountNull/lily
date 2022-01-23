@@ -29,7 +29,7 @@ private:
 		if (hWnd && hWnd != hAttachWnd)
 			AttachWindow(hWnd);
 
-		pDXGISwapChain1->Present(0, 0);
+		pDXGISwapChain1->Present(1, 0);
 	}
 
 	void DetachWindow() {

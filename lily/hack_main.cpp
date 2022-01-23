@@ -23,9 +23,11 @@ void Hack::Loop() {
 
 	//f3 0f 11 ? ? ? ? ? ? f3 0f 11 ? ? ? ? ? ? f3 44 0f ? ? ? ? ? ? ? f3 0f 10 ? ? ? ? ? e9
 	constexpr uintptr_t HookBaseAddress = 0x11CE84C;
+	uint8_t OriginalByte = 0;
+	pubg.ReadBase(HookBaseAddress, &OriginalByte);
 	const uintptr_t AimHookAddressVA = pubg.GetBaseAddress() + HookBaseAddress;
 	const PhysicalAddress AimHookAddressPA = dbvm.GetPhysicalAddress(AimHookAddressVA, mapCR3);
-	verify(AimHookAddressPA);
+	verify(AimHookAddressPA && OriginalByte);
 
 	int PrevMouseX = 0, PrevMouseY = 0;
 
@@ -33,7 +35,8 @@ void Hack::Loop() {
 	NativePtr<ATslCharacter> PrevTargetPtr = 0;
 
 	while (IsWindow(hGameWnd)) {
-		if (hGameWnd == GetForegroundWindow())
+		const HWND hForeWnd = GetForegroundWindow();
+		if (hGameWnd == hForeWnd)
 			ProcessHotkey();
 
 		const float TimeDelta = render.GetTimeDelta();
@@ -429,10 +432,10 @@ void Hack::Loop() {
 						if (Health <= 0.0f)
 							return;
 
-						const float HealthBarScreenLengthY = DrawRatioBoxWrapper(VehicleBarScreenPos, CameraDistance, 1.0f, 
+						const float HealthBarScreenLengthY = DrawRatioBoxWrapper(VehicleBarScreenPos, CameraDistance, 1.0f,
 							Health / HealthMax, Render::COLOR_GREEN, Render::COLOR_RED, Render::COLOR_BLACK).second;
 						VehicleBarScreenPos.Y += HealthBarScreenLengthY - 1.0f;
-						DrawRatioBoxWrapper(VehicleBarScreenPos, CameraDistance, 1.0f, 
+						DrawRatioBoxWrapper(VehicleBarScreenPos, CameraDistance, 1.0f,
 							Fuel / FuelMax, Render::COLOR_BLUE, Render::COLOR_GRAY, Render::COLOR_BLACK).second;
 					}();
 				}();
@@ -642,10 +645,10 @@ void Hack::Loop() {
 						const float CameraDistance = CameraLocation.Distance(HealthBarPos) / 100.0f;
 						float HealthBarScreenLengthY = 0.0f;
 						if (Health > 0.0)
-							HealthBarScreenLengthY = DrawRatioBoxWrapper(HealthBarScreenPos, CameraDistance, 0.7f, 
+							HealthBarScreenLengthY = DrawRatioBoxWrapper(HealthBarScreenPos, CameraDistance, 0.7f,
 								Health / HealthMax, Render::COLOR_GREEN, Render::COLOR_RED, Render::COLOR_BLACK).second;
 						else if (GroggyHealth > 0.0)
-							HealthBarScreenLengthY = DrawRatioBoxWrapper(HealthBarScreenPos, CameraDistance, 0.7f, 
+							HealthBarScreenLengthY = DrawRatioBoxWrapper(HealthBarScreenPos, CameraDistance, 0.7f,
 								GroggyHealth / GroggyHealthMax, Render::COLOR_RED, Render::COLOR_GRAY, Render::COLOR_BLACK).second;
 
 						bool IsInCircle = false;
@@ -760,21 +763,8 @@ void Hack::Loop() {
 				if (!IsWeaponed || !bPushingMouseM)
 					return;
 
-				auto Aimbot_RotationInput = [&] {
-					if (bTurnBack)
-						return;
-
-					FRotator RotationInput = (PredictedPos - CameraLocation).GetDirectionRotator() - GunRotation;
-					RotationInput.Clamp();
-					RotationInput.Pitch = RotationInput.Pitch / -InputPitchScale;
-					RotationInput.Yaw = RotationInput.Yaw / InputYawScale;
-					RotationInput.Roll = 0.0;
-
-					PlayerContollerPtr.WriteAtOffset(RotationInput, offsetof(APlayerController, RotationInput));
-				};
-
 				auto AImbot_MouseEvent = [&] {
-					if (hGameWnd != GetForegroundWindow())
+					if (hGameWnd != hForeWnd)
 						return;
 
 					const FVector Loc = WorldToScreen(PredictedPos, GunRotation.GetMatrix(), CameraLocation, CameraFOV);
@@ -791,14 +781,14 @@ void Hack::Loop() {
 				};
 
 				if (nAimbot == 1)
-					Aimbot_RotationInput();
+					AImbot_MouseEvent();
 				else if (nAimbot == 2 && !IsScoping)
-					Aimbot_RotationInput();
+					AImbot_MouseEvent();
 				else if (nAimbot == 2 || nAimbot == 3) {
 					FVector DirectionInput = PredictedPos - GunLocation;
 					DirectionInput.Normalize();
 
-					ChangeRegOnBPInfo Info = {0};
+					ChangeRegOnBPInfo Info = { 0 };
 					Info.changeXMM7 = 1;
 					Info.changeXMM6 = 1;
 					Info.changeXMM8 = 1;
@@ -810,8 +800,11 @@ void Hack::Loop() {
 				}
 			}();
 
-			if (!IsNeedToHookAim)
-				dbvm.RemoveChangeRegisterOnBP(AimHookAddressPA);
+			if (!IsNeedToHookAim) {
+				//dbvm.WPMCloak(AimHookAddressVA, &OriginalByte, sizeof(OriginalByte), mapCR3);
+				//dbvm.RemoveChangeRegisterOnBP(AimHookAddressPA);
+				dbvm.CloakDeactivate(AimHookAddressPA);
+			}
 
 			if (SpectatedCount > 0)
 				DrawSpectatedCount(SpectatedCount, Render::COLOR_RED);
@@ -821,12 +814,6 @@ void Hack::Loop() {
 
 			if (IsWeaponed)
 				render.DrawCircle({ Width / 2.0f, Height / 2.0f }, AimbotCircleSize, Render::COLOR_WHITE);
-
-			if (bTurnBack) {
-				bTurnBack = false;
-				FRotator RotationInput(0.0f, 180.0f, 0.0f);
-				PlayerContollerPtr.WriteAtOffset(RotationInput, offsetof(APlayerController, RotationInput));
-			}
 		});
 	}
 }

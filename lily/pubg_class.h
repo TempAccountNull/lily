@@ -85,8 +85,6 @@ DefClass(APlayerController, AController,
 	MemberAtOffset(float, InputYawScale, 0x654)
 	MemberAtOffset(float, InputPitchScale, 0x658)
 	MemberAtOffset(float, InputRollScale, 0x65c)
-
-	MemberAtOffset(FRotator, RotationInput, 0x648)
 )
 
 //TslGame.TslPlayerController.DefaultFOV 

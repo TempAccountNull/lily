@@ -33,7 +33,6 @@ void Hack::DrawHotkey() const {
 		"OFF"e;
 	strNotice += (std::string)"\n"e;
 
-	AddOnOff("Enable TurnBack Shortkey(F6, CapsLock)"e, bTurnBackShortKey);
 	AddOnOff("TeamKill(F10)"e, bTeamKill);
 
 	strNotice += (std::string)"Current Rnage (+-) : "e;
@@ -67,7 +66,6 @@ void Hack::ProcessImGui() {
 		ImGui::SliderInt("Range"e, &nRange, 100, 1000, "%dM"e, ImGuiSliderFlags_AlwaysClamp);
 		ImGui::PopItemWidth();
 
-		ImGui::Checkbox("Enable turnback (F6, CapsLock)"e, (bool*)&bTurnBackShortKey);
 		ImGui::Checkbox("Fighter Mode (~)"e, (bool*)&bFighterMode);
 
 		ImGui::NewLine();
@@ -127,12 +125,6 @@ void Hack::ProcessImGui() {
 }
 
 void Hack::ProcessHotkey() {
-	bTurnBack = false;
-	if (bTurnBackShortKey) {
-		if (IsKeyPushed(VK_CAPITAL)) {
-			bTurnBack = true;
-		}
-	}
 	if (IsKeyPushing(VK_MENU) || IsKeyPushing(VK_MBUTTON)) {
 		if (IsKeyPushed(VK_HOME)) {
 			bShowMenu = !bShowMenu;
@@ -159,10 +151,6 @@ void Hack::ProcessHotkey() {
 		}
 		if (IsKeyPushed(VK_F5)) {
 			nAimbot = (nAimbot + 1) % 4;
-			NoticeTimeRemain = NOTICE_TIME;
-		}
-		if (IsKeyPushed(VK_F6)) {
-			bTurnBackShortKey = !bTurnBackShortKey;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_F10)) {

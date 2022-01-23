@@ -15,8 +15,6 @@ private:
 
 	float NoticeTimeRemain = 0.0f;
 
-	bool bTurnBackShortKey = false;
-	bool bTurnBack = false;
 	bool bFighterMode = false;
 
 	bool& bESP;
