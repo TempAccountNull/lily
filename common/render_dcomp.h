@@ -13,9 +13,8 @@ private:
 	ComPtr<ID3D11RenderTargetView> pD3D11RenderTargetView;
 	ComPtr<IDCompositionVisual> pDirectCompositionVisual;
 
-	virtual bool ReleaseDirectCompositionTarget() {
+	virtual void ReleaseDirectCompositionTarget() {
 		pDirectCompositionTarget.ReleaseAndGetAddressOf();
-		return true;
 	}
 
 	virtual bool CreateDirectCompositionTarget(HWND hWnd) {
@@ -37,7 +36,7 @@ private:
 		if (!hAttachWnd)
 			return;
 
-		verify(ReleaseDirectCompositionTarget());
+		ReleaseDirectCompositionTarget();
 		hAttachWnd = 0;
 	}
 

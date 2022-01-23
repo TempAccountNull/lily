@@ -11,7 +11,7 @@ inline PubgProcess* g_Pubg;
 
 class PubgProcess : public Process {
 private:
-	static constexpr uintptr_t XenuineEncryptFuncAddress = 0x724FB20;
+	static constexpr uintptr_t XenuineEncryptFuncAddress = 0x7242D20;
 	static constexpr uintptr_t XenuineDecryptFuncAddress = XenuineEncryptFuncAddress + 0x8;
 
 	HWND hGameWnd = 0;

@@ -23,8 +23,8 @@
 #define dprintf(...) []{}()
 #endif
 
-static void MessageBoxCSRSS(const char* szText, const char* szCaption, UINT uType);
-static void MessageBoxCSRSS(const wchar_t* szText, const wchar_t* szCaption, UINT uType);
+static void MessageBoxCSRSS(const char* szText, const char* szCaption, UINT uType, DWORD dwMilliseconds = INFINITE);
+static void MessageBoxCSRSS(const wchar_t* szText, const wchar_t* szCaption, UINT uType, DWORD dwMilliseconds = INFINITE);
 
 static void error(const char* Msg, const char* Title = "Error"e) {
 #ifdef DEBUG
@@ -79,7 +79,7 @@ static std::string ws2s(const std::wstring& wstr) {
 
 static std::wstring to_hex_string(uintptr_t i) {
 	std::wstringstream s;
-	s << L"0x"e << std::hex << i;
+	s << (const wchar_t*)L"0x"e << std::hex << i;
 	return s.str();
 }
 
@@ -190,7 +190,7 @@ static uintptr_t GetUserProcAddressVerified(const char* szModuleName, const char
 	return Result;
 }
 
-static void MessageBoxCSRSS(const wchar_t* Text, const wchar_t* Caption, UINT uType) {
+static void MessageBoxCSRSS(const wchar_t* Text, const wchar_t* Caption, UINT uType, DWORD dwMilliseconds) {
 	static tNtRaiseHardError NtRaiseHardError = 0;
 	if (!NtRaiseHardError) {
 		NtRaiseHardError = (tNtRaiseHardError)GetUserProcAddress("ntdll.dll"e, "NtRaiseHardError"e);
@@ -204,16 +204,15 @@ static void MessageBoxCSRSS(const wchar_t* Text, const wchar_t* Caption, UINT uT
 	const UNICODE_STRING uCaption = { LenCaption, LenCaption, (PWSTR)Caption };
 	HARDERROR_RESPONSE Response;
 
-	uintptr_t Params[] = { (uintptr_t)&uText, (uintptr_t)&uCaption, (uintptr_t)uType };
+	uintptr_t Params[] = { (uintptr_t)&uText, (uintptr_t)&uCaption, (uintptr_t)uType, (uintptr_t)dwMilliseconds };
 	constexpr auto NumOfParams = sizeof(Params) / sizeof(*Params);
-	constexpr auto STATUS_SERVICE_NOTIFICATION = 0x40000018;
 
-	NtRaiseHardError(STATUS_SERVICE_NOTIFICATION, NumOfParams, (1 << 0) | (1 << 1), Params, OptionOkNoWait, &Response);
+	NtRaiseHardError(STATUS_SERVICE_NOTIFICATION_2, NumOfParams, (1 << 0) | (1 << 1), Params, OptionOkNoWait, &Response);
 }
 
-static void MessageBoxCSRSS(const char* Text, const char* Caption, UINT uType) {
+static void MessageBoxCSRSS(const char* Text, const char* Caption, UINT uType, DWORD dwMilliseconds) {
 	USES_CONVERSION;
-	MessageBoxCSRSS(A2W(Text), A2W(Caption), uType);
+	MessageBoxCSRSS(A2W(Text), A2W(Caption), uType, dwMilliseconds);
 }
 
 static DWORD GetPIDFromHWND(HWND hWnd) {

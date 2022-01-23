@@ -88,9 +88,10 @@ private:
 	class EProcess {
 	public:
 		DWORD GetPid(const Kernel& kernel) const {
-			DWORD Pid = 0;
+			DWORD Pid;
 			if (!kernel.ReadProcessMemoryDBVM((uintptr_t)this + kernel.Offset_UniqueProcessId, &Pid, sizeof(Pid)))
 				return 0;
+
 			return Pid;
 		}
 		EProcess* GetNextProcess(const Kernel& kernel) const {
@@ -101,7 +102,7 @@ private:
 			return (EProcess*)((uintptr_t)ListEntry.Flink - kernel.Offset_ActiveProcessLinks);
 		}
 		CR3 GetKernelCR3(const Kernel& kernel) const {
-			CR3 cr3 = { 0 };
+			CR3 cr3;
 			if (!kernel.ReadProcessMemoryDBVM((uintptr_t)this + kernel.Offset_DirectoryTableBase, &cr3, sizeof(cr3)))
 				return 0;
 

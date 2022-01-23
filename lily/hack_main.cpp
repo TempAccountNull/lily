@@ -22,7 +22,7 @@ void Hack::Loop() {
 	//ObjectArr.DumpObject(NameArr);
 
 	//f3 0f 11 ? ? ? ? ? ? f3 0f 11 ? ? ? ? ? ? f3 44 0f ? ? ? ? ? ? ? f3 0f 10 ? ? ? ? ? e9
-	constexpr uintptr_t HookBaseAddress = 0x11E392B;
+	constexpr uintptr_t HookBaseAddress = 0x11CE84C;
 	const uintptr_t AimHookAddressVA = pubg.GetBaseAddress() + HookBaseAddress;
 	const PhysicalAddress AimHookAddressPA = dbvm.GetPhysicalAddress(AimHookAddressVA, mapCR3);
 	verify(AimHookAddressPA);
