@@ -99,6 +99,11 @@ void Hack::ProcessImGui() {
 				ImGui::SliderFloat("Fov"e, &CircleFovInDegrees, 6.0f, 12.0f);
 				ImGui::PopItemWidth();
 
+				ImGui::Text("Speed"e);
+				ImGui::PushItemWidth(-1);
+				ImGui::SliderFloat("Speed"e, &AimbotSpeed, DefaultAimbotSpeedMin, DefaultAimbotSpeedMax, "%.3f"e, ImGuiSliderFlags_Logarithmic);
+				ImGui::PopItemWidth();
+
 				ImGui::Checkbox("TeamKill (F10)"e, &bTeamKill);
 
 				ImGui::EndTabItem();

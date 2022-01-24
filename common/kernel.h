@@ -210,17 +210,17 @@ public:
 	void KernelExecute(bool bSetInterrupt, tl::function<void(void)> CallBack) const {
 		dbvm.SwitchToKernelMode(0x10);
 		_stac();
-		if (bSetInterrupt) _enable();
 		__writecr3(CustomCR3);
+		if (bSetInterrupt) _enable();
 		RunWithKernelStack(CallBack.callback(), CallBack.obj());
 		dbvm.ReturnToUserMode();
 	}
 
 #ifdef TL_IGNORE_GUARD
 	template <class F>
-	class UserFunction;
+	class SafeFunction;
 	template <class R, class... Args>
-	class UserFunction<R(Args...)> : public tl::function<R(Args...)> {};
+	class SafeFunction<R(Args...)> : public tl::function<R(Args...)> {};
 
 	template <class F>
 	class KernelFunction;

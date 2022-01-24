@@ -45,7 +45,7 @@ void realmain() {
 		ExceptionHandler::TryExcept([&] {
 			PubgProcess pubg(kernel, hGameWnd);
 			if (!ExceptionHandler::TryExcept([&] {
-				Hack hack(pubg, render);
+				Hack hack(pubg, render, kernel);
 				hack.Loop();
 				})) {
 				error("exception loop"e);

@@ -767,15 +767,17 @@ void Hack::Loop() {
 					if (hGameWnd != hForeWnd)
 						return;
 
-					const FVector Loc = WorldToScreen(PredictedPos, GunRotation.GetMatrix(), CameraLocation, CameraFOV);
+					FRotator RotationInput = (PredictedPos - CameraLocation).GetDirectionRotator() - GunRotation;
+					RotationInput.Clamp();
+
 					const float ScreenCenterX = Width / 2.0f;
 					const float ScreenCenterY = Height / 2.0f;
-					const int MouseX = int((Loc.X - ScreenCenterX) / (Width / 1280.0f));
-					const int MouseY = int((Loc.Y - ScreenCenterY) / (Height / 720.0f)) + 1;
+					const int MouseX = int(AimbotSpeed * (DefaultFOV / CameraFOV) * (1920.0f / Width) * RotationInput.Yaw);
+					const int MouseY = int(AimbotSpeed * (DefaultFOV / CameraFOV) * (1080.0f / Height) * -RotationInput.Pitch);
 					if (PrevMouseX == MouseX && PrevMouseY == MouseY)
 						return;
 
-					mouse_event(MOUSEEVENTF_MOVE, MouseX, MouseY, 0, 0);
+					kernel.PostRawMouseInput(hGameWnd, { .usFlags = MOUSE_MOVE_RELATIVE, .lLastX = MouseX, .lLastY = MouseY });
 					PrevMouseX = MouseX;
 					PrevMouseY = MouseY;
 				};
@@ -800,11 +802,8 @@ void Hack::Loop() {
 				}
 			}();
 
-			if (!IsNeedToHookAim) {
-				//dbvm.WPMCloak(AimHookAddressVA, &OriginalByte, sizeof(OriginalByte), mapCR3);
-				//dbvm.RemoveChangeRegisterOnBP(AimHookAddressPA);
-				dbvm.CloakDeactivate(AimHookAddressPA);
-			}
+			if (!IsNeedToHookAim)
+				dbvm.RemoveChangeRegisterOnBP(AimHookAddressPA);
 
 			if (SpectatedCount > 0)
 				DrawSpectatedCount(SpectatedCount, Render::COLOR_RED);

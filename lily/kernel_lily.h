@@ -23,7 +23,7 @@ public:
 		MemberAtOffset(WORD, FNID, 0x2A)
 	,)
 	class PROP {};
-	class ETHREAD {};
+	class THREADINFO {};
 
 	class tagWND {
 	private:
@@ -38,16 +38,35 @@ public:
 				return 0;
 			return pProp;
 		}
-		ETHREAD* GetEThread(const KernelLily& kernel) const {
-			ETHREAD* pThread = 0;
+		THREADINFO* GetThreadInfo(const KernelLily& kernel) const {
+			THREADINFO* pThread = 0;
 			if (!kernel.ReadProcessMemoryDBVM(((uintptr_t)this + Offset_OwningThread), &pThread, sizeof(pThread)))
 				return 0;
 			return pThread;
 		}
-		bool SetEThread(const KernelLily& kernel, ETHREAD* pThread) {
+		bool SetThreadInfo(const KernelLily& kernel, THREADINFO* pThread) {
 			return kernel.WriteProcessMemoryDBVM(((uintptr_t)this + Offset_OwningThread), &pThread, sizeof(pThread));
 		}
 	};
+
+	typedef struct _HEAD {
+		HANDLE h;
+		DWORD cLockObj;
+	} HEAD, * PHEAD;
+
+	typedef struct _THROBJHEAD {
+		HEAD head;
+		THREADINFO* pti;
+	} THROBJHEAD, * PTHROBJHEAD;
+
+	static_assert(sizeof(THROBJHEAD) == 0x18);
+
+	typedef struct tagHIDDATA {
+		THROBJHEAD head;
+		tagWND* spwndTarget;
+		RAWINPUT rid;   // raw input data, variable length
+						// rid needs to be the last member in HIDDATA
+	} HIDDATA, * PHIDDATA;
 
 	KernelLily(const DBVM& dbvm) : Kernel(dbvm) {}
 
@@ -83,11 +102,12 @@ public:
 		reinterpret_cast<BOOL(*)(PROP * *pProp, ATOM nAtom, HANDLE hValue, DWORD dwFlag)>
 		(GetKernelProcAddressVerified("win32kbase.sys"e, "RealInternalSetProp"e)), *this };
 
-	const KernelFunction<NTSTATUS(tagWND* pWnd, BOOL topmopst)> EditionNotifyDwmForSystemVisualDestruction = {
-		reinterpret_cast<NTSTATUS(*)(tagWND * pWnd, BOOL topmopst)>
-		(GetKernelProcAddressVerified("win32kfull.sys"e, "EditionNotifyDwmForSystemVisualDestruction"e)), *this };
+	constexpr static BYTE TYPE_HIDDATA = 18;
+	const KernelFunction<PVOID(THREADINFO* ptiOwner, void* pdeskSrc, BYTE bType, DWORD size)> HMAllocObject = {
+		reinterpret_cast<PVOID(*)(THREADINFO* ptiOwner, void* pdeskSrc, BYTE bType, DWORD size)>
+		(GetKernelProcAddressVerified("win32kbase.sys"e, "HMAllocObject"e)), *this };
 
-	const UserFunction<tagWND_USER* (HWND hWnd)> UserValidateHwnd = [&] {
+	const SafeFunction<tagWND_USER* (HWND hWnd)> UserValidateHwnd = [&] {
 		const uintptr_t ScanResult = PatternScan::Range((uintptr_t)IsChild, 0x30, "48 8B CA E8"e, ReadProcessMemoryWinAPI);
 		verify(ScanResult);
 		const auto p = PatternScan::GetJumpAddress(ScanResult + 0x3, ReadProcessMemoryDBVM);
@@ -143,7 +163,60 @@ private:
 		return 0;
 	}
 
+	PHIDDATA AllocateHidData(RAWINPUTHEADER Header, tagWND* pwnd) {
+		if (!pwnd)
+			return 0;
+
+		THREADINFO* pti = pwnd->GetThreadInfo(*this);
+		if (!pti)
+			return 0;
+
+		PHIDDATA pHidData = (PHIDDATA)HMAllocObject(pti, 0, TYPE_HIDDATA, Header.dwSize + FIELD_OFFSET(HIDDATA, rid.data));
+		//Recalc the size of RAWINPUT structure.
+		Header.dwSize += FIELD_OFFSET(RAWINPUT, data);
+		if (!pHidData)
+			return 0;
+
+		tagWND* pWnd = 0;
+		if (!WriteProcessMemoryDBVM((uintptr_t)&pHidData->spwndTarget, &pWnd, sizeof(pWnd)))
+			return 0;
+
+		//Lock(&pHidData->spwndTarget, pwnd);
+
+		if (!WriteProcessMemoryDBVM((uintptr_t)&pHidData->rid.header, &Header, sizeof(Header)))
+			return 0;
+
+		return pHidData;
+	}
+
+	const PHIDDATA pHidData = [&] {
+		const HANDLE hDevice = 0;
+		const RAWINPUTHEADER Header = {
+			.dwType = RIM_TYPEMOUSE,
+			.dwSize = sizeof(RAWMOUSE),
+			.hDevice = hDevice,
+			.wParam = RIM_INPUT
+		};
+		PHIDDATA pHidData = AllocateHidData(Header, ValidateHwnd(EmptyWindow()));
+		verify(pHidData);
+		return pHidData;
+	}();
+
+	const HANDLE hHidData = [&] {
+		HANDLE h = 0;
+		ReadProcessMemoryDBVM((uintptr_t)&pHidData->head.head.h, &h, sizeof(h));
+		verify(h);
+		return h;
+	}();
+
 public:
+	bool PostRawMouseInput(HWND hWnd, RAWMOUSE RawMouse) {
+		if (!WriteProcessMemoryDBVM((uintptr_t)&pHidData->rid.data.mouse, &RawMouse, sizeof(RawMouse)))
+			return false;
+
+		return SendMessageA(hWnd, WM_INPUT, RIM_INPUT, (LPARAM)hHidData);
+	}
+
 	ATOM UserFindAtomVerified(PCWSTR AtomName) const {
 		const ATOM atom = UserFindAtom(AtomName);
 		if (!atom)
@@ -193,19 +266,19 @@ public:
 		if (!pWndTo)
 			return false;
 
-		ETHREAD* const pThreadFrom = pWndFrom->GetEThread(*this);
+		THREADINFO* const pThreadFrom = pWndFrom->GetThreadInfo(*this);
 		if (!pThreadFrom)
 			return false;
 
-		ETHREAD* const pThreadTo = pWndTo->GetEThread(*this);
+		THREADINFO* const pThreadTo = pWndTo->GetThreadInfo(*this);
 		if (!pThreadTo)
 			return false;
 
-		if (!pWndTo->SetEThread(*this, pThreadFrom))
+		if (!pWndTo->SetThreadInfo(*this, pThreadFrom))
 			return false;
 
 		f();
-		return pWndTo->SetEThread(*this, pThreadTo);
+		return pWndTo->SetThreadInfo(*this, pThreadTo);
 	}
 
 	bool PsSetProcessWin32ProcessWrapper(HWND hWnd, auto f) const {

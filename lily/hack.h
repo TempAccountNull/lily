@@ -2,6 +2,7 @@
 #include <string>
 
 #include "common/render.h"
+#include "kernel_lily.h"
 #include "pubg_class.h"
 #include "pubg_func.h"
 
@@ -25,6 +26,11 @@ private:
 	int nAimbot = 1;
 	int nRange = 500;
 	float CircleFovInDegrees = 6.0f;
+
+	constexpr static float DefaultAimbotSpeed = 5.0f;
+	constexpr static float DefaultAimbotSpeedMax = DefaultAimbotSpeed * 2.0f * 2.0f;
+	constexpr static float DefaultAimbotSpeedMin = DefaultAimbotSpeed * 0.5f * 0.5f;
+	float AimbotSpeed = DefaultAimbotSpeed;
 
 	bool bPushingCTRL = false;
 	bool bPushingShift = false;
@@ -54,7 +60,7 @@ public:
 	constexpr static float FONTSIZE = FONTSIZE_SMALL;
 
 	PubgProcess& pubg;
-	Kernel& kernel;
+	KernelLily& kernel;
 	const DBVM& dbvm;
 
 	ImColor GetItemColor(int ItemPriority) {
@@ -70,8 +76,8 @@ public:
 		}
 	}
 
-	Hack(PubgProcess& pubg, Render& render) :
-		pubg(pubg), kernel(pubg.kernel), dbvm(kernel.dbvm), render(render), bESP(render.bRender) {
+	Hack(PubgProcess& pubg, Render& render, KernelLily& kernel) :
+		pubg(pubg), kernel(kernel), dbvm(kernel.dbvm), render(render), bESP(render.bRender) {
 		bESP = true;
 	}
 
