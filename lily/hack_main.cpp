@@ -772,8 +772,8 @@ void Hack::Loop() {
 
 					const float ScreenCenterX = Width / 2.0f;
 					const float ScreenCenterY = Height / 2.0f;
-					const int MouseX = int(AimbotSpeed * (DefaultFOV / CameraFOV) * (1920.0f / Width) * RotationInput.Yaw);
-					const int MouseY = int(AimbotSpeed * (DefaultFOV / CameraFOV) * (1080.0f / Height) * -RotationInput.Pitch);
+					const int MouseX = int(AimbotSpeedX * (DefaultFOV / CameraFOV) * (1920.0f / Width) * RotationInput.Yaw);
+					const int MouseY = int(AimbotSpeedY * (DefaultFOV / CameraFOV) * (1080.0f / Height) * -RotationInput.Pitch);
 					if (PrevMouseX == MouseX && PrevMouseY == MouseY)
 						return;
 

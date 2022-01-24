@@ -30,7 +30,8 @@ private:
 	constexpr static float DefaultAimbotSpeed = 5.0f;
 	constexpr static float DefaultAimbotSpeedMax = DefaultAimbotSpeed * 2.0f * 2.0f;
 	constexpr static float DefaultAimbotSpeedMin = DefaultAimbotSpeed * 0.5f * 0.5f;
-	float AimbotSpeed = DefaultAimbotSpeed;
+	float AimbotSpeedX = DefaultAimbotSpeed;
+	float AimbotSpeedY = DefaultAimbotSpeed;
 
 	bool bPushingCTRL = false;
 	bool bPushingShift = false;
