@@ -32,19 +32,12 @@ private:
 		pDXGISwapChain1->Present(1, 0);
 	}
 
-	void DetachWindow() {
-		if (!hAttachWnd)
-			return;
-
-		ReleaseDirectCompositionTarget();
-		hAttachWnd = 0;
-	}
-
 	void AttachWindow(HWND hWnd) {
 		if (!IsWindowVisible(hWnd))
 			return;
 
-		DetachWindow();
+		hAttachWnd = hWnd;
+		ReleaseDirectCompositionTarget();
 
 		const bool bSuccess = [&] {
 			HRESULT hr;
@@ -78,7 +71,6 @@ private:
 		}();
 
 		verify(bSuccess);
-		hAttachWnd = hWnd;
 	}
 
 	bool InitD3D(bool IsProtected) {

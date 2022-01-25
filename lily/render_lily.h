@@ -11,31 +11,27 @@ private:
 
 	void ReleaseDirectCompositionTarget() final {
 		kernel.SetOwningThreadWrapper(hAttachWnd, [&] {
-			pDirectCompositionDevice->CreateTargetForHwnd(hAttachWnd, TOPMOST, &pDirectCompositionTarget);
-			pDirectCompositionTarget->Release();
+			if (SUCCEEDED(pDirectCompositionDevice->CreateTargetForHwnd(hAttachWnd, TOPMOST, &pDirectCompositionTarget)))
+				pDirectCompositionTarget.ReleaseAndGetAddressOf();
 			});
 	}
 
 	bool CreateDirectCompositionTarget(HWND hWnd) final {
-		HRESULT hr;
+		bool bSuccess = false;
 
 		if (!kernel.SetOwningThreadWrapper(hWnd, [&] {
-			hr = pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget);
+			if (FAILED(pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget)))
+				return;
+			bSuccess = kernel.KernelRemoveProp(hWnd, CHwndTargetProp) && kernel.KernelRemoveProp(hWnd, CVisRgnTrackerProp);
+			if (!bSuccess)
+				pDirectCompositionTarget.ReleaseAndGetAddressOf();
 			})) return false;
-
-		if (FAILED(hr))
-			return false;
-
-		if (!kernel.KernelRemoveProp(hWnd, CHwndTargetProp) || !kernel.KernelRemoveProp(hWnd, CVisRgnTrackerProp)) {
-			pDirectCompositionTarget->Release();
-			return false;
-		}
 
 		//if (!SetClientRectWrapper(hWnd, { 0, 0, ScreenWidth, ScreenHeight }, [&] {
 		//	hr = kernel.KernelRemoveProp(hWnd, CVisRgnTrackerProp) ? S_OK : E_FAIL;
 		//	})) return false;
 
-		return true;
+		return bSuccess;
 	}
 
 public:
