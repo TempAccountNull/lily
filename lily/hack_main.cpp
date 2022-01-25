@@ -45,7 +45,7 @@ void Hack::Loop() {
 		const float Width = render.GetWidth();
 		const float Height = render.GetHeight();
 
-		render.RenderArea(hGameWnd, Render::COLOR_CLEAR, [&]() {
+		auto FuncInRenderArea = [&]() {
 			ProcessImGui();
 			DrawHotkey();
 			DrawFPS(render.GetFPS(), Render::COLOR_TEAL);
@@ -129,12 +129,10 @@ void Hack::Loop() {
 				DefaultFOV = 90.0f;
 
 			const float CircleFov = ConvertToRadians(CircleFovInDegrees);
-			float AimbotCircleSize = tanf(CircleFov) * Height * (DefaultFOV / CameraFOV);
-			if (CameraFOV < 40.0f)
-				AimbotCircleSize /= 2;
-
-			if (nAimbot >= 2)
-				AimbotCircleSize = tanf(CircleFov * 1.5f) * Height * (DefaultFOV / CameraFOV);
+			const float AimbotCircleSize =
+				tanf(CircleFov) * Height *
+				powf(1.6f, log2f(DefaultFOV / CameraFOV)) *
+				(nAimbot >= 2 ? 1.25f : 1.0f);
 
 			float AimbotDistant = AimbotCircleSize;
 
@@ -697,7 +695,7 @@ void Hack::Loop() {
 							//GetColor
 							ImColor Color = [&] {
 								if (ActorPtr == PrevTargetPtr)
-									return Render::COLOR_RED;
+									return Render::COLOR_PURPLE;
 								if (TslCharacter.LastTeamNum == MyTeamNum)
 									return Render::COLOR_GREEN;
 								if (IsInCircle)
@@ -813,7 +811,11 @@ void Hack::Loop() {
 
 			if (IsWeaponed)
 				render.DrawCircle({ Width / 2.0f, Height / 2.0f }, AimbotCircleSize, Render::COLOR_WHITE);
-		});
+		};
+		render.RenderArea(hGameWnd, Render::COLOR_CLEAR, [&] { 
+			if (!ExceptionHandler::TryExcept(FuncInRenderArea))
+				printlog("Error : %d"e, ExceptionHandler::GetLastExceptionCode());
+			});
 	}
 }
 

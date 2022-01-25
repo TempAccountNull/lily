@@ -5,10 +5,11 @@ void AddText(const ImFont* font, float font_size, const ImVec2& pos, ImColor Col
 }
 
 void AddTextOutlined(const ImFont* font, float font_size, const ImVec2& pos, ImColor Color, const char* szText, float wrap_width, const ImVec4* cpu_fine_clip_rect) {
-	AddText(font, font_size, { pos.x + 1, pos.y + 1 }, IM_COL32_BLACK, szText, wrap_width, cpu_fine_clip_rect);
-	AddText(font, font_size, { pos.x - 1, pos.y - 1 }, IM_COL32_BLACK, szText, wrap_width, cpu_fine_clip_rect);
-	AddText(font, font_size, { pos.x + 1, pos.y - 1 }, IM_COL32_BLACK, szText, wrap_width, cpu_fine_clip_rect);
-	AddText(font, font_size, { pos.x - 1, pos.y + 1 }, IM_COL32_BLACK, szText, wrap_width, cpu_fine_clip_rect);
+	const ImColor ColorOutLine = Color == IM_COL32_BLACK ? IM_COL32_WHITE : IM_COL32_BLACK;
+	AddText(font, font_size, { pos.x + 1, pos.y + 1 }, ColorOutLine, szText, wrap_width, cpu_fine_clip_rect);
+	AddText(font, font_size, { pos.x - 1, pos.y - 1 }, ColorOutLine, szText, wrap_width, cpu_fine_clip_rect);
+	AddText(font, font_size, { pos.x + 1, pos.y - 1 }, ColorOutLine, szText, wrap_width, cpu_fine_clip_rect);
+	AddText(font, font_size, { pos.x - 1, pos.y + 1 }, ColorOutLine, szText, wrap_width, cpu_fine_clip_rect);
 	AddText(font, font_size, pos, Color, szText, wrap_width, cpu_fine_clip_rect);
 }
 
