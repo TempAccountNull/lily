@@ -189,15 +189,32 @@ private:
 		return pHidData;
 	}
 
+	const HANDLE hHidMouseDevice = [&]()->HANDLE {
+		HANDLE hDevice = 0;
+		RAWINPUTDEVICELIST RawInputDeviceLists[0x100] = { 0 };
+		UINT nDevice = 0x100;
+		if (!GetRawInputDeviceList(RawInputDeviceLists, &nDevice, sizeof(RAWINPUTDEVICELIST)))
+			return 0;
+
+		for (auto RawInputDevice : RawInputDeviceLists) {
+			if (!RawInputDevice.hDevice)
+				break;
+			if (RawInputDevice.dwType == RIM_TYPEMOUSE)
+				return RawInputDevice.hDevice;
+		}
+
+		return 0;
+	}();
+
 	const PHIDDATA pHidData = [&] {
-		const HANDLE hDevice = 0;
+		verify(hHidMouseDevice);
 		const RAWINPUTHEADER Header = {
 			.dwType = RIM_TYPEMOUSE,
 			.dwSize = sizeof(RAWMOUSE),
-			.hDevice = hDevice,
+			.hDevice = hHidMouseDevice,
 			.wParam = RIM_INPUT
 		};
-		PHIDDATA pHidData = AllocateHidData(Header, ValidateHwnd(EmptyWindow()));
+		const PHIDDATA pHidData = AllocateHidData(Header, ValidateHwnd(EmptyWindow()));
 		verify(pHidData);
 		return pHidData;
 	}();
@@ -211,6 +228,16 @@ private:
 
 public:
 	bool PostRawMouseInput(HWND hWnd, RAWMOUSE RawMouse) {
+		const bool IsValidMouseDevice = [&] {
+			RID_DEVICE_INFO DeviceInfo{};
+			UINT cbSize = sizeof(DeviceInfo);
+			if (!GetRawInputDeviceInfoA(hHidMouseDevice, RIDI_DEVICEINFO, &DeviceInfo, &cbSize))
+				return false;
+
+			return DeviceInfo.dwType == RIM_TYPEMOUSE;
+		}();
+		verify(IsValidMouseDevice);
+
 		if (!WriteProcessMemoryDBVM((uintptr_t)&pHidData->rid.data.mouse, &RawMouse, sizeof(RawMouse)))
 			return false;
 
