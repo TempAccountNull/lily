@@ -19,9 +19,6 @@ void SimulateWeaponTrajectory(FVector Direction, float Distance, float Trajector
 
 		FVector Acceleration = Velocity * SimulationSubstepTime;
 		float AccelerationLen = Acceleration.Length() / 100.0f;
-
-		//BulletDrop += SimulationSubstepTime * CurrentDrop;
-
 		if (TravelDistance + AccelerationLen > Distance)
 			break;
 
@@ -117,7 +114,7 @@ float UWeaponMeshComponent::GetScopingAttachPointRelativeZ(FName ScopingAttachPo
 	if (GetStaticMeshComponentScopeType().Read(StaticMeshComponent)) {
 		//Scope Attached
 		const float RelativeZ_1 = StaticMeshComponent.GetSocketTransform(ScopingAttachPoint, RTS_Component).Translation.Z;
-		const float RelativeZ_2 = FTransform(StaticMeshComponent.ComponentToWorld).GetRelativeTransform(ComponentToWorld).Translation.Z;
+		const float RelativeZ_2 = StaticMeshComponent.ComponentToWorld.GetRelativeTransform(ComponentToWorld).Translation.Z;
 		return RelativeZ_1 + RelativeZ_2;
 	}
 	else

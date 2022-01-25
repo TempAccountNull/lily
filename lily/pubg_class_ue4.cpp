@@ -37,7 +37,7 @@ bool UWorld::GetUWorld(UWorld& World) {
 }
 
 FTransform USkeletalMeshSocket::GetSocketLocalTransform() const {
-	return FTransform(FRotator(RelativeRotation), RelativeLocation, RelativeScale);
+	return FTransform(RelativeRotation, RelativeLocation, RelativeScale);
 }
 
 bool USkeleton::FindSocketAndIndex(FName InSocketName, int32& OutIndex, USkeletalMeshSocket& OutSocket) const {
@@ -227,7 +227,7 @@ bool UStaticMeshComponent::GetSocketByName(FName InSocketName, UStaticMeshSocket
 }
 
 bool UStaticMeshSocket::GetSocketTransform(FTransform& OutTransform, const UStaticMeshComponent& MeshComp) const {
-	OutTransform = FTransform(FRotator(RelativeRotation), RelativeLocation, RelativeScale) * MeshComp.ComponentToWorld;
+	OutTransform = FTransform(RelativeRotation, RelativeLocation, RelativeScale) * MeshComp.ComponentToWorld;
 	return true;
 }
 
@@ -238,7 +238,7 @@ FTransform USceneComponent::GetSocketTransform(FName SocketName, ERelativeTransf
 		{
 			AActor Actor;
 			if (Owner.Read(Actor))
-				return FTransform(ComponentToWorld).GetRelativeTransform(Actor.ActorToWorld());
+				return ComponentToWorld.GetRelativeTransform(Actor.ActorToWorld());
 			break;
 		}
 		case RTS_Component:
