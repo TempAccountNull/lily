@@ -436,5 +436,12 @@ public:
 				return true;
 			});
 	}
+
+	bool CloakWrapper(uintptr_t Address, const void* Buffer, size_t Size, CR3 cr3, auto f) const {
+		if (!WPMCloak(Address, Buffer, Size, cr3))
+			return false;
+		f();
+		return RemoveCloak(Address, Size, cr3);
+	}
 };
 #pragma pack(pop)

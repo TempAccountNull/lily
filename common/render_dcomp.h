@@ -36,6 +36,7 @@ private:
 		if (!IsWindowVisible(hWnd))
 			return;
 
+		ReleaseDirectCompositionTarget();
 		hAttachWnd = hWnd;
 		ReleaseDirectCompositionTarget();
 

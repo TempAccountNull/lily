@@ -11,9 +11,9 @@ class ShellCode_CallRax {
 		0x48, 0x83, 0xC4, 0x78
 	};
 };
-
 class ShellCode_Loop { uint8_t ShellCode[0x2] = { 0xEB, 0xFE }; };
 class ShellCode_Ret { uint8_t ShellCode[0x1] = { 0xC3 }; };
+class ShellCode_Ret0 { uint8_t ShellCode[0x3] = { 0x31, 0xC0, 0xC3 }; };
 class ShellCode_Ret1 { uint8_t ShellCode[0x5] = { 0x31, 0xC0, 0xFF, 0xC0, 0xC3 }; };
 class ShellCode_JmpRax { uint8_t ShellCode[0x3] = { 0xFF, 0xE0 }; };
 

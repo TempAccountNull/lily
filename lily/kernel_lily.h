@@ -71,49 +71,46 @@ public:
 	KernelLily(const DBVM& dbvm) : Kernel(dbvm) {}
 
 	const KernelFunction<PVOID(PVOID Process)> PsGetProcessWin32Process = {
-		reinterpret_cast<PVOID(*)(PVOID Process)>
-		(GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsGetProcessWin32Process"e)), *this };
+		GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsGetProcessWin32Process"e), *this };
 
 	const KernelFunction<NTSTATUS(PVOID Process, PVOID Win32Process, PVOID PrevWin32Process)> PsSetProcessWin32Process = {
-		reinterpret_cast<NTSTATUS(*)(PVOID Process, PVOID Win32Process, PVOID PrevWin32Process)>
-		(GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsSetProcessWin32Process"e)), *this };
+		GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsSetProcessWin32Process"e), *this };
 
 	const KernelFunction<tagWND* (HWND hWnd)> ValidateHwnd = {
-		reinterpret_cast<tagWND * (*)(HWND hWnd)>
-		(GetKernelProcAddressVerified("win32kbase.sys"e, "ValidateHwnd"e)), *this };
+		GetKernelProcAddressVerified("win32kbase.sys"e, "ValidateHwnd"e), *this };
 
 	const KernelFunction<PVOID(DWORD PoolType, SIZE_T NumberOfBytes)> ExAllocatePool = {
-		reinterpret_cast<PVOID(*)(DWORD PoolType, SIZE_T NumberOfBytes)>
-		(GetKernelProcAddressVerified("ntoskrnl.exe"e, "ExAllocatePool"e)), *this };
+		GetKernelProcAddressVerified("ntoskrnl.exe"e, "ExAllocatePool"e), *this };
 
 	const KernelFunction<ATOM(PCWSTR AtomName)> UserFindAtom = {
-		reinterpret_cast<ATOM(*)(PCWSTR AtomName)>
-		(GetKernelProcAddressVerified("win32kbase.sys"e, "UserFindAtom"e)), *this };
+		GetKernelProcAddressVerified("win32kbase.sys"e, "UserFindAtom"e), *this };
 
 	const KernelFunction<HANDLE(PROP* pProp, ATOM nAtom, DWORD dwFlag)> RealGetProp = {
-		reinterpret_cast<HANDLE(*)(PROP * pProp, ATOM nAtom, DWORD dwFlag)>
-		(GetKernelProcAddressVerified("win32kbase.sys"e, "RealGetProp"e)), *this };
+		GetKernelProcAddressVerified("win32kbase.sys"e, "RealGetProp"e), *this };
 
 	const KernelFunction<BOOL(PROP* pProp, ATOM nAtom, DWORD dwFlag)> RealInternalRemoveProp = {
-		reinterpret_cast<BOOL(*)(PROP * pProp, ATOM nAtom, DWORD dwFlag)>
-		(GetKernelProcAddressVerified("win32kbase.sys"e, "RealInternalRemoveProp"e)), *this };
+		GetKernelProcAddressVerified("win32kbase.sys"e, "RealInternalRemoveProp"e), *this };
 
 	const KernelFunction<BOOL(PROP** pProp, ATOM nAtom, HANDLE hValue, DWORD dwFlag)> RealInternalSetProp = {
-		reinterpret_cast<BOOL(*)(PROP * *pProp, ATOM nAtom, HANDLE hValue, DWORD dwFlag)>
-		(GetKernelProcAddressVerified("win32kbase.sys"e, "RealInternalSetProp"e)), *this };
+		GetKernelProcAddressVerified("win32kbase.sys"e, "RealInternalSetProp"e), *this };
 
 	constexpr static BYTE TYPE_HIDDATA = 18;
 	const KernelFunction<PVOID(THREADINFO* ptiOwner, void* pdeskSrc, BYTE bType, DWORD size)> HMAllocObject = {
-		reinterpret_cast<PVOID(*)(THREADINFO* ptiOwner, void* pdeskSrc, BYTE bType, DWORD size)>
-		(GetKernelProcAddressVerified("win32kbase.sys"e, "HMAllocObject"e)), *this };
+		GetKernelProcAddressVerified("win32kbase.sys"e, "HMAllocObject"e), *this };
 
 	const SafeFunction<tagWND_USER* (HWND hWnd)> UserValidateHwnd = [&] {
 		const uintptr_t ScanResult = PatternScan::Range((uintptr_t)IsChild, 0x30, "48 8B CA E8"e, ReadProcessMemoryWinAPI);
 		verify(ScanResult);
-		const auto p = PatternScan::GetJumpAddress(ScanResult + 0x3, ReadProcessMemoryDBVM);
-		verify(p);
-		return decltype(UserValidateHwnd)(reinterpret_cast<tagWND_USER * (*)(HWND hWnd)>(p));
+		const auto pFunc = PatternScan::GetJumpAddress(ScanResult + 0x3, ReadProcessMemoryDBVM);
+		verify(pFunc);
+		return pFunc;
 	}();
+
+	const uintptr_t EditionNotifyDwmForSystemVisualDestruction = 
+		GetKernelProcAddressVerified("win32kfull.sys"e, "EditionNotifyDwmForSystemVisualDestruction");
+
+	const SafeFunction<NTSTATUS(HWND hWnd, BOOL topmost)> NtUserDestroyDCompositionHwndTarget =
+		GetUserProcAddressVerified("win32u.dll"e, "NtUserDestroyDCompositionHwndTarget"e);
 
 private:
 	const uint32_t OffsetProp = [&] {
@@ -283,6 +280,7 @@ public:
 		return RealInternalSetProp(pWnd->GetPPProp(*this), nAtom, hValue, dwFlag);
 	}
 
+	//The function must finish executing in a short time. Otherwise, The target window will hung.
 	bool SetOwningThreadWrapper(HWND hWnd, auto f) const {
 		const EmptyWindow hWndFrom;
 		tagWND* const pWndFrom = ValidateHwnd(hWndFrom);

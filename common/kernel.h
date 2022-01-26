@@ -63,19 +63,34 @@ public:
 		return ::WriteProcessMemory((HANDLE)-1, (void*)Address, Buffer, Size, 0);
 	};
 
-private:
-	PML4E* const DirectoryTableBase = (PML4E*)VirtualAllocVerified(0x1000, PAGE_READWRITE);
-	PDPTE* const MapPhysicalPDPTE = (PDPTE*)VirtualAllocVerified(0x1000, PAGE_READWRITE);
-	const PML4E CustomPML4E = (uintptr_t)dbvm.GetPhysicalAddress((uintptr_t)MapPhysicalPDPTE, dbvm.GetCR3());
-	const CR3 CustomCR3 = [&] {
-		verify(CustomPML4E);
-		ResetCustomCR3();
-		CR3 cr3 = (uintptr_t)dbvm.GetPhysicalAddress((uintptr_t)DirectoryTableBase, dbvm.GetCR3());
+	const CR3 UserCR3 = dbvm.GetCR3();
+	const CR3 KrnlCR3 = [&] {
+		const uintptr_t GsBase = dbvm.ReadMSR(IA32_KERNEL_GS_BASE_MSR);
+		//The process is not kva-shadowed.
+		if (dbvm.GetPhysicalAddress(GsBase, UserCR3))
+			return UserCR3;
+		CR3 cr3 = 0;
+		//Finding KernelDirectoryBase...
+		for (size_t Offset = 0x1000; Offset < 0x10000 &&
+			!dbvm.RPM(GsBase + Offset, &cr3, sizeof(cr3), UserCR3); Offset += 0x1000);
 		verify(cr3);
 		return cr3;
 	}();
 
+private:
+	PML4E* const DirectoryTableBase = (PML4E*)VirtualAllocVerified(0x1000, PAGE_READWRITE);
+	PDPTE* const MapPhysicalPDPTE = (PDPTE*)VirtualAllocVerified(0x1000, PAGE_READWRITE);
+	const PML4E CustomPML4E = (uintptr_t)dbvm.GetPhysicalAddress((uintptr_t)MapPhysicalPDPTE, UserCR3);
+
 public:
+	const CR3 CustomCR3 = [&] {
+		verify(CustomPML4E);
+		ResetCustomCR3();
+		CR3 cr3 = (uintptr_t)dbvm.GetPhysicalAddress((uintptr_t)DirectoryTableBase, UserCR3);
+		verify(cr3);
+		return cr3;
+	}();
+
 	const tReadProcessMemory ReadProcessMemoryDBVM = [&](uintptr_t Address, void* Buffer, size_t Size) {
 		return dbvm.RPM(Address, Buffer, Size, CustomCR3);
 	};
@@ -168,26 +183,9 @@ private:
 	}
 
 	void ResetCustomCR3() {
-		const bool bSuccess = [&] {
-			const uintptr_t GsBase = dbvm.ReadMSR(IA32_KERNEL_GS_BASE_MSR);
-			const CR3 userCR3 = dbvm.GetCR3();
-			CR3 krnlCR3 = 0;
-
-			//The process is not kva-shadowed.
-			if (dbvm.GetPhysicalAddress(GsBase, userCR3))
-				return dbvm.ReadPhysicalMemory(userCR3.PageFrameNumber * 0x1000, &DirectoryTableBase[0x000], 0x1000);
-
-			//Finding KernelDirectoryBase...
-			for (size_t Offset = 0x1000; Offset < 0x10000 &&
-				!dbvm.RPM(GsBase + Offset, &krnlCR3, sizeof(krnlCR3), userCR3); Offset += 0x1000);
-
-			if (!krnlCR3)
-				return false;
-
-			return
-				dbvm.ReadPhysicalMemory(userCR3.PageFrameNumber * 0x1000 + 0x000, &DirectoryTableBase[0x000], 0x800) &&
-				dbvm.ReadPhysicalMemory(krnlCR3.PageFrameNumber * 0x1000 + 0x800, &DirectoryTableBase[0x100], 0x800);
-		}();
+		const bool bSuccess =
+			dbvm.ReadPhysicalMemory(UserCR3.PageFrameNumber * 0x1000 + 0x000, &DirectoryTableBase[0x000], 0x800) &&
+			dbvm.ReadPhysicalMemory(KrnlCR3.PageFrameNumber * 0x1000 + 0x800, &DirectoryTableBase[0x100], 0x800);
 
 		verify(bSuccess);
 		MapPhysicalAddressSpaceToCustomCR3();
@@ -220,7 +218,14 @@ public:
 	template <class F>
 	class SafeFunction;
 	template <class R, class... Args>
-	class SafeFunction<R(Args...)> : public tl::function<R(Args...)> {};
+	class SafeFunction<R(Args...)> : public tl::function<R(Args...)> {
+	public:
+		using super = tl::function<R(Args...)>;
+
+		template<class FN>
+		SafeFunction(FN&& f) :
+			super(reinterpret_cast<R(*)(Args...)>(f)) {}
+	};
 
 	template <class F>
 	class KernelFunction;
@@ -233,7 +238,8 @@ public:
 
 		template<class FN>
 		KernelFunction(FN&& f, const Kernel& kernel, const bool bSetInterrupt = false) :
-			super(f), kernel(kernel), bSetInterrupt(bSetInterrupt) {}
+			super(reinterpret_cast<R(*)(Args...)>(f)),
+			kernel(kernel), bSetInterrupt(bSetInterrupt) {}
 
 		R operator()(Args... args) const {
 			return kernel.KernelExecute<R>(bSetInterrupt, [&] { return super::operator()(args...); });

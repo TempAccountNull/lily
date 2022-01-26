@@ -1,35 +1,32 @@
 #pragma once
 #include "common/render_dcomp.h"
+#include "common/shellcode.h"
 #include "kernel_lily.h"
 
 class RenderLily : public RenderDComp {
 private:
 	const KernelLily& kernel;
 
-	const ATOM CHwndTargetProp = kernel.UserFindAtomVerified(L"SysDCompHwndTargets"e);
-	const ATOM CVisRgnTrackerProp = kernel.UserFindAtomVerified(L"SysVisRgnTracker"e);
-
 	void ReleaseDirectCompositionTarget() final {
 		kernel.SetOwningThreadWrapper(hAttachWnd, [&] {
-			if (SUCCEEDED(pDirectCompositionDevice->CreateTargetForHwnd(hAttachWnd, TOPMOST, &pDirectCompositionTarget)))
-				pDirectCompositionTarget.ReleaseAndGetAddressOf();
+			pDirectCompositionDevice->CreateTargetForHwnd(hAttachWnd, TOPMOST, &pDirectCompositionTarget);
+			pDirectCompositionTarget.ReleaseAndGetAddressOf();
 			});
 	}
 
 	bool CreateDirectCompositionTarget(HWND hWnd) final {
+		const ShellCode_Ret0 ShellCode;
 		bool bSuccess = false;
 
-		if (!kernel.SetOwningThreadWrapper(hWnd, [&] {
-			if (FAILED(pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget)))
-				return;
-			bSuccess = kernel.KernelRemoveProp(hWnd, CHwndTargetProp) && kernel.KernelRemoveProp(hWnd, CVisRgnTrackerProp);
-			if (!bSuccess)
-				pDirectCompositionTarget.ReleaseAndGetAddressOf();
-			})) return false;
-
-		//if (!SetClientRectWrapper(hWnd, { 0, 0, ScreenWidth, ScreenHeight }, [&] {
-		//	hr = kernel.KernelRemoveProp(hWnd, CVisRgnTrackerProp) ? S_OK : E_FAIL;
-		//	})) return false;
+		kernel.dbvm.CloakWrapper(kernel.EditionNotifyDwmForSystemVisualDestruction, &ShellCode, sizeof(ShellCode), kernel.KrnlCR3, [&] {
+			kernel.SetOwningThreadWrapper(hWnd, [&] {
+				bSuccess =
+					pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget) == S_OK &&
+					kernel.NtUserDestroyDCompositionHwndTarget(hWnd, TOPMOST);
+				if (!bSuccess)
+					pDirectCompositionTarget.ReleaseAndGetAddressOf();
+				});
+			});
 
 		return bSuccess;
 	}
