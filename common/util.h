@@ -20,7 +20,7 @@
 #ifdef DPRINT
 #define dprintf(...) [&]{ printf(__VA_ARGS__); putchar('\n'); }()
 #else
-#define dprintf(...) []{}()
+#define dprintf(...) ((void)0)
 #endif
 
 static void MessageBoxCSRSS(const char* szText, const char* szCaption, UINT uType, DWORD dwMilliseconds = INFINITE);

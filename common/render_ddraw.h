@@ -56,6 +56,20 @@ private:
 		if (FAILED(hr))
 			return false;
 
+		const bool IsDriverSupported = [&] {
+			DDCAPS DDCaps = { .dwSize = sizeof(DDCAPS) };
+			hr = pDirectDraw7->GetCaps(&DDCaps, 0);
+			if (FAILED(hr))
+				return false;
+
+			const DWORD dwCaps = DDCaps.dwCaps;
+			if (!(dwCaps & DDCAPS_COLORKEY))
+				return false;
+
+			return (dwCaps & DDCAPS_OVERLAY) || (dwCaps & DDCAPS_OVERLAYCANTCLIP);
+		}();
+		verify(IsDriverSupported);
+
 		hr = pDirectDraw7->SetCooperativeLevel(0, DDSCL_NORMAL);
 		if (FAILED(hr))
 			return false;
