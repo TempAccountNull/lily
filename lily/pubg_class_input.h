@@ -8,9 +8,6 @@ EncryptedPtr<APawn> Pawn
 class APlayerController
 NativePtr<APawn> SpectatorPawn
 NativePtr<APlayerCameraManager> PlayerCameraManager
-float InputYawScale
-float InputPitchScale
-float InputRollScale
 
 class ATslPlayerController
 float DefaultFOV

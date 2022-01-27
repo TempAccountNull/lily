@@ -25,8 +25,8 @@ protected:
 private:
 	float PosX = 0;
 	float PosY = 0;
-	float Width = (float)ScreenWidth;
-	float Height = (float)ScreenHeight;
+	float _Width = (float)ScreenWidth;
+	float _Height = (float)ScreenHeight;
 
 	virtual void Present(HWND hWnd);
 	virtual ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const;
@@ -57,8 +57,8 @@ private:
 		ClientToScreen(hWnd, &ClientPos);
 		PosX = (float)ClientPos.x;
 		PosY = (float)ClientPos.y;
-		Width = (float)ClientRect.right;
-		Height = (float)ClientRect.bottom;
+		_Width = (float)ClientRect.right;
+		_Height = (float)ClientRect.bottom;
 	}
 
 	void InsertMouseInfo() const {
@@ -81,8 +81,8 @@ private:
 	uint64_t PrevFPSTime = GetTickCountInMicroSeconds();
 	uint64_t PrevTime = GetTickCountInMicroSeconds();
 	uint32_t FPSCount = 0;
-	uint32_t FPS = 0;
-	float TimeDelta = 0;
+	uint32_t _FPS = 0;
+	float _TimeDelta = 0;
 
 	void UpdateTimeDelta() {
 		FPSCount++;
@@ -98,13 +98,13 @@ private:
 		//Calculate FPS each 1s 
 		if (CurrTime - PrevFPSTime > 1000000) {
 			PrevFPSTime = CurrTime;
-			FPS = FPSCount;
+			_FPS = FPSCount;
 			FPSCount = 0;
 			dprintf("%d"e, FPS);
 		}
 
 		PrevTime = CurrTime;
-		TimeDelta = (float)Delta / 1000000;
+		_TimeDelta = (float)Delta / 1000000;
 	}
 
 protected:
@@ -164,12 +164,10 @@ public:
 
 	bool bRender = true;
 
-	float GetPosX() const { return PosX; }
-	float GetPosY() const { return PosY; }
-	float GetWidth() const { return Width; }
-	float GetHeight() const { return Height; }
-	float GetTimeDelta() const { return TimeDelta; }
-	uint32_t GetFPS() const { return FPS; }
+	const float& Width = _Width;
+	const float& Height = _Height;
+	const float& TimeDelta = _TimeDelta;
+	const uint32_t& FPS = _FPS;
 
 	void RenderArea(HWND hWnd, ImColor BgColor, auto func) {
 		ProcessExitHotkey();

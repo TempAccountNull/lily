@@ -28,12 +28,12 @@ public:
 		int v4;
 		__int64 v37;
 
-		v1 = *(_DWORD*)(a1 + 0x14) ^ 0x3075A817;
-		v2 = __ROR4__(*(_DWORD*)(a1 + 0x10) ^ 0x66B90421, 5);
-		v3 = v2 ^ (v2 << 0x10) ^ 0x9862A817;
+		v1 = *(_DWORD*)(a1 + 0x1C) ^ 0xFB2ABB43;
+		v2 = __ROR4__(*(_DWORD*)(a1 + 0x18) ^ 0xD695BFD5, 2);
+		v3 = v2 ^ (v2 << 0x10) ^ 0x4069BB43;
 		LODWORD(v37) = v3;
-		v4 = __ROL4__(v1, 3);
-		HIDWORD(v37) = v4 ^ (v4 << 0x10) ^ 0x62980421;
+		v4 = __ROL4__(v1, 6);
+		HIDWORD(v37) = v4 ^ (v4 << 0x10) ^ 0x6940BFD5;
 
 		FName name;
 		name.ComparisonIndex = LODWORD(v37);
@@ -78,7 +78,7 @@ private:	uint8_t Pad2[0x20];
 class FUObjectArray
 {
 private:
-	static constexpr uintptr_t ADDRESS_GOBJECTS = 0x8D6A3D8;
+	static constexpr uintptr_t ADDRESS_GOBJECTS = 0x8D1E3C8;
 
 	uintptr_t BaseAddress;
 	uint32_t NumElements;

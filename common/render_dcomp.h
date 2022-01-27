@@ -33,7 +33,7 @@ private:
 	}
 
 	void AttachWindow(HWND hWnd) {
-		if (!IsWindowVisible(hWnd))
+		if (!IsWindowVisible(hWnd) || IsIconic(hWnd))
 			return;
 
 		ReleaseDirectCompositionTarget();

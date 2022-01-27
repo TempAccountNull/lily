@@ -17,8 +17,6 @@ private:
 	float NoticeTimeRemain = 0.0f;
 
 	bool bFighterMode = false;
-
-	bool& bESP;
 	bool bVehicle = true;
 	bool bBox = true;
 	bool bTeamKill = false;
@@ -43,6 +41,7 @@ private:
 	bool bDebug = false;
 
 	Render& render;
+	bool& bESP = render.bRender = true;
 
 	mutable char szBuf[0x100];
 
@@ -62,28 +61,16 @@ public:
 
 	PubgProcess& pubg;
 	KernelLily& kernel;
-	const DBVM& dbvm;
+	const DBVM& dbvm = kernel.dbvm;
 
-	ImColor GetItemColor(int ItemPriority) {
-		if (ItemPriority < nItem)
-			return Render::COLOR_WHITE;
-		switch (ItemPriority) {
-		case 1: return Render::COLOR_YELLOW;
-		case 2: return Render::COLOR_ORANGE;
-		case 3: return Render::COLOR_PURPLE;
-		case 4: return Render::COLOR_TEAL;
-		case 5: return Render::COLOR_BLACK;
-		default:return Render::COLOR_WHITE;
-		}
-	}
-
-	Hack(PubgProcess& pubg, Render& render, KernelLily& kernel) :
-		pubg(pubg), kernel(kernel), dbvm(kernel.dbvm), render(render), bESP(render.bRender) {
-		bESP = true;
-	}
+	Hack(PubgProcess& pubg, Render& render, KernelLily& kernel) : pubg(pubg), kernel(kernel), render(render) {}
 
 	void Loop();
-	
+
+	FVector WorldToScreen(const FVector& WorldLocation, const FMatrix& RotationMatrix, const FVector& CameraLocation, float CameraFOV) const {
+		return ::WorldToScreen(WorldLocation, RotationMatrix, CameraLocation, CameraFOV, render.Width, render.Height);
+	}
+
 	void DrawString(const FVector& pos, const char* szText, ImColor Color, bool bShowAlways) const {
 		render.DrawString(pos, Hack::MARGIN, szText, FONTSIZE, Color, true, true, bShowAlways);
 	}
@@ -93,23 +80,20 @@ public:
 	}
 
 	void DrawFPS(unsigned FPS, ImColor Color) const {
-		float Width = ImGui::GetMainViewport()->WorkSize.x;
 		sprintf(szBuf, "FPS : %d"e, FPS);
-		render.DrawString({ Width * 0.6f, 0.0f , 0.0f }, Hack::MARGIN, szBuf, Hack::FONTSIZE_SMALL, Color, true, true, true);
+		render.DrawString({ render.Width * 0.6f, 0.0f , 0.0f }, Hack::MARGIN, szBuf, Hack::FONTSIZE_SMALL, Color, true, true, true);
 	}
 
 	void DrawZeroingDistance(float ZeroingDistance, ImColor Color) const {
-		float Width = ImGui::GetMainViewport()->WorkSize.x;
 		sprintf(szBuf, "Zero : %.0f"e, ZeroingDistance);
-		render.DrawString({ Width * 0.5f, 0.0f , 0.0f }, Hack::MARGIN, szBuf, Hack::FONTSIZE_SMALL, Color, true, true, true);
+		render.DrawString({ render.Width * 0.5f, 0.0f , 0.0f }, Hack::MARGIN, szBuf, Hack::FONTSIZE_SMALL, Color, true, true, true);
 	}
 
 	void DrawSpectatedCount(unsigned SpectatedCount, ImColor Color) const {
-		float Width = ImGui::GetMainViewport()->WorkSize.x;
 		sprintf(szBuf, "Spectators : %d"e, SpectatedCount);
-		render.DrawString({ Width * 0.4f, 0.0f , 0.0f }, Hack::MARGIN, szBuf, Hack::FONTSIZE_SMALL, Color, true, true, true);
+		render.DrawString({ render.Width * 0.4f, 0.0f , 0.0f }, Hack::MARGIN, szBuf, Hack::FONTSIZE_SMALL, Color, true, true, true);
 	}
-	
+
 	void DrawHotkey() const;
 	void ProcessImGui();
 	void ProcessHotkey();
@@ -128,9 +112,5 @@ public:
 
 		bNeedToScroll = true;
 		debuglog += buf;
-	}
-
-	FVector WorldToScreen(const FVector& WorldLocation, const FMatrix& RotationMatrix, const FVector& CameraLocation, float CameraFOV) const {
-		return ::WorldToScreen(WorldLocation, RotationMatrix, CameraLocation, CameraFOV, render.GetWidth(), render.GetHeight());
 	}
 };

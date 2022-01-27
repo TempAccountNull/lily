@@ -45,23 +45,22 @@ struct ChangeRegOnBPInfo {
 		bool reserved : 3;         //29,30,31
 	};
 	struct {
-		//16 nibbles, each bit is one unsigned
-		unsigned changeXMM0 : 4;
-		unsigned changeXMM1 : 4;
-		unsigned changeXMM2 : 4;
-		unsigned changeXMM3 : 4;
-		unsigned changeXMM4 : 4;
-		unsigned changeXMM5 : 4;
-		unsigned changeXMM6 : 4;
-		unsigned changeXMM7 : 4;
-		unsigned changeXMM8 : 4;
-		unsigned changeXMM9 : 4;
-		unsigned changeXMM10 : 4;
-		unsigned changeXMM11 : 4;
-		unsigned changeXMM12 : 4;
-		unsigned changeXMM13 : 4;
-		unsigned changeXMM14 : 4;
-		unsigned changeXMM15 : 4;
+		bool changeXMM0_0 : 1, changeXMM0_1 : 1, changeXMM0_2 : 1, changeXMM0_3 : 1;
+		bool changeXMM1_0 : 1, changeXMM1_1 : 1, changeXMM1_2 : 1, changeXMM1_3 : 1;
+		bool changeXMM2_0 : 1, changeXMM2_1 : 1, changeXMM2_2 : 1, changeXMM2_3 : 1;
+		bool changeXMM3_0 : 1, changeXMM3_1 : 1, changeXMM3_2 : 1, changeXMM3_3 : 1;
+		bool changeXMM4_0 : 1, changeXMM4_1 : 1, changeXMM4_2 : 1, changeXMM4_3 : 1;
+		bool changeXMM5_0 : 1, changeXMM5_1 : 1, changeXMM5_2 : 1, changeXMM5_3 : 1;
+		bool changeXMM6_0 : 1, changeXMM6_1 : 1, changeXMM6_2 : 1, changeXMM6_3 : 1;
+		bool changeXMM7_0 : 1, changeXMM7_1 : 1, changeXMM7_2 : 1, changeXMM7_3 : 1;
+		bool changeXMM8_0 : 1, changeXMM8_1 : 1, changeXMM8_2 : 1, changeXMM8_3 : 1;
+		bool changeXMM9_0 : 1, changeXMM9_1 : 1, changeXMM9_2 : 1, changeXMM9_3 : 1;
+		bool changeXMM10_0 : 1, changeXMM10_1 : 1, changeXMM10_2 : 1, changeXMM10_3 : 1;
+		bool changeXMM11_0 : 1, changeXMM11_1 : 1, changeXMM11_2 : 1, changeXMM11_3 : 1;
+		bool changeXMM12_0 : 1, changeXMM12_1 : 1, changeXMM12_2 : 1, changeXMM12_3 : 1;
+		bool changeXMM13_0 : 1, changeXMM13_1 : 1, changeXMM13_2 : 1, changeXMM13_3 : 1;
+		bool changeXMM14_0 : 1, changeXMM14_1 : 1, changeXMM14_2 : 1, changeXMM14_3 : 1;
+		bool changeXMM15_0 : 1, changeXMM15_1 : 1, changeXMM15_2 : 1, changeXMM15_3 : 1;
 	};
 	uint64_t changeFP; //just one bit, each bit is a fpu field
 	uint64_t newRAX;
@@ -97,38 +96,12 @@ struct ChangeRegOnBPInfo {
 	uint64_t newFP6_H;
 	uint64_t newFP7;
 	uint64_t newFP7_H;
-	uint64_t XMM0;
-	uint64_t XMM0_H;
-	uint64_t XMM1;
-	uint64_t XMM1_H;
-	uint64_t XMM2;
-	uint64_t XMM2_H;
-	uint64_t XMM3;
-	uint64_t XMM3_H;
-	uint64_t XMM4;
-	uint64_t XMM4_H;
-	uint64_t XMM5;
-	uint64_t XMM5_H;
-	uint64_t XMM6;
-	uint64_t XMM6_H;
-	uint64_t XMM7;
-	uint64_t XMM7_H;
-	uint64_t XMM8;
-	uint64_t XMM8_H;
-	uint64_t XMM9;
-	uint64_t XMM9_H;
-	uint64_t XMM10;
-	uint64_t XMM10_H;
-	uint64_t XMM11;
-	uint64_t XMM11_H;
-	uint64_t XMM12;
-	uint64_t XMM12_H;
-	uint64_t XMM13;
-	uint64_t XMM13_H;
-	uint64_t XMM14;
-	uint64_t XMM14_H;
-	uint64_t XMM15;
-	uint64_t XMM15_H;
+	union {
+		struct { uint64_t uint64_0, uint64_1; };
+		struct { double Double_0, Double_1; };
+		struct { uint32_t uint32_0, uint32_1, uint32_2, uint32_3; };
+		struct { float Float_0, Float_1, Float_2, Float_3; };
+	} XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15;
 };
 
 class DBVM {

@@ -22,7 +22,7 @@ void Hack::Loop() {
 	//ObjectArr.DumpObject(NameArr);
 
 	//f3 0f 11 ? ? ? ? ? ? f3 0f 11 ? ? ? ? ? ? f3 44 0f ? ? ? ? ? ? ? f3 0f 10 ? ? ? ? ? e9
-	constexpr uintptr_t HookBaseAddress = 0x11CE84C;
+	constexpr uintptr_t HookBaseAddress = 0x1192348;
 	uint8_t OriginalByte = 0;
 	pubg.ReadBase(HookBaseAddress, &OriginalByte);
 	const uintptr_t AimHookAddressVA = pubg.GetBaseAddress() + HookBaseAddress;
@@ -39,34 +39,86 @@ void Hack::Loop() {
 		if (hGameWnd == hForeWnd)
 			ProcessHotkey();
 
-		const float TimeDelta = render.GetTimeDelta();
-		NoticeTimeRemain = std::max(NoticeTimeRemain - TimeDelta, 0.0f);
-
-		const float Width = render.GetWidth();
-		const float Height = render.GetHeight();
+		NoticeTimeRemain = std::max(NoticeTimeRemain - render.TimeDelta, 0.0f);
 
 		auto FuncInRenderArea = [&]() {
 			ProcessImGui();
 			DrawHotkey();
-			DrawFPS(render.GetFPS(), Render::COLOR_TEAL);
+			DrawFPS(render.FPS, Render::COLOR_TEAL);
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			bool IsNeedToHookAim = false;
 			TArray<NativePtr<AActor>> Actors;
-			NativePtr<APlayerController> PlayerContollerPtr = 0;
-
 			FVector CameraLocation;
-			FRotator CameraRotation;
+			FMatrix CameraRotationMatrix;
+			float CameraFOV;
 			float DefaultFOV = 0.0f;
-			float CameraFOV = 0.0f;
 
-			float InputPitchScale = 1.0f;
-			float InputYawScale = 1.0f;
-			float InputRollScale = 1.0f;
+			auto WorldToScreen = [&](const FVector& WorldLocation) {
+				return this->WorldToScreen(WorldLocation, CameraRotationMatrix, CameraLocation, CameraFOV);
+			};
+			auto DrawRatioBox = [&](const FVector& ScreenPos, float CameraDistance, float BarLength3D, float Ratio, ImColor ColorRemain, ImColor ColorDamaged, ImColor ColorEdge) {
+				FVector ZeroLocation;
+				FMatrix ZeroRotationMatrix = FRotator().GetMatrix();
+				FVector ScreenPos1 = this->WorldToScreen({ CameraDistance, BarLength3D / 2.0f, 0.0f }, ZeroRotationMatrix, ZeroLocation, CameraFOV);
+				FVector ScreenPos2 = this->WorldToScreen({ CameraDistance, -BarLength3D / 2.0f, 0.0f }, ZeroRotationMatrix, ZeroLocation, CameraFOV);
+
+				float ScreenLengthX = ScreenPos1.X - ScreenPos2.X;
+				float ScreenLengthY = ScreenLengthX / 6.0f;
+
+				ScreenLengthX = std::min(ScreenLengthX, render.Width / 16.0f);
+				ScreenLengthX = std::max(ScreenLengthX, render.Width / 64.0f);
+
+				ScreenLengthY = std::min(ScreenLengthY, 6.0f);
+				ScreenLengthY = std::max(ScreenLengthY, 5.0f);
+
+				render.DrawRatioBox(
+					{ ScreenPos.X - ScreenLengthX / 2.0f, ScreenPos.Y - ScreenLengthY / 2.0f, ScreenPos.Z },
+					{ ScreenPos.X + ScreenLengthX / 2.0f, ScreenPos.Y + ScreenLengthY / 2.0f, ScreenPos.Z },
+					Ratio, ColorRemain, ColorDamaged, ColorEdge);
+
+				return ImVec2{ ScreenLengthX, ScreenLengthY };
+			};
+			auto DrawItem = [&](NativePtr<UItem> ItemPtr, FVector ItemLocation) {
+				UItem Item;
+				if (!ItemPtr.Read(Item))
+					return false;
+
+				const unsigned ItemHash = NameArr.GetNameHashByID(Item.GetItemID());
+				if (!ItemHash)
+					return false;
+
+				const auto ItemInfo = GetItemInfo(ItemHash);
+				const char* szItemName = ItemInfo.ItemName.data();
+				const int ItemPriority = ItemInfo.ItemPriority;
+
+				if (ItemPriority < nItem && !bDebug)
+					return false;
+
+				const ImColor ItemColor = [&] {
+					if (ItemPriority < nItem)
+						return Render::COLOR_WHITE;
+					switch (ItemPriority) {
+					case 1: return Render::COLOR_YELLOW;
+					case 2: return Render::COLOR_ORANGE;
+					case 3: return Render::COLOR_PURPLE;
+					case 4: return Render::COLOR_TEAL;
+					case 5: return Render::COLOR_BLACK;
+					default:return Render::COLOR_WHITE;
+					}
+				}();
+
+				DrawString(ItemLocation, szItemName, ItemColor, false);
+				return true;
+			};
+
 			constexpr float BallisticDragScale = 1.0f;
 			constexpr float BallisticDropScale = 1.0f;
 
 			NativePtr<UObject> MyPawnPtr = 0;
+			FVector MyLocation;
+			FVector GunLocation;
+			FRotator GunRotation;
 
 			[&] {
 				UWorld World;
@@ -92,15 +144,10 @@ void Hack::Loop() {
 				if (!LocalPlayerPtr.Read(LocalPlayer))
 					return;
 
-				PlayerContollerPtr = (uintptr_t)LocalPlayer.PlayerController;
-
 				ATslPlayerController PlayerController;
 				if (!LocalPlayer.PlayerController.ReadOtherType(PlayerController))
 					return;
 
-				InputPitchScale = PlayerController.InputPitchScale;
-				InputYawScale = PlayerController.InputYawScale;
-				InputRollScale = PlayerController.InputRollScale;
 				DefaultFOV = PlayerController.DefaultFOV;
 
 				if (PlayerController.Character)
@@ -117,8 +164,9 @@ void Hack::Loop() {
 				if (!PlayerController.PlayerCameraManager.Read(PlayerCameraManager))
 					return;
 
-				CameraLocation = PlayerCameraManager.CameraCache_POV_Location;
-				CameraRotation = PlayerCameraManager.CameraCache_POV_Rotation;
+				GunLocation = MyLocation = CameraLocation = PlayerCameraManager.CameraCache_POV_Location;
+				GunRotation = PlayerCameraManager.CameraCache_POV_Rotation;
+				CameraRotationMatrix = PlayerCameraManager.CameraCache_POV_Rotation.GetMatrix();
 				CameraFOV = PlayerCameraManager.CameraCache_POV_FOV;
 			}();
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -128,49 +176,20 @@ void Hack::Loop() {
 			if (IsNearlyZero(DefaultFOV))
 				DefaultFOV = 90.0f;
 
+			const float FOVRatio = DefaultFOV / CameraFOV;
 			const float CircleFov = ConvertToRadians(CircleFovInDegrees);
 			const float AimbotCircleSize =
-				tanf(CircleFov) * Height *
-				powf(1.6f, log2f(DefaultFOV / CameraFOV)) *
+				tanf(CircleFov) * render.Height *
+				powf(1.6f, log2f(FOVRatio)) *
 				(nAimbot >= 2 ? 1.25f : 1.0f);
 
 			float AimbotDistant = AimbotCircleSize;
-
-			FVector MyLocation = CameraLocation;
-			FMatrix CameraRotationMatrix = CameraRotation.GetMatrix();
-
-			FVector GunLocation = CameraLocation;
-			FRotator GunRotation = CameraRotation;
-
-			auto DrawRatioBoxWrapper = [&](const FVector& ScreenPos, float CameraDistance, float BarLength3D, float Ratio, ImColor ColorRemain, ImColor ColorDamaged, ImColor ColorEdge) {
-				FVector ZeroLocation;
-				FMatrix ZeroRotationMatrix = FRotator().GetMatrix();
-				FVector ScreenPos1 = WorldToScreen({ CameraDistance, BarLength3D / 2.0f, 0.0f }, ZeroRotationMatrix, ZeroLocation, CameraFOV);
-				FVector ScreenPos2 = WorldToScreen({ CameraDistance, -BarLength3D / 2.0f, 0.0f }, ZeroRotationMatrix, ZeroLocation, CameraFOV);
-
-				float ScreenLengthX = ScreenPos1.X - ScreenPos2.X;
-				float ScreenLengthY = ScreenLengthX / 6.0f;
-
-				ScreenLengthX = std::min(ScreenLengthX, Width / 16.0f);
-				ScreenLengthX = std::max(ScreenLengthX, Width / 64.0f);
-
-				ScreenLengthY = std::min(ScreenLengthY, 6.0f);
-				ScreenLengthY = std::max(ScreenLengthY, 5.0f);
-
-				render.DrawRatioBox(
-					{ ScreenPos.X - ScreenLengthX / 2.0f, ScreenPos.Y - ScreenLengthY / 2.0f, ScreenPos.Z },
-					{ ScreenPos.X + ScreenLengthX / 2.0f, ScreenPos.Y + ScreenLengthY / 2.0f, ScreenPos.Z },
-					Ratio, ColorRemain, ColorDamaged, ColorEdge);
-
-				return std::pair(ScreenLengthX, ScreenLengthY);
-			};
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			const unsigned MyCharacterNameHash = NameArr.GetNameHashByObject(MyPawnPtr);
 			if (!MyCharacterNameHash)
 				return;
 
-			///////////////////////////////////////////////////////////
 			int MyTeamNum = -1;
 			int SpectatedCount = 0;
 			bool IsWeaponed = false;
@@ -184,8 +203,6 @@ void Hack::Loop() {
 			float SimulationSubstepTime = 0.016f;
 			float InitialSpeed = 800.0f;
 			float BulletDropAdd = 7.0f;
-
-			uint8_t bUpdated = 0;
 
 			//MyCharacterInfo
 			[&] {
@@ -309,7 +326,7 @@ void Hack::Loop() {
 
 					ActorVelocity = RootComponent.ComponentVelocity;
 					ActorLocation = RootComponent.ComponentToWorld.Translation;
-					ActorLocationScreen = WorldToScreen(ActorLocation, CameraRotationMatrix, CameraLocation, CameraFOV);
+					ActorLocationScreen = WorldToScreen(ActorLocation);
 					DistanceToActor = MyLocation.Distance(ActorLocation) / 100.0f;
 
 					if (nRange != 1000 && DistanceToActor > nRange)
@@ -430,33 +447,13 @@ void Hack::Loop() {
 						if (Health <= 0.0f)
 							return;
 
-						const float HealthBarScreenLengthY = DrawRatioBoxWrapper(VehicleBarScreenPos, CameraDistance, 1.0f,
-							Health / HealthMax, Render::COLOR_GREEN, Render::COLOR_RED, Render::COLOR_BLACK).second;
+						const float HealthBarScreenLengthY = DrawRatioBox(VehicleBarScreenPos, CameraDistance, 1.0f,
+							Health / HealthMax, Render::COLOR_GREEN, Render::COLOR_RED, Render::COLOR_BLACK).y;
 						VehicleBarScreenPos.Y += HealthBarScreenLengthY - 1.0f;
-						DrawRatioBoxWrapper(VehicleBarScreenPos, CameraDistance, 1.0f,
-							Fuel / FuelMax, Render::COLOR_BLUE, Render::COLOR_GRAY, Render::COLOR_BLACK).second;
+						DrawRatioBox(VehicleBarScreenPos, CameraDistance, 1.0f,
+							Fuel / FuelMax, Render::COLOR_BLUE, Render::COLOR_GRAY, Render::COLOR_BLACK).y;
 					}();
 				}();
-
-				auto DrawItem = [&](NativePtr<UItem> ItemPtr, FVector ItemLocation) {
-					UItem Item;
-					if (!ItemPtr.Read(Item))
-						return false;
-
-					const unsigned ItemHash = NameArr.GetNameHashByID(Item.GetItemID());
-					if (!ItemHash)
-						return false;
-
-					const auto ItemInfo = GetItemInfo(ItemHash);
-					const char* szItemName = ItemInfo.ItemName.data();
-					const int ItemPriority = ItemInfo.ItemPriority;
-
-					if (ItemPriority < nItem && !bDebug)
-						return false;
-
-					DrawString(ItemLocation, szItemName, GetItemColor(ItemPriority), false);
-					return true;
-				};
 
 				//DrawBox
 				[&] {
@@ -521,7 +518,7 @@ void Hack::Loop() {
 						if (ItemComponentHash != "DroppedItemInteractionComponent"h && ItemComponentHash != "DestructibleItemInteractionComponent"h)
 							continue;
 
-						FVector ItemLocationScreen = WorldToScreen(ItemComponent.ComponentToWorld.Translation, CameraRotationMatrix, CameraLocation, CameraFOV);
+						FVector ItemLocationScreen = WorldToScreen(ItemComponent.ComponentToWorld.Translation);
 						DrawItem(ItemComponent.Item, ItemLocationScreen);
 					}
 				}();
@@ -601,8 +598,8 @@ void Hack::Loop() {
 							return;
 
 						FVector v;
-						v.X = (Width * (0.9807f + 0.8474f) / 2.0f) + (RadarX / 200.0f * Width * (0.9807f - 0.8474f) / 2.0f);
-						v.Y = (Height * (0.9722f + 0.7361f) / 2.0f) + (RadarY / 200.0f * Height * (0.9722f - 0.7361f) / 2.0f);
+						v.X = (render.Width * (0.9807f + 0.8474f) / 2.0f) + (RadarX / 200.0f * render.Width * (0.9807f - 0.8474f) / 2.0f);
+						v.Y = (render.Height * (0.9722f + 0.7361f) / 2.0f) + (RadarY / 200.0f * render.Height * (0.9722f - 0.7361f) / 2.0f);
 
 						ImColor Color = Render::COLOR_RED;
 
@@ -632,22 +629,22 @@ void Hack::Loop() {
 							verify(BoneIndex < BoneSpaceTransformsSize);
 							FVector Pos = (BoneSpaceTransforms[BoneIndex] * Mesh.ComponentToWorld).Translation;
 							BonesPos[BoneIndex] = Pos;
-							BonesScreenPos[BoneIndex] = WorldToScreen(Pos, CameraRotationMatrix, CameraLocation, CameraFOV);
+							BonesScreenPos[BoneIndex] = WorldToScreen(Pos);
 						}
 
 						FVector HealthBarPos = BonesPos[neck_01];
 						HealthBarPos.Z += 35.0f;
-						FVector HealthBarScreenPos = WorldToScreen(HealthBarPos, CameraRotationMatrix, CameraLocation, CameraFOV);
+						FVector HealthBarScreenPos = WorldToScreen(HealthBarPos);
 						HealthBarScreenPos.Y -= 5.0f;
 
 						const float CameraDistance = CameraLocation.Distance(HealthBarPos) / 100.0f;
 						float HealthBarScreenLengthY = 0.0f;
 						if (Health > 0.0)
-							HealthBarScreenLengthY = DrawRatioBoxWrapper(HealthBarScreenPos, CameraDistance, 0.7f,
-								Health / HealthMax, Render::COLOR_GREEN, Render::COLOR_RED, Render::COLOR_BLACK).second;
+							HealthBarScreenLengthY = DrawRatioBox(HealthBarScreenPos, CameraDistance, 0.7f,
+								Health / HealthMax, Render::COLOR_GREEN, Render::COLOR_RED, Render::COLOR_BLACK).y;
 						else if (GroggyHealth > 0.0)
-							HealthBarScreenLengthY = DrawRatioBoxWrapper(HealthBarScreenPos, CameraDistance, 0.7f,
-								GroggyHealth / GroggyHealthMax, Render::COLOR_RED, Render::COLOR_GRAY, Render::COLOR_BLACK).second;
+							HealthBarScreenLengthY = DrawRatioBox(HealthBarScreenPos, CameraDistance, 0.7f,
+								GroggyHealth / GroggyHealthMax, Render::COLOR_RED, Render::COLOR_GRAY, Render::COLOR_BLACK).y;
 
 						bool IsInCircle = false;
 						//Aimbot
@@ -665,12 +662,12 @@ void Hack::Loop() {
 							if (bPushingShift)
 								VecEnemy = BonesPos[forehead];
 
-							FVector VecEnemy2D = WorldToScreen(VecEnemy, CameraRotationMatrix, CameraLocation, CameraFOV);
+							FVector VecEnemy2D = WorldToScreen(VecEnemy);
 							if (VecEnemy2D.Z < 0.0f)
 								return;
 
 							VecEnemy2D.Z = 0.0f;
-							FVector Center2D = { Width / 2.0f, Height / 2.0f, 0 };
+							FVector Center2D = { render.Width / 2.0f, render.Height / 2.0f, 0 };
 
 							float DistanceFromCenter = Center2D.Distance(VecEnemy2D);
 
@@ -754,8 +751,8 @@ void Hack::Loop() {
 				PredictedPos.Z += BulletDrop;
 				PredictedPos = PredictedPos + (TargetVelocity * (TravelTime / CustomTimeDilation));
 
-				FVector TargetScreenPos = WorldToScreen(TargetPos, CameraRotationMatrix, CameraLocation, CameraFOV);
-				FVector AimScreenPos = WorldToScreen(PredictedPos, CameraRotationMatrix, CameraLocation, CameraFOV);
+				FVector TargetScreenPos = WorldToScreen(TargetPos);
+				FVector AimScreenPos = WorldToScreen(PredictedPos);
 				render.DrawLine(TargetScreenPos, AimScreenPos, Render::COLOR_RED);
 
 				if (!IsWeaponed || !bPushingMouseM)
@@ -768,10 +765,10 @@ void Hack::Loop() {
 					FRotator RotationInput = (PredictedPos - CameraLocation).GetDirectionRotator() - GunRotation;
 					RotationInput.Clamp();
 
-					const float ScreenCenterX = Width / 2.0f;
-					const float ScreenCenterY = Height / 2.0f;
-					const int MouseX = int(AimbotSpeedX * (DefaultFOV / CameraFOV) * (1920.0f / Width) * RotationInput.Yaw);
-					const int MouseY = int(AimbotSpeedY * (DefaultFOV / CameraFOV) * (1080.0f / Height) * -RotationInput.Pitch);
+					const float ScreenCenterX = render.Width / 2.0f;
+					const float ScreenCenterY = render.Height / 2.0f;
+					const int MouseX = int(AimbotSpeedX * FOVRatio * (1920.0f / render.Width) * RotationInput.Yaw);
+					const int MouseY = int(AimbotSpeedY * FOVRatio * (1080.0f / render.Height) * -RotationInput.Pitch);
 					if (PrevMouseX == MouseX && PrevMouseY == MouseY)
 						return;
 
@@ -780,23 +777,29 @@ void Hack::Loop() {
 					PrevMouseY = MouseY;
 				};
 
-				if (nAimbot == 1)
+				switch (nAimbot) {
+				case 1:
 					AImbot_MouseEvent();
-				else if (nAimbot == 2 && !IsScoping)
-					AImbot_MouseEvent();
-				else if (nAimbot == 2 || nAimbot == 3) {
+					break;
+				case 2:
+					if (!IsScoping) {
+						AImbot_MouseEvent();
+						break;
+					}
+				case 3:
 					FVector DirectionInput = PredictedPos - GunLocation;
 					DirectionInput.Normalize();
 
-					ChangeRegOnBPInfo Info = { 0 };
-					Info.changeXMM7 = 1;
-					Info.changeXMM6 = 1;
-					Info.changeXMM8 = 1;
-					*(float*)&Info.XMM7 = DirectionInput.X;
-					*(float*)&Info.XMM6 = DirectionInput.Y;
-					*(float*)&Info.XMM8 = DirectionInput.Z;
+					ChangeRegOnBPInfo Info{};
+					Info.changeXMM7_0 = true;
+					Info.changeXMM6_0 = true;
+					Info.changeXMM8_0 = true;
+					Info.XMM7.Float_0 = DirectionInput.X;
+					Info.XMM6.Float_0 = DirectionInput.Y;
+					Info.XMM8.Float_0 = DirectionInput.Z;
 					dbvm.ChangeRegisterOnBP(AimHookAddressPA, Info);
 					IsNeedToHookAim = true;
+					break;
 				}
 			}();
 
@@ -810,8 +813,9 @@ void Hack::Loop() {
 				DrawZeroingDistance(ZeroingDistance, Render::COLOR_TEAL);
 
 			if (IsWeaponed)
-				render.DrawCircle({ Width / 2.0f, Height / 2.0f }, AimbotCircleSize, Render::COLOR_WHITE);
+				render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f }, AimbotCircleSize, Render::COLOR_WHITE);
 		};
+
 		render.RenderArea(hGameWnd, Render::COLOR_CLEAR, [&] { 
 			if (!ExceptionHandler::TryExcept(FuncInRenderArea))
 				printlog("Error : %d"e, ExceptionHandler::GetLastExceptionCode());
