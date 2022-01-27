@@ -29,8 +29,6 @@ void Hack::Loop() {
 	const PhysicalAddress AimHookAddressPA = dbvm.GetPhysicalAddress(AimHookAddressVA, mapCR3);
 	verify(AimHookAddressPA && OriginalByte);
 
-	int PrevMouseX = 0, PrevMouseY = 0;
-
 	NativePtr<ATslCharacter> CachedMyTslCharacterPtr = 0;
 	NativePtr<ATslCharacter> PrevTargetPtr = 0;
 
@@ -50,6 +48,7 @@ void Hack::Loop() {
 			bool IsNeedToHookAim = false;
 			TArray<NativePtr<AActor>> Actors;
 			FVector CameraLocation;
+			FRotator CameraRotation;
 			FMatrix CameraRotationMatrix;
 			float CameraFOV;
 			float DefaultFOV = 0.0f;
@@ -165,7 +164,7 @@ void Hack::Loop() {
 					return;
 
 				GunLocation = MyLocation = CameraLocation = PlayerCameraManager.CameraCache_POV_Location;
-				GunRotation = PlayerCameraManager.CameraCache_POV_Rotation;
+				GunRotation = CameraRotation = PlayerCameraManager.CameraCache_POV_Rotation;
 				CameraRotationMatrix = PlayerCameraManager.CameraCache_POV_Rotation.GetMatrix();
 				CameraFOV = PlayerCameraManager.CameraCache_POV_FOV;
 			}();
@@ -758,32 +757,28 @@ void Hack::Loop() {
 				if (!IsWeaponed || !bPushingMouseM)
 					return;
 
-				auto AImbot_MouseEvent = [&] {
+				auto AImbot_MouseMove = [&] {
 					if (hGameWnd != hForeWnd)
 						return;
 
-					FRotator RotationInput = (PredictedPos - CameraLocation).GetDirectionRotator() - GunRotation;
-					RotationInput.Clamp();
+					const FVector LocTarget = ::WorldToScreen(PredictedPos, CameraRotationMatrix, CameraLocation, CameraFOV, 1.0f, 1.0f);
+					const float DistanceToTarget = CameraLocation.Distance(PredictedPos) / 100.0f;
+					const FVector GunCenterPos = CameraLocation + GunRotation.GetUnitVector() * DistanceToTarget;
+					const FVector LocCenter = ::WorldToScreen(GunCenterPos, CameraRotationMatrix, CameraLocation, CameraFOV, 1.0f, 1.0f);
 
-					const float ScreenCenterX = render.Width / 2.0f;
-					const float ScreenCenterY = render.Height / 2.0f;
-					const int MouseX = int(AimbotSpeedX * FOVRatio * (1920.0f / render.Width) * RotationInput.Yaw);
-					const int MouseY = int(AimbotSpeedY * FOVRatio * (1080.0f / render.Height) * -RotationInput.Pitch);
-					if (PrevMouseX == MouseX && PrevMouseY == MouseY)
-						return;
+					const int MouseX = int(AimbotSpeedX * (LocTarget.X - LocCenter.X) * render.TimeDelta * 100000.0f);
+					const int MouseY = int(AimbotSpeedY * (LocTarget.Y - LocCenter.Y) * render.TimeDelta * 100000.0f);
 
 					kernel.PostRawMouseInput(hGameWnd, { .usFlags = MOUSE_MOVE_RELATIVE, .lLastX = MouseX, .lLastY = MouseY });
-					PrevMouseX = MouseX;
-					PrevMouseY = MouseY;
 				};
 
 				switch (nAimbot) {
 				case 1:
-					AImbot_MouseEvent();
+					AImbot_MouseMove();
 					break;
 				case 2:
 					if (!IsScoping) {
-						AImbot_MouseEvent();
+						AImbot_MouseMove();
 						break;
 					}
 				case 3:

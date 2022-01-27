@@ -25,7 +25,7 @@ private:
 	int nRange = 500;
 	float CircleFovInDegrees = 6.0f;
 
-	constexpr static float DefaultAimbotSpeed = 5.0f;
+	constexpr static float DefaultAimbotSpeed = 1.0f;
 	constexpr static float DefaultAimbotSpeedMax = DefaultAimbotSpeed * 2.0f * 2.0f;
 	constexpr static float DefaultAimbotSpeedMin = DefaultAimbotSpeed * 0.5f * 0.5f;
 	float AimbotSpeedX = DefaultAimbotSpeed;
