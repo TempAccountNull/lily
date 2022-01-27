@@ -7,6 +7,9 @@
 #include <dcomp.h>
 #pragma comment(lib, "dcomp.lib")
 
+#include <dwmapi.h>
+#pragma comment(lib, "dwmapi.lib")
+
 class RenderDComp : public Render {
 private:
 	ComPtr<IDXGISwapChain1> pDXGISwapChain1;
@@ -26,6 +29,13 @@ private:
 	ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const final { return pD3D11RenderTargetView; }
 
 	void Present(HWND hWnd) final {
+		BOOL bEnabled = FALSE;
+		DwmIsCompositionEnabled(&bEnabled);
+		if (!bEnabled) {
+			hAttachWnd = 0;
+			return;
+		}
+
 		if (hWnd && hWnd != hAttachWnd)
 			AttachWindow(hWnd);
 
