@@ -179,7 +179,21 @@ private:
 			}
 
 			const HMODULE hLocalDLL = LoadLibraryA(szFileName);
-			verify(hLocalDLL);
+			if (!hLocalDLL) {
+				strMsg = (std::string)"LocalLibrary failed : "e;
+				strMsg += strDLLName;
+				return false;
+			}
+
+			MODULEINFO LocalDLLInfo, RemoteDLLInfo;
+			if (!process.RemoteGetModuleInformation(hRemoteDLL, &RemoteDLLInfo, sizeof(RemoteDLLInfo)) ||
+				!GetModuleInformation((HANDLE)-1, hLocalDLL, &LocalDLLInfo, sizeof(LocalDLLInfo))) {
+				strMsg = (std::string)"GetModuleInformation failed : "e;
+				strMsg += strDLLName;
+				return false;
+			}
+
+			const bool IsDLLDifferent = (LocalDLLInfo.SizeOfImage != RemoteDLLInfo.SizeOfImage);
 
 			//fix the time/date stamp
 			//ImportDesc.TimeDateStamp = ntHd.FileHeader.TimeDateStamp;
@@ -203,13 +217,13 @@ private:
 					return (const char*)&Binary[OffsetImageImportByName];
 				}();
 
-				const FARPROC pRemoteFuncAddress = [&] {
+				const FARPROC pRemoteFuncAddress = [&]()->FARPROC {
+					if (IsDLLDifferent)
+						return RemoteGetProcAddress(hRemoteDLL, szFuncName);
 					const FARPROC pFuncAddress = GetProcAddress(hLocalDLL, szFuncName);
-					verify(pFuncAddress);
+					if (!pFuncAddress)
+						return 0;
 					return FARPROC((uintptr_t)pFuncAddress - (uintptr_t)hLocalDLL + (uintptr_t)hRemoteDLL);
-					//if (pFuncAddress)
-					//	return FARPROC((uintptr_t)pFuncAddress - (uintptr_t)hLocalDLL + (uintptr_t)hRemoteDLL);
-					//return RemoteGetProcAddress(hRemoteDLL, szFuncName);
 				}();
 
 				if (!pRemoteFuncAddress) {

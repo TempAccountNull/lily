@@ -282,7 +282,7 @@ public:
 		return VMCall(VMCALL_WRITE_PHYSICAL_MEMORY, dstPA, (unsigned)size, srcVA, nopagefault) == 0;
 	};
 
-	void SwitchToKernelMode(uint16_t newCS) const {
+	void SwitchToKernelMode(uint16_t newCS = 0x10) const {
 		VMCall(VMCALL_KERNELMODE, newCS);
 	}
 
@@ -295,7 +295,7 @@ public:
 	}
 
 	void SetCR3(CR3 cr3) const {
-		SwitchToKernelMode(0x10);
+		SwitchToKernelMode();
 		__writecr3(cr3);
 		ReturnToUserMode();
 	}

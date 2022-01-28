@@ -206,7 +206,7 @@ public:
 
 	template<>
 	void KernelExecute(bool bSetInterrupt, tl::function<void(void)> CallBack) const {
-		dbvm.SwitchToKernelMode(0x10);
+		dbvm.SwitchToKernelMode();
 		_stac();
 		__writecr3(CustomCR3);
 		if (bSetInterrupt) _enable();

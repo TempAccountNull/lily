@@ -107,7 +107,7 @@ public:
 	}();
 
 	const uintptr_t EditionNotifyDwmForSystemVisualDestruction = 
-		GetKernelProcAddressVerified("win32kfull.sys"e, "EditionNotifyDwmForSystemVisualDestruction");
+		GetKernelProcAddressVerified("win32kfull.sys"e, "EditionNotifyDwmForSystemVisualDestruction"e);
 
 	const SafeFunction<NTSTATUS(HWND hWnd, BOOL topmost)> NtUserDestroyDCompositionHwndTarget =
 		GetUserProcAddressVerified("win32u.dll"e, "NtUserDestroyDCompositionHwndTarget"e);
