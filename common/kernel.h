@@ -218,8 +218,9 @@ public:
 	void KernelExecute(tl::function_ref<void(void)> CallBack) const {
 		ShellCode_IntHandler shellcode;
 		SetThreadAffinityMaskWrapper([&] {
-			dbvm.CloakWrapper(KernelSpace, &shellcode, sizeof(shellcode), KrnlCR3, [&] {
-				dbvm.SwitchToKernelMode(KernelSpace, &CallBack); }); });
+			dbvm.WPMCloak(KernelSpace, &shellcode, sizeof(shellcode), KrnlCR3);
+			dbvm.SwitchToKernelMode(KernelSpace, &CallBack);
+			});
 	}
 
 #ifdef TL_IGNORE_GUARD

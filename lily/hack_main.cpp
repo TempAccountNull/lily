@@ -12,8 +12,6 @@
 #include "info_character.h"
 
 void Hack::Loop() {
-	dbvm.CloakReset();
-
 	const HWND hGameWnd = pubg.GetHwnd();
 	const CR3 mapCR3 = kernel.GetMapCR3();
 	const TNameEntryArray NameArr;

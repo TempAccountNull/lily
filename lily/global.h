@@ -41,5 +41,6 @@ private:
 
 		dbvm.SetPassword(password1, password2, password3);
 		verify(dbvm.GetVersion());
+		dbvm.CloakReset();
 	};
 };
