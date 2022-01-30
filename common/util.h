@@ -285,3 +285,10 @@ case Hash : return __VA_ARGS__
 
 #define HASH_DEFAULT(...)\
 default : return __VA_ARGS__
+
+void SetThreadAffinityMaskWrapper(auto f) {
+	const HANDLE hCurrentThread = GetCurrentThread();
+	DWORD_PTR OldAffinityMask = SetThreadAffinityMask(hCurrentThread, 1);
+	f();
+	SetThreadAffinityMask(hCurrentThread, OldAffinityMask);
+}

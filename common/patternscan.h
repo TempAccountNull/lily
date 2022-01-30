@@ -9,21 +9,24 @@ private:
 
 	constexpr static unsigned MAX_MASK_SIZE = 0x100;
 
-	static bool DataCompare(uint8_t* pData, uint8_t* bMask, uint8_t* vMask) {
-		for (; *bMask; ++bMask, ++pData, ++vMask)
-			if (*bMask == 'x' && *pData != *vMask)
+	static bool DataCompare(uint8_t* pData, bool* bMask, uint8_t* vMask, size_t SizeMask) {
+		for (auto i = 0; i < SizeMask; i++) {
+			if (bMask && !bMask[i])
+				continue;
+			if (pData[i] != vMask[i])
 				return false;
+		}
 		return true;
 	}
 
-	static uintptr_t FindPattern(uintptr_t Address, size_t Len, uint8_t* bMask, uint8_t* vMask) {
+	static uintptr_t FindPattern(uintptr_t Address, size_t Len, bool* bMask, uint8_t* vMask, size_t SizeMask) {
 		for (size_t i = 0; i < Len; i++)
-			if (DataCompare((uint8_t*)(Address + i), bMask, vMask))
+			if (DataCompare((uint8_t*)(Address + i), bMask, vMask, SizeMask))
 				return Address + i;
 		return 0;
 	}
 
-	static bool ConvertStringToMask(const char* szPattern, uint8_t* bMask, uint8_t* vMask, size_t MaxSize) {
+	static size_t ConvertStringToMask(const char* szPattern, bool* bMask, uint8_t* vMask, size_t MaxSize) {
 		memset(bMask, 0, MaxSize);
 		memset(vMask, 0, MaxSize);
 		uintptr_t i = 0, j = 0, k = 0;
@@ -32,37 +35,37 @@ private:
 				k = 0;
 				j++;
 				if (j >= MaxSize)
-					return false;
+					return 0;
 			}
 			else if (szPattern[i] >= '0' && szPattern[i] <= '9') {
-				bMask[j] = 'x';
+				bMask[j] = true;
 				if (k == 1) vMask[j] += szPattern[i] - '0';
 				else if (k == 0) vMask[j] += (szPattern[i] - '0') * 0x10;
-				else return false;
+				else return 0;
 				k++;
 			}
 			else if (szPattern[i] >= 'a' && szPattern[i] <= 'f') {
-				bMask[j] = 'x';
+				bMask[j] = true;
 				if (k == 1) vMask[j] += szPattern[i] - 'a' + 0xA;
 				else if (k == 0) vMask[j] += (szPattern[i] - 'a' + 0xA) * 0x10;
-				else return false;
+				else return 0;
 				k++;
 			}
 			else if (szPattern[i] >= 'A' && szPattern[i] <= 'F') {
-				bMask[j] = 'x';
+				bMask[j] = true;
 				if (k == 1) vMask[j] += szPattern[i] - 'A' + 0xA;
 				else if (k == 0) vMask[j] += (szPattern[i] - 'A' + 0xA) * 0x10;
-				else return false;
+				else return 0;
 				k++;
 			}
 			else if (szPattern[i] == '?') {
-				bMask[j] = '?';
-				vMask[j] = false;
+				bMask[j] = false;
+				vMask[j] = 0;
 			}
-			else return false;
+			else return 0;
 			i++;
 		}
-		return true;
+		return j + 1;
 	}
 
 	template <class Type>
@@ -120,7 +123,7 @@ private:
 
 public:
 	template <class Type>
-	static Type Range(Type Address, size_t Len, uint8_t* bMask, uint8_t* vMask, tReadProcessMemory<Type> ReadProcessMemory) {
+	static Type Range(Type Address, size_t Len, bool* bMask, uint8_t* vMask, size_t SizeMask, tReadProcessMemory<Type> ReadProcessMemory) {
 		static_assert(std::is_same<Type, uint32_t>::value | std::is_same<Type, uint64_t>::value, "Type must be 32bit or 64bit.");
 
 		Type Start = Address & ~0xFFF;
@@ -136,7 +139,7 @@ public:
 
 			Type AddressTemp = (Type)Buf;
 			while (1) {
-				Type LocalResult = FindPattern(AddressTemp, 0x1000, bMask, vMask);
+				Type LocalResult = FindPattern(AddressTemp, 0x1000, bMask, vMask, SizeMask);
 				if (LocalResult == 0)
 					break;
 				else {
@@ -155,23 +158,24 @@ public:
 	static Type Range(Type Address, size_t Len, const char* szPattern, tReadProcessMemory<Type> ReadProcessMemory) {
 		static_assert(std::is_same<Type, uint32_t>::value | std::is_same<Type, uint64_t>::value, "Type must be 32bit or 64bit.");
 
-		uint8_t bMask[MAX_MASK_SIZE] = { 0 };
+		bool bMask[MAX_MASK_SIZE] = { 0 };
 		uint8_t vMask[MAX_MASK_SIZE] = { 0 };
-		if (!ConvertStringToMask(szPattern, bMask, vMask, MAX_MASK_SIZE))
+		size_t SizeMask = ConvertStringToMask(szPattern, bMask, vMask, MAX_MASK_SIZE);
+		if (!SizeMask)
 			return 0;
 
-		return Range(Address, Len, bMask, vMask, ReadProcessMemory);
+		return Range(Address, Len, bMask, vMask, SizeMask, ReadProcessMemory);
 	}
 
 	template <class Type>
-	static Type Module(Type ModuleBase, const char* szSectionName, uint8_t* bMask, uint8_t* vMask, tReadProcessMemory<Type> ReadProcessMemory) {
+	static Type Module(Type ModuleBase, const char* szSectionName, bool* bMask, uint8_t* vMask, size_t SizeMask, tReadProcessMemory<Type> ReadProcessMemory) {
 		static_assert(std::is_same<Type, uint32_t>::value | std::is_same<Type, uint64_t>::value, "Type must be 32bit or 64bit.");
 
 		DWORD Base, Size;
 		if (!GetModuleInfo<Type>(ModuleBase, szSectionName, Base, Size, ReadProcessMemory))
 			return 0;
 
-		return Range(ModuleBase + Base, Size, bMask, vMask, ReadProcessMemory);
+		return Range(ModuleBase + Base, Size, bMask, vMask, SizeMask, ReadProcessMemory);
 	}
 
 	template <class Type>
@@ -185,16 +189,16 @@ public:
 		return Range(ModuleBase + Base, Size, szPattern, ReadProcessMemory);
 	}
 
-	static uintptr_t Range(uintptr_t Address, size_t Len, uint8_t* bMask, uint8_t* vMask, tReadProcessMemory<uintptr_t> ReadProcessMemory) {
-		return Range<uintptr_t>(Address, Len, bMask, vMask, ReadProcessMemory);
+	static uintptr_t Range(uintptr_t Address, size_t Len, bool* bMask, uint8_t* vMask, size_t SizeMask, tReadProcessMemory<uintptr_t> ReadProcessMemory) {
+		return Range<uintptr_t>(Address, Len, bMask, vMask, SizeMask, ReadProcessMemory);
 	}
 
 	static uintptr_t Range(uintptr_t Address, size_t Len, const char* szPattern, tReadProcessMemory<uintptr_t> ReadProcessMemory) {
 		return Range<uintptr_t>(Address, Len, szPattern, ReadProcessMemory);
 	}
 
-	static uintptr_t Module(uintptr_t ModuleBase, const char* szSectionName, uint8_t* bMask, uint8_t* vMask, tReadProcessMemory<uintptr_t> ReadProcessMemory) {
-		return Module<uintptr_t>(ModuleBase, szSectionName, bMask, vMask, ReadProcessMemory);
+	static uintptr_t Module(uintptr_t ModuleBase, const char* szSectionName, bool* bMask, uint8_t* vMask, size_t SizeMask, tReadProcessMemory<uintptr_t> ReadProcessMemory) {
+		return Module<uintptr_t>(ModuleBase, szSectionName, bMask, vMask, SizeMask, ReadProcessMemory);
 	}
 
 	static uintptr_t Module(uintptr_t ModuleBase, const char* szSectionName, const char* szPattern, tReadProcessMemory<uintptr_t> ReadProcessMemory) {

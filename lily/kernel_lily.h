@@ -21,16 +21,17 @@ public:
 		MemberAtOffset(RECT, rcWindow, 0x58)
 		MemberAtOffset(RECT, rcClient, 0x68)
 		MemberAtOffset(WORD, FNID, 0x2A)
-	,)
+	);
 	class PROP {};
 	class THREADINFO {};
 
 	class tagWND {
 	private:
 		constexpr static size_t Offset_OwningThread = 0x10;
+		constexpr static size_t Offset_Prop = 0x90;
 	public:
 		PROP** GetPPProp(const KernelLily& kernel) const {
-			return (PROP**)((uintptr_t)this + kernel.OffsetProp);
+			return (PROP**)((uintptr_t)this + Offset_Prop);
 		}
 		PROP* GetPProp(const KernelLily& kernel) const {
 			PROP* pProp = 0;
@@ -76,11 +77,11 @@ public:
 	const KernelFunction<NTSTATUS(PVOID Process, PVOID Win32Process, PVOID PrevWin32Process)> PsSetProcessWin32Process = {
 		GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsSetProcessWin32Process"e), *this };
 
-	const KernelFunction<tagWND* (HWND hWnd)> ValidateHwnd = {
-		GetKernelProcAddressVerified("win32kbase.sys"e, "ValidateHwnd"e), *this };
-
 	const KernelFunction<PVOID(DWORD PoolType, SIZE_T NumberOfBytes)> ExAllocatePool = {
 		GetKernelProcAddressVerified("ntoskrnl.exe"e, "ExAllocatePool"e), *this };
+
+	const KernelFunction<tagWND* (HWND hWnd)> ValidateHwnd = {
+		GetKernelProcAddressVerified("win32kbase.sys"e, "ValidateHwnd"e), *this };
 
 	const KernelFunction<ATOM(PCWSTR AtomName)> UserFindAtom = {
 		GetKernelProcAddressVerified("win32kbase.sys"e, "UserFindAtom"e), *this };
@@ -94,9 +95,23 @@ public:
 	const KernelFunction<BOOL(PROP** pProp, ATOM nAtom, HANDLE hValue, DWORD dwFlag)> RealInternalSetProp = {
 		GetKernelProcAddressVerified("win32kbase.sys"e, "RealInternalSetProp"e), *this };
 
+	const SafeFunction<void(int, int)> EnterCrit =
+		GetKernelProcAddressVerified("win32kbase.sys"e, "EnterCrit"e);
+
+	const SafeFunction<void(void)> UserSessionSwitchLeaveCrit =
+		GetKernelProcAddressVerified("win32kbase.sys"e, "UserSessionSwitchLeaveCrit"e);
+
 	constexpr static BYTE TYPE_HIDDATA = 18;
-	const KernelFunction<PVOID(THREADINFO* ptiOwner, void* pdeskSrc, BYTE bType, DWORD size)> HMAllocObject = {
-		GetKernelProcAddressVerified("win32kbase.sys"e, "HMAllocObject"e), *this };
+	const SafeFunction<PVOID(THREADINFO* ptiOwner, void* pdeskSrc, BYTE bType, DWORD size)> _HMAllocObject =
+		GetKernelProcAddressVerified("win32kbase.sys"e, "HMAllocObject"e);
+
+	const KernelFunction<PVOID(THREADINFO* ptiOwner, void* pdeskSrc, BYTE bType, DWORD size)> HMAllocObject =
+	{ [&](THREADINFO* ptiOwner, void* pdeskSrc, BYTE bType, DWORD size) -> PVOID {
+		EnterCrit(1, 0);
+		PVOID pResult = _HMAllocObject(ptiOwner, pdeskSrc, bType, size);
+		UserSessionSwitchLeaveCrit();
+		return pResult;
+	}, *this };
 
 	const SafeFunction<tagWND_USER* (HWND hWnd)> UserValidateHwnd = [&] {
 		const uintptr_t ScanResult = PatternScan::Range((uintptr_t)IsChild, 0x30, "48 8B CA E8"e, ReadProcessMemoryWinAPI);
@@ -106,23 +121,13 @@ public:
 		return pFunc;
 	}();
 
-	const uintptr_t EditionNotifyDwmForSystemVisualDestruction = 
+	const uintptr_t EditionNotifyDwmForSystemVisualDestruction =
 		GetKernelProcAddressVerified("win32kfull.sys"e, "EditionNotifyDwmForSystemVisualDestruction"e);
 
 	const SafeFunction<NTSTATUS(HWND hWnd, BOOL topmost)> NtUserDestroyDCompositionHwndTarget =
 		GetUserProcAddressVerified("win32u.dll"e, "NtUserDestroyDCompositionHwndTarget"e);
 
 private:
-	const uint32_t OffsetProp = [&] {
-		const uintptr_t pNtUserGetProp = GetKernelProcAddressVerified("win32kfull.sys"e, "NtUserGetProp"e);
-		const uintptr_t ScanResult = PatternScan::Range(pNtUserGetProp, 0x100, "48 8B ? ? ? 00 00 48 FF 15"e, ReadProcessMemoryDBVM);
-		verify(ScanResult);
-
-		ReadProcessMemoryDBVM(ScanResult + 0x3, (void*)&OffsetProp, sizeof(OffsetProp));
-		verify(OffsetProp);
-		return OffsetProp;
-	}();
-
 	const uintptr_t pPsProcessType = [&] {
 		const uintptr_t ppPsProcessType = GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsProcessType"e);
 		ReadProcessMemoryDBVM(ppPsProcessType, (void*)&pPsProcessType, sizeof(pPsProcessType));

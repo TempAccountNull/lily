@@ -5,10 +5,10 @@
 #include <string>
 #include <stdio.h>
 #include <intrin.h>
-#pragma intrinsic(_enable)
 
 #include "common/dbvm.h"
 #include "common/encrypt_string.h"
+#include "common/shellcode.h"
 #include "msrnames.h"
 #include "physicalmemory.h"
 #include "common/exception.h"
@@ -18,14 +18,12 @@
 using tReadProcessMemory = tl::function<bool(uintptr_t Address, void* Buffer, size_t Size)>;
 using tWriteProcessMemory = tl::function<bool(uintptr_t Address, const void* Buffer, size_t Size)>;
 
-extern "C" void RunWithKernelStack(void* pFunc, void* pThis);
-
 class Kernel {
 private:
 	INITIALIZER_INCLASS(CommitPages) {
 		const bool bSuccess = [&] {
 			MEMORY_BASIC_INFORMATION MemInfo;
-			if (!VirtualQuery(RunWithKernelStack, &MemInfo, sizeof(MemInfo)))
+			if (!VirtualQuery(vmcall_intel, &MemInfo, sizeof(MemInfo)))
 				return false;
 
 			const uintptr_t Base = (uintptr_t)MemInfo.AllocationBase & ~0xFFF;
@@ -69,10 +67,14 @@ public:
 		//The process is not kva-shadowed.
 		if (dbvm.GetPhysicalAddress(GsBase, UserCR3))
 			return UserCR3;
+
+		error("KVA-SHADOWED");
+
 		CR3 cr3 = 0;
 		//Finding KernelDirectoryBase...
 		for (size_t Offset = 0x1000; Offset < 0x10000 &&
 			!dbvm.RPM(GsBase + Offset, &cr3, sizeof(cr3), UserCR3); Offset += 0x1000);
+
 		verify(cr3);
 		return cr3;
 	}();
@@ -198,20 +200,26 @@ private:
 
 public:
 	template<class R>
-	R KernelExecute(bool bSetInterrupt, tl::function<R(void)> CallBack) const {
+	R KernelExecute(tl::function_ref<R(void)> CallBack) const {
 		R Result;
-		KernelExecute<void>(bSetInterrupt, [&] { Result = CallBack(); });
+		KernelExecute<void>([&] { Result = CallBack(); });
 		return Result;
 	}
 
+	const uintptr_t KernelSpace = [&] {
+		HMODULE hKernel = GetKernelModuleAddressVerified("ntoskrnl.exe"e);
+		ShellCode_CC<sizeof(ShellCode_IntHandler)> shellcode;
+		uintptr_t Result = PatternScan::Module((uintptr_t)hKernel, 0, 0, (uint8_t*)&shellcode, sizeof(shellcode), ReadProcessMemoryDBVM);
+		verify(Result);
+		return Result;
+	}();
+
 	template<>
-	void KernelExecute(bool bSetInterrupt, tl::function<void(void)> CallBack) const {
-		dbvm.SwitchToKernelMode();
-		_stac();
-		__writecr3(CustomCR3);
-		if (bSetInterrupt) _enable();
-		RunWithKernelStack(CallBack.callback(), CallBack.obj());
-		dbvm.ReturnToUserMode();
+	void KernelExecute(tl::function_ref<void(void)> CallBack) const {
+		ShellCode_IntHandler shellcode;
+		SetThreadAffinityMaskWrapper([&] {
+			dbvm.CloakWrapper(KernelSpace, &shellcode, sizeof(shellcode), KrnlCR3, [&] {
+				dbvm.SwitchToKernelMode(KernelSpace, &CallBack); }); });
 	}
 
 #ifdef TL_IGNORE_GUARD
@@ -222,9 +230,8 @@ public:
 	public:
 		using super = tl::function<R(Args...)>;
 
-		template<class FN>
-		SafeFunction(FN&& f) :
-			super(reinterpret_cast<R(*)(Args...)>(f)) {}
+		SafeFunction(uintptr_t f) : super(reinterpret_cast<R(*)(Args...)>(f)) {}
+		SafeFunction(super f) : super(f) {}
 	};
 
 	template <class F>
@@ -232,17 +239,14 @@ public:
 	template <class R, class... Args>
 	class KernelFunction<R(Args...)> : public tl::function<R(Args...)> {
 		const Kernel& kernel;
-		const bool bSetInterrupt;
 	public:
 		using super = tl::function<R(Args...)>;
 
-		template<class FN>
-		KernelFunction(FN&& f, const Kernel& kernel, const bool bSetInterrupt = false) :
-			super(reinterpret_cast<R(*)(Args...)>(f)),
-			kernel(kernel), bSetInterrupt(bSetInterrupt) {}
+		KernelFunction(uintptr_t f, const Kernel& kernel) : super(reinterpret_cast<R(*)(Args...)>(f)), kernel(kernel) {}
+		KernelFunction(super f, const Kernel& kernel) : super(f), kernel(kernel) {}
 
 		R operator()(Args... args) const {
-			return kernel.KernelExecute<R>(bSetInterrupt, [&] { return super::operator()(args...); });
+			return kernel.KernelExecute<R>([&] { return super::operator()(args...); });
 		}
 	};
 #endif

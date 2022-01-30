@@ -110,6 +110,7 @@ public:
 	constexpr static uint32_t default_password2 = 0xfedcba98;
 	constexpr static uint64_t default_password3 = 0x90909090;
 private:
+	constexpr static uint16_t KernelCS = 0x10;
 	bool bIntel = true;
 	uint64_t current_password1 = default_password1;
 	uint32_t current_password2 = default_password2;
@@ -272,6 +273,10 @@ public:
 		return VMCall(VMCALL_GETMEM);
 	}
 
+	uintptr_t SwitchToKernelMode(auto Rip, auto Param) const {
+		return VMCall(VMCALL_SWITCH_TO_KERNELMODE, (uint32_t)KernelCS, (uint64_t)Rip, (uint64_t)Param);
+	}
+
 	const tReadPhysicalMemory ReadPhysicalMemory = [&](PhysicalAddress srcPA, void* dstVA, size_t size) {
 		constexpr unsigned nopagefault = true;
 		return VMCall(VMCALL_READ_PHYSICAL_MEMORY, srcPA, (unsigned)size, dstVA, nopagefault) == 0;
@@ -282,8 +287,8 @@ public:
 		return VMCall(VMCALL_WRITE_PHYSICAL_MEMORY, dstPA, (unsigned)size, srcVA, nopagefault) == 0;
 	};
 
-	void SwitchToKernelMode(uint16_t newCS = 0x10) const {
-		VMCall(VMCALL_KERNELMODE, newCS);
+	uint64_t SwitchToKernelMode() const {
+		return VMCall(VMCALL_KERNELMODE, (uint16_t)KernelCS);
 	}
 
 	void ReturnToUserMode() const {
@@ -300,12 +305,23 @@ public:
 		ReturnToUserMode();
 	}
 
+	uint64_t GetCR4() const {
+		return VMCall(VMCALL_GETCR4);
+	}
+
 	uint64_t ReadMSR(uint32_t MSR) const {
-		return VMCall(VMCALL_READMSR, MSR, uint64_t(0));
+		SwitchToKernelMode();
+		const uint64_t Result = __readmsr(MSR);
+		ReturnToUserMode();
+		return Result;
+		//return VMCall(VMCALL_READMSR, MSR, uint64_t(0));
 	}
 
 	void WriteMSR(uint32_t MSR, uint64_t Value) const {
-		VMCall(VMCALL_WRITEMSR, MSR, Value);
+		SwitchToKernelMode();
+		__writemsr(MSR, Value);
+		ReturnToUserMode();
+		//VMCall(VMCALL_WRITEMSR, MSR, Value);
 	}
 
 	bool ChangeRegisterOnBP(PhysicalAddress PABase, const ChangeRegOnBPInfo& changeregonbpinfo) const {
