@@ -14,28 +14,32 @@
 #include "util.h"
 
 class __declspec(novtable) Render {
-public:
-	const int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
-	const int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
-
 protected:
 	template<class Interface>
 	using ComPtr = Microsoft::WRL::ComPtr<Interface>;
 
 private:
+	ComPtr<ID3D11Device> _pD3D11Device;
+	ComPtr<ID3D11RenderTargetView> _pD3D11RenderTargetView;
+	ComPtr<IDXGIDevice> _pDXGIDevice;
+	ComPtr<ID3D11DeviceContext> _pD3D11DeviceContext;
+	ComPtr<ID3D11Texture2D> _pD3D11Texture2D;
+	ComPtr<IDXGISurface1> _pDXGISurface;
+
 	float PosX = 0;
 	float PosY = 0;
 	float _Width = (float)ScreenWidth;
 	float _Height = (float)ScreenHeight;
 
 	virtual void Present(HWND hWnd);
-	virtual ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const;
 	virtual bool IsScreenPosNeeded() const;
+	virtual ImColor ClearColor() const;
 
 	void ImGuiRenderDrawData() const {
+		const ImVec4 Float4 = ClearColor();
 		ImGui::Render();
-		pD3D11DeviceContext->OMSetRenderTargets(1, GetRenderTargetView().GetAddressOf(), 0);
-		pD3D11DeviceContext->ClearRenderTargetView(GetRenderTargetView().Get(), COLOR_CLEAR_FLOAT4);
+		_pD3D11DeviceContext->OMSetRenderTargets(1, _pD3D11RenderTargetView.GetAddressOf(), 0);
+		_pD3D11DeviceContext->ClearRenderTargetView(_pD3D11RenderTargetView.Get(), &Float4.x);
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 	}
 
@@ -107,11 +111,56 @@ private:
 		_TimeDelta = (float)Delta / 1000000;
 	}
 
-protected:
-	constexpr static float COLOR_CLEAR_FLOAT4[4] = { 1.0f / 255.0f , 1.0f / 255.0f , 1.0f / 255.0f , 0.0f };
+	bool InitD3D() {
+		HRESULT hr;
 
-	const ComPtr<ID3D11Device> pD3D11Device;
-	const ComPtr<ID3D11DeviceContext> pD3D11DeviceContext;
+		hr = D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0,
+			D3D11_CREATE_DEVICE_BGRA_SUPPORT, 0, 0, D3D11_SDK_VERSION,
+			&_pD3D11Device, 0, &_pD3D11DeviceContext);
+		if (FAILED(hr))
+			return false;
+
+		hr = _pD3D11Device->QueryInterface(__uuidof(_pDXGIDevice), &_pDXGIDevice);
+		if (FAILED(hr))
+			return false;
+
+		const D3D11_TEXTURE2D_DESC TextureDesc = {
+			.Width = (UINT)ScreenWidth,
+			.Height = (UINT)ScreenHeight,
+			.MipLevels = 1,
+			.ArraySize = 1,
+			.Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+			.SampleDesc = {.Count = 1 },
+			.Usage = D3D11_USAGE_DEFAULT,
+			.BindFlags = D3D11_BIND_RENDER_TARGET,
+			.MiscFlags = D3D11_RESOURCE_MISC_GDI_COMPATIBLE,
+		};
+
+		hr = _pD3D11Device->CreateTexture2D(&TextureDesc, 0, &_pD3D11Texture2D);
+		if (FAILED(hr))
+			return false;
+
+		hr = _pD3D11Texture2D->QueryInterface(__uuidof(_pDXGISurface), &_pDXGISurface);
+		if (FAILED(hr))
+			return false;
+
+		hr = _pD3D11Device->CreateRenderTargetView(_pD3D11Texture2D.Get(), 0, &_pD3D11RenderTargetView);
+		if (FAILED(hr))
+			return false;
+
+		return true;
+	}
+
+protected:
+	const int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
+	const int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+	MAKE_GETTER(_pD3D11Device, pD3D11Device);
+	MAKE_GETTER(_pD3D11RenderTargetView, pD3D11RenderTargetView);
+	MAKE_GETTER(_pDXGIDevice, pDXGIDevice);
+	MAKE_GETTER(_pD3D11DeviceContext, pD3D11DeviceContext);
+	MAKE_GETTER(_pD3D11Texture2D, pD3D11Texture2D);
+	MAKE_GETTER(_pDXGISurface, pDXGISurface);
 
 	void Clear() {
 		ImGui_ImplDX11_NewFrame();
@@ -122,16 +171,10 @@ protected:
 	}
 
 	Render(float DefaultFontSize) {
-		const HRESULT hr = D3D11CreateDevice(0,
-			D3D_DRIVER_TYPE_HARDWARE, 0,
-			D3D11_CREATE_DEVICE_BGRA_SUPPORT, 0, 0, D3D11_SDK_VERSION,
-			(ID3D11Device**)pD3D11Device.GetAddressOf(), 0,
-			(ID3D11DeviceContext**)pD3D11DeviceContext.GetAddressOf());
-
-		verify(SUCCEEDED(hr));
+		verify(InitD3D());
 
 		ImGui::CreateContext();
-		ImGui_ImplDX11_Init(pD3D11Device.Get(), pD3D11DeviceContext.Get());
+		ImGui_ImplDX11_Init(_pD3D11Device.Get(), _pD3D11DeviceContext.Get());
 
 		ImGuiIO& io = ImGui::GetIO();
 		io.DisplaySize = { (float)ScreenWidth , (float)ScreenHeight };
@@ -164,10 +207,10 @@ public:
 
 	bool bRender = true;
 
-	const float& Width = _Width;
-	const float& Height = _Height;
-	const float& TimeDelta = _TimeDelta;
-	const uint32_t& FPS = _FPS;
+	MAKE_GETTER(_Width, Width);
+	MAKE_GETTER(_Height, Height);
+	MAKE_GETTER(_TimeDelta, TimeDelta);
+	MAKE_GETTER(_FPS, FPS);
 
 	void RenderArea(HWND hWnd, ImColor BgColor, auto func) {
 		ProcessExitHotkey();

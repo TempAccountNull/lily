@@ -80,6 +80,12 @@ public:
 	const KernelFunction<PVOID(DWORD PoolType, SIZE_T NumberOfBytes)> ExAllocatePool = {
 		GetKernelProcAddressVerified("ntoskrnl.exe"e, "ExAllocatePool"e), *this };
 
+	const KernelFunction<NTSTATUS(EProcess* Process)> PsSuspendProcess = {
+		GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsSuspendProcess"e), *this };
+
+	const KernelFunction<NTSTATUS(EProcess* Process)> PsResumeProcess = {
+		GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsResumeProcess"e), *this };
+
 	const KernelFunction<tagWND* (HWND hWnd)> ValidateHwnd = {
 		GetKernelProcAddressVerified("win32kbase.sys"e, "ValidateHwnd"e), *this };
 
@@ -121,8 +127,8 @@ public:
 		return pFunc;
 	}();
 
-	const uintptr_t EditionNotifyDwmForSystemVisualDestruction =
-		GetKernelProcAddressVerified("win32kfull.sys"e, "EditionNotifyDwmForSystemVisualDestruction"e);
+	const uintptr_t LpcRequestPort =
+		GetKernelProcAddressVerified("ntoskrnl.exe"e, "LpcRequestPort"e);
 
 	const SafeFunction<NTSTATUS(HWND hWnd, BOOL topmost)> NtUserDestroyDCompositionHwndTarget =
 		GetUserProcAddressVerified("win32u.dll"e, "NtUserDestroyDCompositionHwndTarget"e);
@@ -243,7 +249,8 @@ public:
 		if (!WriteProcessMemoryDBVM((uintptr_t)&pHidData->rid.data.mouse, &RawMouse, sizeof(RawMouse)))
 			return false;
 
-		return SendMessageA(hWnd, WM_INPUT, RIM_INPUT, (LPARAM)hHidData);
+		DWORD_PTR Result;
+		return SendMessageTimeoutA(hWnd, WM_INPUT, RIM_INPUT, (LPARAM)hHidData, SMTO_NORMAL, 1000, &Result);
 	}
 
 	ATOM UserFindAtomVerified(PCWSTR AtomName) const {
@@ -285,30 +292,58 @@ public:
 		return RealInternalSetProp(pWnd->GetPPProp(*this), nAtom, hValue, dwFlag);
 	}
 
-	//The function must finish executing in a short time. Otherwise, The target window will hung.
-	bool SetOwningThreadWrapper(HWND hWnd, auto f) const {
-		const EmptyWindow hWndFrom;
-		tagWND* const pWndFrom = ValidateHwnd(hWndFrom);
-		if (!pWndFrom)
+	bool PsSuspendProcessWrapper(DWORD Pid, auto f) const {
+		if (Pid == GetCurrentProcessId())
 			return false;
 
-		tagWND* const pWndTo = ValidateHwnd(hWnd);
-		if (!pWndTo)
+		EProcess* Process = GetEPROCESS(Pid);
+		if (!Process)
 			return false;
 
-		THREADINFO* const pThreadFrom = pWndFrom->GetThreadInfo(*this);
-		if (!pThreadFrom)
-			return false;
-
-		THREADINFO* const pThreadTo = pWndTo->GetThreadInfo(*this);
-		if (!pThreadTo)
-			return false;
-
-		if (!pWndTo->SetThreadInfo(*this, pThreadFrom))
+		if (PsSuspendProcess(Process) != 0)
 			return false;
 
 		f();
-		return pWndTo->SetThreadInfo(*this, pThreadTo);
+
+		return PsResumeProcess(Process) == 0;
+	}
+
+	bool SetOwningThreadWrapper(HWND hWnd, auto f) const {
+		const DWORD Pid = GetPIDFromHWND(hWnd);
+		if (!Pid)
+			return false;
+
+		bool bSuccess = false;
+		PsSuspendProcessWrapper(Pid, [&] {
+			const EmptyWindow hWndFrom;
+			tagWND* const pWndFrom = ValidateHwnd(hWndFrom);
+			if (!pWndFrom)
+				return;
+
+			tagWND* const pWndTo = ValidateHwnd(hWnd);
+			if (!pWndTo)
+				return;
+
+			THREADINFO* const pThreadFrom = pWndFrom->GetThreadInfo(*this);
+			if (!pThreadFrom)
+				return;
+
+			THREADINFO* const pThreadTo = pWndTo->GetThreadInfo(*this);
+			if (!pThreadTo)
+				return;
+
+			if (!pWndTo->SetThreadInfo(*this, pThreadFrom))
+				return;
+
+			f();
+
+			if (!pWndTo->SetThreadInfo(*this, pThreadTo))
+				return;
+
+			bSuccess = true;
+			});
+
+		return bSuccess;
 	}
 
 	bool PsSetProcessWin32ProcessWrapper(HWND hWnd, auto f) const {

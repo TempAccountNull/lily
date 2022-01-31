@@ -13,8 +13,32 @@
 class RenderDComp : public Render {
 private:
 	ComPtr<IDXGISwapChain1> pDXGISwapChain1;
-	ComPtr<ID3D11RenderTargetView> pD3D11RenderTargetView;
+	ComPtr<ID3D11Texture2D> pBackBuffer;
 	ComPtr<IDCompositionVisual> pDirectCompositionVisual;
+	HWND _hAttachWnd = 0;
+
+	ImColor ClearColor() const final {
+		return { 0.0f, 0.0f, 0.0f, 0.0f };
+	}
+
+	bool IsScreenPosNeeded() const final {
+		return false;
+	}
+
+	void Present(HWND hWnd) final {
+		BOOL bEnabled = FALSE;
+		DwmIsCompositionEnabled(&bEnabled);
+		if (!bEnabled) {
+			_hAttachWnd = 0;
+			return;
+		}
+
+		if (hWnd && hWnd != hAttachWnd)
+			AttachWindow(hWnd);
+
+		pD3D11DeviceContext->CopyResource(pBackBuffer.Get(), pD3D11Texture2D.Get());
+		pDXGISwapChain1->Present(1, 0);
+	}
 
 	virtual void ReleaseDirectCompositionTarget() {
 		pDirectCompositionTarget.ReleaseAndGetAddressOf();
@@ -23,31 +47,13 @@ private:
 	virtual bool CreateDirectCompositionTarget(HWND hWnd) {
 		return pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget) == S_OK;
 	}
-	
-	bool IsScreenPosNeeded() const final { return false; }
-
-	ComPtr<ID3D11RenderTargetView> GetRenderTargetView() const final { return pD3D11RenderTargetView; }
-
-	void Present(HWND hWnd) final {
-		BOOL bEnabled = FALSE;
-		DwmIsCompositionEnabled(&bEnabled);
-		if (!bEnabled) {
-			hAttachWnd = 0;
-			return;
-		}
-
-		if (hWnd && hWnd != hAttachWnd)
-			AttachWindow(hWnd);
-
-		pDXGISwapChain1->Present(1, 0);
-	}
 
 	void AttachWindow(HWND hWnd) {
 		if (!IsWindowVisible(hWnd) || IsIconic(hWnd))
 			return;
 
 		ReleaseDirectCompositionTarget();
-		hAttachWnd = hWnd;
+		_hAttachWnd = hWnd;
 		ReleaseDirectCompositionTarget();
 
 		const bool bSuccess = [&] {
@@ -84,16 +90,11 @@ private:
 		verify(bSuccess);
 	}
 
-	bool InitD3D(bool IsProtected) {
+	bool InitDComp(bool IsProtected) {
 		HRESULT hr;
 
-		ComPtr<IDXGIDevice> pDXGIDevice;
-		hr = pD3D11Device->QueryInterface(__uuidof(pDXGIDevice), &pDXGIDevice);
-		if (FAILED(hr))
-			return false;
-
-		ComPtr<IDXGIFactory2> dxFactory;
-		hr = CreateDXGIFactory2(0, __uuidof(dxFactory), &dxFactory);
+		ComPtr<IDXGIFactory2> pDXGIFactory2;
+		hr = CreateDXGIFactory2(0, __uuidof(pDXGIFactory2), &pDXGIFactory2);
 		if (FAILED(hr))
 			return false;
 
@@ -106,19 +107,14 @@ private:
 			.BufferCount = 2,
 			.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
 			.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED,
-			.Flags = IsProtected ? (UINT)DXGI_SWAP_CHAIN_FLAG_HW_PROTECTED : 0	//DXGI_SWAP_CHAIN_FLAG_DISPLAY_ONLY
+			.Flags = IsProtected ? (UINT)DXGI_SWAP_CHAIN_FLAG_HW_PROTECTED : 0
 		};
 
-		hr = dxFactory->CreateSwapChainForComposition(pDXGIDevice.Get(), &SwapChainDesc, 0, &pDXGISwapChain1);
+		hr = pDXGIFactory2->CreateSwapChainForComposition(pDXGIDevice.Get(), &SwapChainDesc, 0, &pDXGISwapChain1);
 		if (FAILED(hr))
 			return false;
 
-		ComPtr<ID3D11Texture2D> pBuffer;
-		hr = pDXGISwapChain1->GetBuffer(0, __uuidof(ID3D11Texture2D), &pBuffer);
-		if (FAILED(hr))
-			return false;
-
-		hr = pD3D11Device->CreateRenderTargetView(pBuffer.Get(), 0, &pD3D11RenderTargetView);
+		hr = pDXGISwapChain1->GetBuffer(0, __uuidof(ID3D11Texture2D), &pBackBuffer);
 		if (FAILED(hr))
 			return false;
 
@@ -133,11 +129,11 @@ protected:
 	constexpr static BOOL TOPMOST = TRUE;
 	ComPtr<IDCompositionDevice> pDirectCompositionDevice;
 	ComPtr<IDCompositionTarget> pDirectCompositionTarget;
-	HWND hAttachWnd = 0;
+	MAKE_GETTER(_hAttachWnd, hAttachWnd);
 
 public:
 	RenderDComp(float DefaultFontSize, bool IsProtected = false) : Render(DefaultFontSize) {
-		verify(InitD3D(IsProtected));
+		verify(InitDComp(IsProtected));
 		Clear();
 	}
 

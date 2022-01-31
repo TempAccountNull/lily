@@ -325,6 +325,7 @@ public:
 	}
 
 	bool ChangeRegisterOnBP(PhysicalAddress PABase, const ChangeRegOnBPInfo& changeregonbpinfo) const {
+		CloakActivate(PABase);
 		return VMCall(VMCALL_CLOAK_CHANGEREGONBP, PABase, changeregonbpinfo) == 0;
 	}
 
@@ -402,7 +403,7 @@ public:
 		return PhysicalMemory::WriteProcessMemory(Address, Buffer, Size, cr3, ReadPhysicalMemory,
 			[&](PhysicalAddress PA, const void* Buffer, size_t Size) {
 				PhysicalAddress PABase = PA & ~0xFFF;
-				CloakActivate(PABase, 0);
+				CloakActivate(PABase);
 
 				uint8_t buf[0x1000];
 				if (!CloakReadOriginal(PABase, buf))

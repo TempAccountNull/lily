@@ -18,6 +18,8 @@
 using tReadProcessMemory = tl::function<bool(uintptr_t Address, void* Buffer, size_t Size)>;
 using tWriteProcessMemory = tl::function<bool(uintptr_t Address, const void* Buffer, size_t Size)>;
 
+extern "C" void RunWithKernelStack(void* pThis, void* pFunc);
+
 class Kernel {
 private:
 	INITIALIZER_INCLASS(CommitPages) {
@@ -101,7 +103,7 @@ public:
 		return dbvm.WPM(Address, Buffer, Size, CustomCR3);
 	};
 
-private:
+protected:
 	class EProcess {
 	public:
 		DWORD GetPid(const Kernel& kernel) const {
@@ -134,6 +136,7 @@ private:
 		}
 	};
 
+private:
 	//EPROCESS Offset
 	EProcess* const SystemProcess = [&] {
 		const uintptr_t PsInitialSystemProcess = GetKernelProcAddressVerified("ntoskrnl.exe"e, "PsInitialSystemProcess"e);

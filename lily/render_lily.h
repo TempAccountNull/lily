@@ -18,13 +18,11 @@ private:
 		const ShellCode_Ret0 ShellCode;
 		bool bSuccess = false;
 
-		kernel.dbvm.CloakWrapper(kernel.EditionNotifyDwmForSystemVisualDestruction, &ShellCode, sizeof(ShellCode), kernel.KrnlCR3, [&] {
-			kernel.SetOwningThreadWrapper(hWnd, [&] {
-				bSuccess =
-					pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget) == S_OK &&
-					kernel.NtUserDestroyDCompositionHwndTarget(hWnd, TOPMOST);
-				if (!bSuccess)
-					pDirectCompositionTarget.ReleaseAndGetAddressOf();
+		kernel.SetOwningThreadWrapper(hWnd, [&] {
+			if (pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget) != S_OK)
+				return;
+			kernel.dbvm.CloakWrapper(kernel.LpcRequestPort, &ShellCode, sizeof(ShellCode), kernel.KrnlCR3, [&] {
+				bSuccess = kernel.NtUserDestroyDCompositionHwndTarget(hWnd, TOPMOST);
 				});
 			});
 

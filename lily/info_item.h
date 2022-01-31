@@ -16,7 +16,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Ammo_556mm_C"h, { "5"e, 3 });
 		HASH_CASE("Item_Ammo_762mm_C"h, { "7"e, 3 });
 		HASH_CASE("Item_Ammo_9mm_C"h, { "9"e, 2 });
-		HASH_CASE("Item_Ammo_Bolt_C"h, { "Bolt"e, 1 });
+		HASH_CASE("Item_Ammo_Bolt_C"h, { "Bolt"e, 4 });
 		HASH_CASE("Item_Ammo_Flare_C"h, { "Flare"e, 4 });
 		HASH_CASE("Item_Attach_Weapon_Lower_AngledForeGrip_C"h, { "L_Angle"e, 2 });
 		HASH_CASE("Item_Attach_Weapon_Lower_Foregrip_C"h, { "L_Fore"e, 3 });
@@ -33,7 +33,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Attach_Weapon_Magazine_Extended_Large_C"h, { "E_AR"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Magazine_Extended_Medium_C"h, { "E_SMG"e, 2 });
 		HASH_CASE("Item_Attach_Weapon_Magazine_Extended_Small_C"h, { "E_P"e, 1 });
-		HASH_CASE("Item_Attach_Weapon_Magazine_Extended_SniperRifle_C"h, { "E_SR"e, 3 });
+		HASH_CASE("Item_Attach_Weapon_Magazine_Extended_SniperRifle_C"h, { "E_SR"e, 4 });
 		HASH_CASE("Item_Attach_Weapon_Magazine_QuickDraw_Large_C"h, { "Q_AR"e, 1 });
 		HASH_CASE("Item_Attach_Weapon_Magazine_QuickDraw_Medium_C"h, { "Q_SMG"e, 1 });
 		HASH_CASE("Item_Attach_Weapon_Magazine_QuickDraw_Small_C"h, { "Q_P"e, 1 });
@@ -93,7 +93,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Weapon_AWM_C"h, { "AWM"e, 4 });
 		HASH_CASE("Item_Weapon_Berreta686_C"h, { "S686"e, 2 });
 		HASH_CASE("Item_Weapon_Cowbar_C"h, { "Crawbar"e, 1 });
-		HASH_CASE("Item_Weapon_Crossbow_C"h, { "CBow"e, 1 });
+		HASH_CASE("Item_Weapon_Crossbow_C"h, { "CBow"e, 4 });
 		HASH_CASE("Item_Weapon_FlashBang_C"h, { "Flash"e, 2 });
 		HASH_CASE("Item_Weapon_G18_C"h, { "P18C"e, 1 });
 		HASH_CASE("Item_Weapon_Grenade_C"h, { "Grenade"e, 4 });

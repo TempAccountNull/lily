@@ -286,6 +286,8 @@ case Hash : return __VA_ARGS__
 #define HASH_DEFAULT(...)\
 default : return __VA_ARGS__
 
+#define MAKE_GETTER(Value, Name) const decltype(Value)& Name = Value
+
 void SetThreadAffinityMaskWrapper(auto f) {
 	const HANDLE hCurrentThread = GetCurrentThread();
 	DWORD_PTR OldAffinityMask = SetThreadAffinityMask(hCurrentThread, 1);
