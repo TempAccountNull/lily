@@ -764,10 +764,14 @@ void Hack::Loop() {
 					const FVector GunCenterPos = CameraLocation + GunRotation.GetUnitVector() * DistanceToTarget;
 					const FVector LocCenter = ::WorldToScreen(GunCenterPos, CameraRotationMatrix, CameraLocation, CameraFOV, 1.0f, 1.0f);
 
-					const int MouseX = int(AimbotSpeedX * (LocTarget.X - LocCenter.X) * render.TimeDelta * 100000.0f);
-					const int MouseY = int(AimbotSpeedY * (LocTarget.Y - LocCenter.Y) * render.TimeDelta * 100000.0f);
-
-					kernel.PostRawMouseInput(hGameWnd, { .usFlags = MOUSE_MOVE_RELATIVE, .lLastX = MouseX, .lLastY = MouseY });
+					const float MouseX = RemainMouseX + AimbotSpeedX * (LocTarget.X - LocCenter.X) * render.TimeDelta * 100000.0f;
+					const float MouseY = RemainMouseY + AimbotSpeedY * (LocTarget.Y - LocCenter.Y) * render.TimeDelta * 100000.0f;
+					const float TruncedMouseX = truncf(MouseX);
+					const float TruncedMouseY = truncf(MouseY);
+					RemainMouseX = MouseX - TruncedMouseX;
+					RemainMouseY = MouseY - TruncedMouseY;
+					kernel.PostRawMouseInput(hGameWnd, { .usFlags = MOUSE_MOVE_RELATIVE,
+						.lLastX = (int)TruncedMouseX, .lLastY = (int)TruncedMouseY });
 				};
 
 				switch (nAimbot) {

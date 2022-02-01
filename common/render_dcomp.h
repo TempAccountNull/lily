@@ -15,7 +15,8 @@ private:
 	ComPtr<IDXGISwapChain1> pDXGISwapChain1;
 	ComPtr<ID3D11Texture2D> pBackBuffer;
 	ComPtr<IDCompositionVisual> pDirectCompositionVisual;
-	HWND _hAttachWnd = 0;
+	HWND hAttachWnd = 0;
+	float SleepTime = 0.0f;
 
 	ImColor ClearColor() const final {
 		return { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -26,43 +27,55 @@ private:
 	}
 
 	void Present(HWND hWnd) final {
-		BOOL bEnabled = FALSE;
-		DwmIsCompositionEnabled(&bEnabled);
-		if (!bEnabled) {
-			_hAttachWnd = 0;
+		SleepTime = std::max(SleepTime - TimeDelta, 0.0f);
+		if (SleepTime > 0.0f) {
+			Sleep(1);
 			return;
 		}
 
-		if (hWnd && hWnd != hAttachWnd)
+		BOOL bEnabled = FALSE;
+		DwmIsCompositionEnabled(&bEnabled);
+		if (!bEnabled) {
+			SleepTime = 2.0f;
+			hAttachWnd = 0;
+			return;
+		}
+
+		if (hWnd != hAttachWnd) {
+			DetachWindow();
 			AttachWindow(hWnd);
+		}
 
 		pD3D11DeviceContext->CopyResource(pBackBuffer.Get(), pD3D11Texture2D.Get());
 		pDXGISwapChain1->Present(1, 0);
 	}
 
-	virtual void ReleaseDirectCompositionTarget() {
+	virtual void ReleaseDirectCompositionTarget(HWND) {
 		pDirectCompositionTarget.ReleaseAndGetAddressOf();
 	}
 
 	virtual bool CreateDirectCompositionTarget(HWND hWnd) {
+		pDirectCompositionTarget.ReleaseAndGetAddressOf();
 		return pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget) == S_OK;
 	}
 
-	void AttachWindow(HWND hWnd) {
-		if (!IsWindowVisible(hWnd) || IsIconic(hWnd))
+	void DetachWindow() {
+		if (!hAttachWnd)
 			return;
 
-		ReleaseDirectCompositionTarget();
-		_hAttachWnd = hWnd;
-		ReleaseDirectCompositionTarget();
+		ReleaseDirectCompositionTarget(hAttachWnd);
+		hAttachWnd = 0;
+	}
+
+	void AttachWindow(HWND hWnd) {
+		if (!hWnd || !IsWindowVisible(hWnd) || IsIconic(hWnd))
+			return;
 
 		const bool bSuccess = [&] {
 			HRESULT hr;
 
-			if (!CreateDirectCompositionTarget(hWnd)) {
-				pDirectCompositionTarget.ReleaseAndGetAddressOf();
+			if (!CreateDirectCompositionTarget(hWnd))
 				return false;
-			}
 
 			hr = pDirectCompositionDevice->CreateVisual(&pDirectCompositionVisual);
 			if (FAILED(hr))
@@ -87,7 +100,12 @@ private:
 			return true;
 		}();
 
-		verify(bSuccess);
+		if (!bSuccess) {
+			ReleaseDirectCompositionTarget(hWnd);
+			error("DComp"e);
+		}
+
+		hAttachWnd = hWnd;
 	}
 
 	bool InitDComp(bool IsProtected) {
@@ -129,7 +147,6 @@ protected:
 	constexpr static BOOL TOPMOST = TRUE;
 	ComPtr<IDCompositionDevice> pDirectCompositionDevice;
 	ComPtr<IDCompositionTarget> pDirectCompositionTarget;
-	MAKE_GETTER(_hAttachWnd, hAttachWnd);
 
 public:
 	RenderDComp(float DefaultFontSize, bool IsProtected = false) : Render(DefaultFontSize) {
@@ -137,5 +154,7 @@ public:
 		Clear();
 	}
 
-	virtual ~RenderDComp() override {}
+	~RenderDComp() {
+		DetachWindow();
+	}
 };

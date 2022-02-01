@@ -29,7 +29,7 @@ void Hack::DrawHotkey() const {
 	strNotice +=
 		nAimbot == 1 ? (std::string)"Normal"e :
 		nAimbot == 2 ? (std::string)"Silent"e :
-		nAimbot == 3 ? (std::string)"Aimbot(F5) : Silent (Dangerous!)"e :
+		nAimbot == 3 ? (std::string)"Silent (Dangerous!)"e :
 		"OFF"e;
 	strNotice += (std::string)"\n"e;
 

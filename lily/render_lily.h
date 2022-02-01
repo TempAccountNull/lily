@@ -7,9 +7,9 @@ class RenderLily : public RenderDComp {
 private:
 	const KernelLily& kernel;
 
-	void ReleaseDirectCompositionTarget() final {
-		kernel.SetOwningThreadWrapper(hAttachWnd, [&] {
-			pDirectCompositionDevice->CreateTargetForHwnd(hAttachWnd, TOPMOST, &pDirectCompositionTarget);
+	void ReleaseDirectCompositionTarget(HWND hWnd) final {
+		kernel.SetOwningThreadWrapper(hWnd, [&] {
+			pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget);
 			pDirectCompositionTarget.ReleaseAndGetAddressOf();
 			});
 	}
@@ -19,6 +19,8 @@ private:
 		bool bSuccess = false;
 
 		kernel.SetOwningThreadWrapper(hWnd, [&] {
+			pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget);
+			pDirectCompositionTarget.ReleaseAndGetAddressOf();
 			if (pDirectCompositionDevice->CreateTargetForHwnd(hWnd, TOPMOST, &pDirectCompositionTarget) != S_OK)
 				return;
 			kernel.dbvm.CloakWrapper(kernel.LpcRequestPort, &ShellCode, sizeof(ShellCode), kernel.KrnlCR3, [&] {
@@ -31,5 +33,4 @@ private:
 
 public:
 	RenderLily(const KernelLily& kernel, float DefaultFontSize) : kernel(kernel), RenderDComp(DefaultFontSize, true) {}
-	~RenderLily() final { ReleaseDirectCompositionTarget(); }
 };

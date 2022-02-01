@@ -30,6 +30,8 @@ private:
 	constexpr static float DefaultAimbotSpeedMin = DefaultAimbotSpeed * 0.5f * 0.5f;
 	float AimbotSpeedX = DefaultAimbotSpeed;
 	float AimbotSpeedY = DefaultAimbotSpeed;
+	float RemainMouseX = 0.0f;
+	float RemainMouseY = 0.0f;
 
 	bool bPushingCTRL = false;
 	bool bPushingShift = false;
