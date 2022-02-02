@@ -87,6 +87,7 @@ private:
 	uint32_t FPSCount = 0;
 	uint32_t _FPS = 0;
 	float _TimeDelta = 0;
+	constexpr static float CheckFPSInterval = 0.5f;
 
 	void UpdateTimeDelta() {
 		FPSCount++;
@@ -100,9 +101,9 @@ private:
 		//}
 
 		//Calculate FPS each 1s 
-		if (CurrTime - PrevFPSTime > 1000000) {
+		if (CurrTime - PrevFPSTime > uint64_t(1000000 * CheckFPSInterval)) {
 			PrevFPSTime = CurrTime;
-			_FPS = FPSCount;
+			_FPS = uint32_t(FPSCount / CheckFPSInterval);
 			FPSCount = 0;
 			dprintf("%d"e, FPS);
 		}

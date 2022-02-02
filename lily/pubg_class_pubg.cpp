@@ -71,7 +71,6 @@ FName UItem::GetItemID() {
 float ATslWeapon_Trajectory::GetZeroingDistance() const {
 	float ZeroingDistance = 0.0f;
 
-	bool bUseIronSightZeroingDistance = true;
 	for (const auto& AttachableItemPtr : AttachedItems.GetVector()) {
 		UAttachableItem AttachableItem;
 		if (!AttachableItemPtr.Read(AttachableItem))
@@ -84,17 +83,14 @@ float ATslWeapon_Trajectory::GetZeroingDistance() const {
 		if (ItemTableRowAttachment.AttachmentData.AttachmentSlotID != EWeaponAttachmentSlotID::UpperRail)
 			continue;
 
-		if (!ItemTableRowAttachment.AttachmentData.ZeroingDistances.GetValue(CurrentZeroLevel, ZeroingDistance))
-			continue;
-
-		bUseIronSightZeroingDistance = false;
-		break;
+		if (ItemTableRowAttachment.AttachmentData.ZeroingDistances.GetValue(CurrentZeroLevel, ZeroingDistance))
+			return ZeroingDistance;
 	}
 
-	if (bUseIronSightZeroingDistance)
-		WeaponConfig_IronSightZeroingDistances.GetValue(CurrentZeroLevel, ZeroingDistance);
+	if (WeaponConfig_IronSightZeroingDistances.GetValue(CurrentZeroLevel, ZeroingDistance))
+		return ZeroingDistance;
 
-	return ZeroingDistance;
+	return 100.0f * (CurrentZeroLevel + 1) + 1.0f;
 }
 
 NativePtr<UStaticMeshComponent> UWeaponMeshComponent::GetStaticMeshComponentScopeType() const {

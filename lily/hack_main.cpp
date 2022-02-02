@@ -28,7 +28,10 @@ void Hack::Loop() {
 	verify(AimHookAddressPA && OriginalByte);
 
 	NativePtr<ATslCharacter> CachedMyTslCharacterPtr = 0;
-	NativePtr<ATslCharacter> PrevTargetPtr = 0;
+	NativePtr<ATslCharacter> LockTargetPtr = 0;
+	NativePtr<ATslCharacter> SavedTargetPtr = 0;
+	std::vector<std::tuple<float, FVector>> SavedTargetActorLocDifArray;
+	FVector SavedTargetActorLoc;
 
 	while (IsWindow(hGameWnd)) {
 		const HWND hForeWnd = GetForegroundWindow();
@@ -269,36 +272,32 @@ void Hack::Loop() {
 				}();
 			}();
 
-			//Check CurrentTargetPtr is valid
-			[&] {
-				if (!bPushingMouseM) {
-					PrevTargetPtr = 0;
-					return;
-				}
-
-				if (!CachedMyTslCharacterPtr) {
-					PrevTargetPtr = 0;
-					return;
-				}
+			
+			auto IsTargetValid = [&](NativePtr<ATslCharacter> Target) {
+				if (!CachedMyTslCharacterPtr)
+					return false;
 
 				ATslCharacter TslCharacter;
-				if (!PrevTargetPtr.Read(TslCharacter)) {
-					PrevTargetPtr = 0;
-					return;
-				}
+				if (!Target.Read(TslCharacter))
+					return false;
 
 				if (TslCharacter.Health > 0.0f)
-					return;
+					return true;
 
-				if (TslCharacter.GroggyHealth <= 0.0f || !bPushingCTRL) {
-					PrevTargetPtr = 0;
-					return;
-				}
-			}();
+				if (TslCharacter.GroggyHealth <= 0.0f || !bPushingCTRL)
+					return false;
+
+				return true;
+			};
+			if (!IsTargetValid(LockTargetPtr) || !bPushingMouseM)
+				LockTargetPtr = 0;
+			if (!IsTargetValid(SavedTargetPtr))
+				SavedTargetPtr = 0;
 
 			NativePtr<ATslCharacter> CurrentTargetPtr = 0;
 			bool bFoundTarget = false;
 			FVector TargetPos;
+			FVector TargetActorLoc;
 			FVector TargetVelocity;
 
 			//Actor loop
@@ -674,21 +673,23 @@ void Hack::Loop() {
 							if (DistanceFromCenter > AimbotDistant)
 								return;
 
-							if (PrevTargetPtr && PrevTargetPtr != ActorPtr)
+							if (LockTargetPtr && LockTargetPtr != ActorPtr)
 								return;
 
 							bFoundTarget = true;
 							CurrentTargetPtr = (uintptr_t)ActorPtr;
 							AimbotDistant = DistanceFromCenter;
 							TargetPos = VecEnemy;
+							TargetActorLoc = ActorLocation;
 							TargetVelocity = ActorVelocity;
+							TargetVelocity.Z = 0.0f;
 						}();
 
 						//DrawCharacter
 						[&] {
 							//GetColor
 							ImColor Color = [&] {
-								if (ActorPtr == PrevTargetPtr)
+								if (ActorPtr == LockTargetPtr)
 									return Render::COLOR_PURPLE;
 								if (TslCharacter.LastTeamNum == MyTeamNum)
 									return Render::COLOR_GREEN;
@@ -731,8 +732,35 @@ void Hack::Loop() {
 				if (!bFoundTarget)
 					return;
 
-				if (bPushingMouseM && !PrevTargetPtr)
-					PrevTargetPtr = (uintptr_t)CurrentTargetPtr;
+				auto GetTargetVelocity = [&] {
+					if (SavedTargetPtr != CurrentTargetPtr) {
+						SavedTargetPtr = CurrentTargetPtr;
+						SavedTargetActorLocDifArray.clear();
+						SavedTargetActorLoc = TargetActorLoc;
+						return FVector();
+					}
+
+					SavedTargetActorLocDifArray.push_back({ render.TimeDelta, TargetActorLoc - SavedTargetActorLoc });
+					SavedTargetActorLoc = TargetActorLoc;
+
+					float SumTimeDelta = 0.0f;
+					FVector SumTargetPosDif;
+					for (const auto& Elem : SavedTargetActorLocDifArray) {
+						SumTimeDelta += std::get<float>(Elem);
+						SumTargetPosDif = SumTargetPosDif + std::get<FVector>(Elem);
+					}
+
+					if (SumTimeDelta < 0.05f)
+						return FVector();
+
+					if (SumTimeDelta > 0.15f)
+						SavedTargetActorLocDifArray.erase(SavedTargetActorLocDifArray.begin());
+
+					return SumTargetPosDif * (1.0f / SumTimeDelta);
+				};
+
+				if (bPushingMouseM && !LockTargetPtr)
+					LockTargetPtr = CurrentTargetPtr;
 
 				if (nAimbot == 2 || nAimbot == 3 || !IsScoping)
 					ZeroingDistance = FLT_MIN;
@@ -746,6 +774,8 @@ void Hack::Loop() {
 
 				FVector PredictedPos = TargetPos;
 				PredictedPos.Z += BulletDrop;
+				TargetVelocity = GetTargetVelocity();
+				//TargetVelocity.Z = GetTargetVelocity().Z;
 				PredictedPos = PredictedPos + (TargetVelocity * (TravelTime / CustomTimeDilation));
 
 				FVector TargetScreenPos = WorldToScreen(TargetPos);
