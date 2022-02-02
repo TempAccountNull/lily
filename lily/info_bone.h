@@ -246,8 +246,8 @@ auto GetBoneIndexArray() {
 
 auto GetDrawPairArray() {
 	return make_array(
-		std::pair<Bones, Bones>{ neck_01, forehead },
-		std::pair<Bones, Bones>{ Head, forehead },
+		std::pair<Bones, Bones>{ forehead, Head },
+		std::pair<Bones, Bones>{ Head, neck_01 },
 		std::pair<Bones, Bones>{ neck_01, upperarm_r },
 		std::pair<Bones, Bones>{ upperarm_r, lowerarm_r },
 		std::pair<Bones, Bones>{ lowerarm_r, hand_r },

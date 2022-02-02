@@ -29,9 +29,17 @@ void Hack::Loop() {
 
 	NativePtr<ATslCharacter> CachedMyTslCharacterPtr = 0;
 	NativePtr<ATslCharacter> LockTargetPtr = 0;
-	NativePtr<ATslCharacter> SavedTargetPtr = 0;
-	std::vector<std::tuple<float, FVector>> SavedTargetActorLocDifArray;
-	FVector SavedTargetActorLoc;
+
+	struct CharacterInfo {
+		struct PosInfo {
+			uint64_t Time = 0;
+			FVector Pos;
+		};
+		std::vector<PosInfo> Info;
+		FVector Velocity;
+	};
+
+	std::map<uint64_t, CharacterInfo> CharacterMap;
 
 	while (IsWindow(hGameWnd)) {
 		const HWND hForeWnd = GetForegroundWindow();
@@ -272,13 +280,18 @@ void Hack::Loop() {
 				}();
 			}();
 
+			if (!CachedMyTslCharacterPtr && !CharacterMap.empty())
+				CharacterMap.clear();
 			
-			auto IsTargetValid = [&](NativePtr<ATslCharacter> Target) {
+			auto IsLockTargetValid = [&] {
 				if (!CachedMyTslCharacterPtr)
 					return false;
 
+				if (!bPushingMouseM)
+					return false;
+
 				ATslCharacter TslCharacter;
-				if (!Target.Read(TslCharacter))
+				if (!LockTargetPtr.Read(TslCharacter))
 					return false;
 
 				if (TslCharacter.Health > 0.0f)
@@ -289,16 +302,12 @@ void Hack::Loop() {
 
 				return true;
 			};
-			if (!IsTargetValid(LockTargetPtr) || !bPushingMouseM)
+			if (!IsLockTargetValid())
 				LockTargetPtr = 0;
-			if (!IsTargetValid(SavedTargetPtr))
-				SavedTargetPtr = 0;
 
 			NativePtr<ATslCharacter> CurrentTargetPtr = 0;
 			bool bFoundTarget = false;
 			FVector TargetPos;
-			FVector TargetActorLoc;
-			FVector TargetVelocity;
 
 			//Actor loop
 			for (const auto& ActorPtr : Actors.GetVector()) {
@@ -531,13 +540,11 @@ void Hack::Loop() {
 					if (!ActorPtr.ReadOtherType(TslCharacter))
 						return;
 
-					float Health = TslCharacter.Health;
-					float HealthMax = TslCharacter.HealthMax;
-					float GroggyHealth = TslCharacter.GroggyHealth;
-					float GroggyHealthMax = TslCharacter.GroggyHealthMax;
-
-					if (Health <= 0.0f && GroggyHealth <= 0.0f)
-						return;
+					const float Health = TslCharacter.Health;
+					const float HealthMax = TslCharacter.HealthMax;
+					const float GroggyHealth = TslCharacter.GroggyHealth;
+					const float GroggyHealthMax = TslCharacter.GroggyHealthMax;
+					const bool IsPlayerDead = (Health <= 0.0f && GroggyHealth <= 0.0f);
 
 					int NumKills = 0;
 					float DamageDealtOnEnemy = 0.0f;
@@ -579,6 +586,47 @@ void Hack::Loop() {
 						NumKills = TslPlayerState.PlayerStatistics_NumKills;
 						DamageDealtOnEnemy = TslPlayerState.DamageDealtOnEnemy;
 					}();
+
+					//GetVelocity
+					[&] {
+						if (!CharacterMap.contains(ActorPtr))
+							CharacterMap[ActorPtr] = {};
+
+						CharacterMap[ActorPtr].Velocity = {};
+						auto& Info = CharacterMap[ActorPtr].Info;
+						Info.push_back({ render.TimeInMicroSeconds, ActorLocation });
+
+						if (IsPlayerDead) {
+							Info.clear();
+							return;
+						}
+
+						float SumTimeDelta = 0.0f;
+						FVector SumTargetPosDif;
+						for (size_t i = 1; i < Info.size(); i++) {
+							const float DeltaTime = (Info[i].Time - Info[i - 1].Time) / 1000000.0f;
+							const FVector DeltaPos = Info[i].Pos - Info[i - 1].Pos;
+
+							if (DeltaTime > 0.5f) {
+								Info.clear();
+								return;
+							}
+
+							SumTimeDelta = SumTimeDelta + DeltaTime;
+							SumTargetPosDif = SumTargetPosDif + DeltaPos;
+						}
+
+						if (SumTimeDelta < 0.1f)
+							return;
+
+						if (SumTimeDelta > 0.15f)
+							Info.erase(Info.begin());
+
+						CharacterMap[ActorPtr].Velocity = SumTargetPosDif * (1.0f / SumTimeDelta);
+					}();
+
+					if (IsPlayerDead)
+						return;
 
 					//DrawRadar
 					[&] {
@@ -680,9 +728,6 @@ void Hack::Loop() {
 							CurrentTargetPtr = (uintptr_t)ActorPtr;
 							AimbotDistant = DistanceFromCenter;
 							TargetPos = VecEnemy;
-							TargetActorLoc = ActorLocation;
-							TargetVelocity = ActorVelocity;
-							TargetVelocity.Z = 0.0f;
 						}();
 
 						//DrawCharacter
@@ -732,33 +777,6 @@ void Hack::Loop() {
 				if (!bFoundTarget)
 					return;
 
-				auto GetTargetVelocity = [&] {
-					if (SavedTargetPtr != CurrentTargetPtr) {
-						SavedTargetPtr = CurrentTargetPtr;
-						SavedTargetActorLocDifArray.clear();
-						SavedTargetActorLoc = TargetActorLoc;
-						return FVector();
-					}
-
-					SavedTargetActorLocDifArray.push_back({ render.TimeDelta, TargetActorLoc - SavedTargetActorLoc });
-					SavedTargetActorLoc = TargetActorLoc;
-
-					float SumTimeDelta = 0.0f;
-					FVector SumTargetPosDif;
-					for (const auto& Elem : SavedTargetActorLocDifArray) {
-						SumTimeDelta += std::get<float>(Elem);
-						SumTargetPosDif = SumTargetPosDif + std::get<FVector>(Elem);
-					}
-
-					if (SumTimeDelta < 0.05f)
-						return FVector();
-
-					if (SumTimeDelta > 0.15f)
-						SavedTargetActorLocDifArray.erase(SavedTargetActorLocDifArray.begin());
-
-					return SumTargetPosDif * (1.0f / SumTimeDelta);
-				};
-
 				if (bPushingMouseM && !LockTargetPtr)
 					LockTargetPtr = CurrentTargetPtr;
 
@@ -774,9 +792,7 @@ void Hack::Loop() {
 
 				FVector PredictedPos = TargetPos;
 				PredictedPos.Z += BulletDrop;
-				TargetVelocity = GetTargetVelocity();
-				//TargetVelocity.Z = GetTargetVelocity().Z;
-				PredictedPos = PredictedPos + (TargetVelocity * (TravelTime / CustomTimeDilation));
+				PredictedPos = PredictedPos + (CharacterMap[CurrentTargetPtr].Velocity * (TravelTime / CustomTimeDilation));
 
 				FVector TargetScreenPos = WorldToScreen(TargetPos);
 				FVector AimScreenPos = WorldToScreen(PredictedPos);

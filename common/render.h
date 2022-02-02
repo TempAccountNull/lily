@@ -83,7 +83,7 @@ private:
 	}
 
 	uint64_t PrevFPSTime = GetTickCountInMicroSeconds();
-	uint64_t PrevTime = GetTickCountInMicroSeconds();
+	uint64_t _TimeInMicroSeconds = GetTickCountInMicroSeconds();
 	uint32_t FPSCount = 0;
 	uint32_t _FPS = 0;
 	float _TimeDelta = 0;
@@ -92,7 +92,7 @@ private:
 	void UpdateTimeDelta() {
 		FPSCount++;
 		const uint64_t CurrTime = GetTickCountInMicroSeconds();
-		const uint64_t Delta = CurrTime - PrevTime;
+		const uint64_t Delta = CurrTime - TimeInMicroSeconds;
 
 		//limit FPS
 		//while (Delta < 5) {
@@ -108,7 +108,7 @@ private:
 			dprintf("%d"e, FPS);
 		}
 
-		PrevTime = CurrTime;
+		_TimeInMicroSeconds = CurrTime;
 		_TimeDelta = (float)Delta / 1000000;
 	}
 
@@ -211,6 +211,7 @@ public:
 	MAKE_GETTER(_Width, Width);
 	MAKE_GETTER(_Height, Height);
 	MAKE_GETTER(_TimeDelta, TimeDelta);
+	MAKE_GETTER(_TimeInMicroSeconds, TimeInMicroSeconds);
 	MAKE_GETTER(_FPS, FPS);
 
 	void RenderArea(HWND hWnd, ImColor BgColor, auto func) {

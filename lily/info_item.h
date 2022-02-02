@@ -153,7 +153,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Boost_AdrenalineSyringe_C"h, { "Adrenaline"e, 4 });
 		HASH_CASE("Item_Boost_EnergyDrink_C"h, { "Drink"e, 3 });
 		HASH_CASE("Item_Boost_PainKiller_C"h, { "PainKiller"e, 3 });
-		HASH_CASE("Item_Heal_Bandage_C"h, { "Bandage"e, 2 });
+		HASH_CASE("Item_Heal_Bandage_C"h, { "Band"e, 2 });
 		HASH_CASE("Item_Heal_FirstAid_C"h, { "FirstAid"e, 3 });
 		HASH_CASE("Item_Heal_MedKit_C"h, { "MedKit"e, 4 });
 		HASH_CASE("Item_JerryCan_C"h, { "Fuel"e, 3 });
