@@ -158,8 +158,7 @@ private:
 				break;
 
 			wchar_t wCallbackAltitude[0x100] = { 0 };
-			if (!ReadProcessMemoryDBVM((uintptr_t)CallBackEntry.Altitude.Buffer, &wCallbackAltitude,
-				std::min(sizeof(wCallbackAltitude), (size_t)CallBackEntry.Altitude.Length)))
+			if (!ReadProcessMemoryDBVM((uintptr_t)CallBackEntry.Altitude.Buffer, &wCallbackAltitude, CallBackEntry.Altitude.Length))
 				break;
 
 			if (wcscmp(wCallbackAltitude, wAltitude) == 0)

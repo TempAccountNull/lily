@@ -4,6 +4,7 @@
 #include <string.h>
 #include <cstdint>
 #include <cstddef>
+#include <algorithm>
 #include "common/ida_defs.h"
 
 /*-----------------------------------------------------------------------------

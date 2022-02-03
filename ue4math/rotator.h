@@ -26,15 +26,9 @@ public:
 	}
 
 	void Clamp() {
-		Pitch = NormalizeAxis(Pitch);
+		Pitch = std::clamp(NormalizeAxis(Pitch), -75.0f, 75.0f);
 		Yaw = NormalizeAxis(Yaw);
 		Roll = NormalizeAxis(Roll);
-
-		if (Pitch > 75.0)
-			Pitch = 75.0;
-
-		if (Pitch < -75.0)
-			Pitch = -75.0;
 	}
 
 	float InnerProduct(const FRotator& v) const {

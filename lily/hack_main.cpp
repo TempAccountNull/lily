@@ -46,7 +46,7 @@ void Hack::Loop() {
 		if (hGameWnd == hForeWnd)
 			ProcessHotkey();
 
-		NoticeTimeRemain = std::max(NoticeTimeRemain - render.TimeDelta, 0.0f);
+		NoticeTimeRemain = std::clamp(NoticeTimeRemain - render.TimeDelta, 0.0f, NOTICE_TIME);
 
 		auto FuncInRenderArea = [&]() {
 			ProcessImGui();
@@ -71,14 +71,8 @@ void Hack::Loop() {
 				FVector ScreenPos1 = this->WorldToScreen({ CameraDistance, BarLength3D / 2.0f, 0.0f }, ZeroRotationMatrix, ZeroLocation, CameraFOV);
 				FVector ScreenPos2 = this->WorldToScreen({ CameraDistance, -BarLength3D / 2.0f, 0.0f }, ZeroRotationMatrix, ZeroLocation, CameraFOV);
 
-				float ScreenLengthX = ScreenPos1.X - ScreenPos2.X;
-				float ScreenLengthY = ScreenLengthX / 6.0f;
-
-				ScreenLengthX = std::min(ScreenLengthX, render.Width / 16.0f);
-				ScreenLengthX = std::max(ScreenLengthX, render.Width / 64.0f);
-
-				ScreenLengthY = std::min(ScreenLengthY, 6.0f);
-				ScreenLengthY = std::max(ScreenLengthY, 5.0f);
+				float ScreenLengthX = std::clamp(ScreenPos1.X - ScreenPos2.X, render.Width / 64.0f, render.Width / 16.0f);
+				float ScreenLengthY = std::clamp(ScreenLengthX / 6.0f, 5.0f, 6.0f);
 
 				render.DrawRatioBox(
 					{ ScreenPos.X - ScreenLengthX / 2.0f, ScreenPos.Y - ScreenLengthY / 2.0f, ScreenPos.Z },
@@ -614,7 +608,7 @@ void Hack::Loop() {
 						if (GroggyHealth > 0.0f && Health <= 0.0f)
 							Color = Render::COLOR_GRAY;
 
-						render.DrawRectFilled({ v.X - 3.0f, v.Y - 3.0f, 0.0 }, { v.X + 3.0f, v.Y + 3.0f, 0.0f }, Color);
+						render.DrawCircleFilled(v, 4.0f, Color);
 					}();
 
 					//Character Mesh stuff
@@ -804,7 +798,17 @@ void Hack::Loop() {
 
 				FVector TargetScreenPos = WorldToScreen(TargetPos);
 				FVector AimScreenPos = WorldToScreen(PredictedPos);
-				render.DrawLine(TargetScreenPos, AimScreenPos, Render::COLOR_RED);
+
+				const float LineLen = std::clamp(AimScreenPos.Y - WorldToScreen({ TargetPos.X, TargetPos.Y, TargetPos.Z + 10.0f }).Y, 4.0f, 8.0f);
+				const float LineThickness = 2.0f;
+
+				render.DrawLine(TargetScreenPos, AimScreenPos, Render::COLOR_RED, LineThickness);
+				render.DrawLine(
+					{ AimScreenPos.X - LineLen, AimScreenPos.Y - LineLen, AimScreenPos.Z },
+					{ AimScreenPos.X + LineLen, AimScreenPos.Y + LineLen, AimScreenPos.Z }, Render::COLOR_RED, LineThickness);
+				render.DrawLine(
+					{ AimScreenPos.X + LineLen, AimScreenPos.Y - LineLen, AimScreenPos.Z },
+					{ AimScreenPos.X - LineLen, AimScreenPos.Y + LineLen, AimScreenPos.Z }, Render::COLOR_RED, LineThickness);
 
 				if (!IsWeaponed || !bPushingMouseM)
 					return;
@@ -864,7 +868,7 @@ void Hack::Loop() {
 				DrawZeroingDistance(ZeroingDistance, Render::COLOR_TEAL);
 
 			if (IsWeaponed)
-				render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f }, AimbotCircleSize, Render::COLOR_WHITE);
+				render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f, 0.0f }, AimbotCircleSize, Render::COLOR_WHITE);
 		};
 
 		render.RenderArea(hGameWnd, Render::COLOR_CLEAR, [&] { 

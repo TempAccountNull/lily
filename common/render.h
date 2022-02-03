@@ -256,7 +256,8 @@ public:
 	void DrawString(const FVector& Pos, float Margin, const char* szText, float Size, ImColor Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const;
 	void DrawRatioBox(const FVector& from, const FVector& to, float HealthRatio, ImColor ColorRemain, ImColor ColorDamaged, ImColor ColorEdge) const;
 	void DrawLine(const FVector& from, const FVector& to, ImColor Color, float thickness = 1.0f) const;
-	void DrawCircle(const ImVec2& center, float radius, ImColor Color, int num_segments = 0, float thickness = 1.0f) const;
+	void DrawCircle(const FVector& center, float radius, ImColor Color, int num_segments = 0, float thickness = 1.0f) const;
+	void DrawCircleFilled(const FVector& center, float radius, ImColor Color, int num_segments = 0) const;
 	void DrawRectOutlined(const FVector& from, const FVector& to, ImColor Color, float rounding = 0, ImDrawFlags flags = 0, float thickness = 1.0f) const;
 	void DrawRectFilled(const FVector& from, const FVector& to, ImColor Color, float rounding = 0, ImDrawFlags flags = 0) const;
 };

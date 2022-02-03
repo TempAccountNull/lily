@@ -58,7 +58,7 @@ public:
 		if (!Ptr)
 			return false;
 
-		if (!g_Pubg->ReadProcessMemory(Ptr + offsetof(FNameEntry, AnsiName), szBuf, std::min(SizeMax, NAME_SIZE)))
+		if (!g_Pubg->ReadProcessMemory(Ptr + offsetof(FNameEntry, AnsiName), szBuf, std::clamp(SizeMax, (size_t)0, NAME_SIZE)))
 			return false;
 
 		return true;

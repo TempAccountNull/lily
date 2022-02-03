@@ -27,7 +27,7 @@ private:
 	}
 
 	void Present(HWND hWnd) final {
-		SleepTime = std::max(SleepTime - TimeDelta, 0.0f);
+		SleepTime = std::clamp(SleepTime - TimeDelta, 0.0f, 5.0f);
 		if (SleepTime > 0.0f) {
 			Sleep(1);
 			return;

@@ -39,17 +39,8 @@ void Render::DrawString(const FVector& Pos, float Margin, const char* szText, fl
 		LeftTopPos.y = FLT_MAX;
 
 	if (bShowAlways) {
-		const float MinPosX = Margin;
-		const float MaxPosX = Width - Margin - TextSize.x;
-
-		const float MinPosY = Margin;
-		const float MaxPosY = Height - Margin - TextSize.y;
-
-		LeftTopPos.x = std::max(LeftTopPos.x, MinPosX);
-		LeftTopPos.x = std::min(LeftTopPos.x, MaxPosX);
-
-		LeftTopPos.y = std::max(LeftTopPos.y, MinPosY);
-		LeftTopPos.y = std::min(LeftTopPos.y, MaxPosY);
+		LeftTopPos.x = std::clamp(LeftTopPos.x, Margin, Width - Margin - TextSize.x);
+		LeftTopPos.y = std::clamp(LeftTopPos.y, Margin, Height - Margin - TextSize.y);
 	}
 
 	if (bCenterAligned) {
@@ -117,8 +108,16 @@ void Render::DrawLine(const FVector& from, const FVector& to, ImColor Color, flo
 	ImGui::GetWindowDrawList()->AddLine({ from.X, from.Y }, { to.X, to.Y }, Color, thickness);
 }
 
-void Render::DrawCircle(const ImVec2& center, float radius, ImColor Color, int num_segments, float thickness) const {
+void Render::DrawCircle(const FVector& center, float radius, ImColor Color, int num_segments, float thickness) const {
 	if (!bRender) return;
 
-	ImGui::GetWindowDrawList()->AddCircle(center, radius, Color, num_segments, thickness);
+	if (center.Z < 0.0f) return;
+	ImGui::GetWindowDrawList()->AddCircle({ center.X, center.Y }, radius, Color, num_segments, thickness);
+}
+
+void Render::DrawCircleFilled(const FVector& center, float radius, ImColor Color, int num_segments) const {
+	if (!bRender) return;
+
+	if (center.Z < 0.0f) return;
+	ImGui::GetWindowDrawList()->AddCircleFilled({ center.X, center.Y }, radius, Color, num_segments);
 }
