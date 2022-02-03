@@ -280,7 +280,7 @@ void Hack::Loop() {
 				}();
 			}();
 
-			if (!CachedMyTslCharacterPtr && !CharacterMap.empty())
+			if (!CachedMyTslCharacterPtr)
 				CharacterMap.clear();
 			
 			auto IsLockTargetValid = [&] {
@@ -587,49 +587,11 @@ void Hack::Loop() {
 						DamageDealtOnEnemy = TslPlayerState.DamageDealtOnEnemy;
 					}();
 
-					//GetVelocity
-					[&] {
-						if (!CharacterMap.contains(ActorPtr))
-							CharacterMap[ActorPtr] = {};
-
-						CharacterMap[ActorPtr].Velocity = {};
-						auto& Info = CharacterMap[ActorPtr].Info;
-						Info.push_back({ render.TimeInMicroSeconds, ActorLocation });
-
-						if (IsPlayerDead) {
-							Info.clear();
-							return;
-						}
-
-						float SumTimeDelta = 0.0f;
-						FVector SumTargetPosDif;
-						for (size_t i = 1; i < Info.size(); i++) {
-							const float DeltaTime = (Info[i].Time - Info[i - 1].Time) / 1000000.0f;
-							const FVector DeltaPos = Info[i].Pos - Info[i - 1].Pos;
-
-							if (DeltaTime > 0.5f) {
-								Info.clear();
-								return;
-							}
-
-							SumTimeDelta = SumTimeDelta + DeltaTime;
-							SumTargetPosDif = SumTargetPosDif + DeltaPos;
-						}
-
-						if (SumTimeDelta < 0.1f)
-							return;
-
-						if (SumTimeDelta > 0.15f)
-							Info.erase(Info.begin());
-
-						CharacterMap[ActorPtr].Velocity = SumTargetPosDif * (1.0f / SumTimeDelta);
-					}();
-
-					if (IsPlayerDead)
-						return;
-
 					//DrawRadar
 					[&] {
+						if (IsPlayerDead)
+							return;
+
 						if (TslCharacter.LastTeamNum == MyTeamNum)
 							return;
 
@@ -655,40 +617,71 @@ void Hack::Loop() {
 						render.DrawRectFilled({ v.X - 3.0f, v.Y - 3.0f, 0.0 }, { v.X + 3.0f, v.Y + 3.0f, 0.0f }, Color);
 					}();
 
-					//DrawSkeleton, Aimbot
+					//Character Mesh stuff
 					[&] {
 						USkeletalMeshComponent Mesh;
 						if (!TslCharacter.Mesh.Read(Mesh))
 							return;
 
-						auto BoneSpaceTransforms = Mesh.BoneSpaceTransforms.GetVector(0x200);
-						size_t BoneSpaceTransformsSize = BoneSpaceTransforms.size();
-						if (!BoneSpaceTransformsSize)
+						//GetVelocity
+						[&] {
+							CharacterMap[ActorPtr].Velocity = ActorVelocity;
+							auto& Info = CharacterMap[ActorPtr].Info;
+
+							if (IsPlayerDead || !Mesh.IsVisible()) {
+								Info.clear();
+								return;
+							}
+
+							Info.push_back({ render.TimeInMicroSeconds, Mesh.ComponentToWorld.Translation });
+
+							float SumTimeDelta = 0.0f;
+							FVector SumTargetPosDif;
+							for (size_t i = 1; i < Info.size(); i++) {
+								const float DeltaTime = (Info[i].Time - Info[i - 1].Time) / 1000000.0f;
+								if (DeltaTime > 0.5f) {
+									Info.clear();
+									return;
+								}
+
+								const FVector DeltaPos = Info[i].Pos - Info[i - 1].Pos;
+								if (DeltaPos.Length() / 100.0f > 1.0f) {
+									Info.clear();
+									return;
+								}
+
+								SumTimeDelta = SumTimeDelta + DeltaTime;
+								SumTargetPosDif = SumTargetPosDif + DeltaPos;
+							}
+
+							if (SumTimeDelta < 0.1f)
+								return;
+
+							if (SumTimeDelta > 0.15f)
+								Info.erase(Info.begin());
+
+							CharacterMap[ActorPtr].Velocity = SumTargetPosDif * (1.0f / SumTimeDelta);
+						}();
+
+						if (IsPlayerDead)
 							return;
 
 						std::map<int, FVector> BonesPos, BonesScreenPos;
 
 						//GetBonesPosition
-						for (auto BoneIndex : GetBoneIndexArray()) {
-							verify(BoneIndex < BoneSpaceTransformsSize);
-							FVector Pos = (BoneSpaceTransforms[BoneIndex] * Mesh.ComponentToWorld).Translation;
-							BonesPos[BoneIndex] = Pos;
-							BonesScreenPos[BoneIndex] = WorldToScreen(Pos);
-						}
+						[&] {
+							auto BoneSpaceTransforms = Mesh.BoneSpaceTransforms.GetVector();
+							size_t BoneSpaceTransformsSize = BoneSpaceTransforms.size();
+							if (!BoneSpaceTransformsSize)
+								return;
 
-						FVector HealthBarPos = BonesPos[neck_01];
-						HealthBarPos.Z += 35.0f;
-						FVector HealthBarScreenPos = WorldToScreen(HealthBarPos);
-						HealthBarScreenPos.Y -= 5.0f;
-
-						const float CameraDistance = CameraLocation.Distance(HealthBarPos) / 100.0f;
-						float HealthBarScreenLengthY = 0.0f;
-						if (Health > 0.0)
-							HealthBarScreenLengthY = DrawRatioBox(HealthBarScreenPos, CameraDistance, 0.7f,
-								Health / HealthMax, Render::COLOR_GREEN, Render::COLOR_RED, Render::COLOR_BLACK).y;
-						else if (GroggyHealth > 0.0)
-							HealthBarScreenLengthY = DrawRatioBox(HealthBarScreenPos, CameraDistance, 0.7f,
-								GroggyHealth / GroggyHealthMax, Render::COLOR_RED, Render::COLOR_GRAY, Render::COLOR_BLACK).y;
+							for (auto BoneIndex : GetBoneIndexArray()) {
+								verify(BoneIndex < BoneSpaceTransformsSize);
+								FVector Pos = (BoneSpaceTransforms[BoneIndex] * Mesh.ComponentToWorld).Translation;
+								BonesPos[BoneIndex] = Pos;
+								BonesScreenPos[BoneIndex] = WorldToScreen(Pos);
+							}
+						}();
 
 						bool IsInCircle = false;
 						//Aimbot
@@ -749,18 +742,33 @@ void Hack::Loop() {
 								return (DamageDealtOnEnemy > 510.0) ? Render::COLOR_RED : IM_COL32(255, 255 - int(DamageDealtOnEnemy / 2), 255 - int(DamageDealtOnEnemy / 2), 255);
 							}();
 
+							//Draw Skeleton
 							for (auto DrawPair : GetDrawPairArray())
 								render.DrawLine(BonesScreenPos[DrawPair.first], BonesScreenPos[DrawPair.second], Color);
 
+							//Draw HealthBar
+							FVector HealthBarPos = BonesPos[neck_01];
+							HealthBarPos.Z += 35.0f;
+							FVector HealthBarScreenPos = WorldToScreen(HealthBarPos);
+							HealthBarScreenPos.Y -= 5.0f;
+
+							float HealthBarScreenLengthY = 0.0f;
+							const float CameraDistance = CameraLocation.Distance(HealthBarPos) / 100.0f;
+							if (Health > 0.0)
+								HealthBarScreenLengthY = DrawRatioBox(HealthBarScreenPos, CameraDistance, 0.7f,
+									Health / HealthMax, Render::COLOR_GREEN, Render::COLOR_RED, Render::COLOR_BLACK).y;
+							else if (GroggyHealth > 0.0)
+								HealthBarScreenLengthY = DrawRatioBox(HealthBarScreenPos, CameraDistance, 0.7f,
+									GroggyHealth / GroggyHealthMax, Render::COLOR_RED, Render::COLOR_GRAY, Render::COLOR_BLACK).y;
+
+							//Draw CharacterInfo
 							wchar_t PlayerName[0x100];
 							TslCharacter.CharacterName.GetValues(*PlayerName, 0x100);
 
-							if (TslCharacter.LastTeamNum >= 200 || TslCharacter.LastTeamNum == MyTeamNum) {
+							if (TslCharacter.LastTeamNum >= 200 || TslCharacter.LastTeamNum == MyTeamNum)
 								sprintf(szBuf, "%ws %d\n%.0fM %.0f"e, PlayerName, NumKills, DistanceToActor, DamageDealtOnEnemy);
-							}
-							else {
+							else
 								sprintf(szBuf, "%ws %d\n%.0fM %d %.0f"e, PlayerName, NumKills, DistanceToActor, TslCharacter.LastTeamNum, DamageDealtOnEnemy);
-							}
 
 							DrawString(
 								{ HealthBarScreenPos.X, HealthBarScreenPos.Y - HealthBarScreenLengthY - render.GetTextSize(FONTSIZE, szBuf).y / 2.0f, HealthBarScreenPos.Z },

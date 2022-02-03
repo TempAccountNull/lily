@@ -44,6 +44,7 @@ private:
 
 	Render& render;
 	bool& bESP = render.bRender = true;
+	bool& bIgnoreMouseInput = render.bIgnoreMouseInput = false;
 
 	mutable char szBuf[0x100];
 

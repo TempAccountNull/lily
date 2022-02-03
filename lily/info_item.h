@@ -24,7 +24,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Attach_Weapon_Lower_HalfGrip_C"h, { "L_Half"e, 2 });
 		HASH_CASE("Item_Attach_Weapon_Lower_LaserPointer_C"h, { "L_Laser"e, 1 });
 		HASH_CASE("Item_Attach_Weapon_Lower_LightweightForeGrip_C"h, { "L_Light"e, 2 });
-		HASH_CASE("Item_Attach_Weapon_Lower_QuickDraw_Large_Crossbow_C"h, { "LQ_Cross"e, 1 });
+		HASH_CASE("Item_Attach_Weapon_Lower_QuickDraw_Large_Crossbow_C"h, { "Q_Cross"e, 4 });
 		HASH_CASE("Item_Attach_Weapon_Lower_ThumbGrip_C"h, { "L_Thumb"e, 2 });
 		HASH_CASE("Item_Attach_Weapon_Magazine_ExtendedQuickDraw_Large_C"h, { "EQ_AR"e, 4 });
 		HASH_CASE("Item_Attach_Weapon_Magazine_ExtendedQuickDraw_Medium_C"h, { "EQ_SMG"e, 2 });
@@ -58,7 +58,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Attach_Weapon_Stock_UZI_C"h, { "ST_UZI"e, 2 });
 		HASH_CASE("Item_Attach_Weapon_Upper_ACOG_01_C"h, { "4X"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Upper_Aimpoint_C"h, { "2X"e, 3 });
-		HASH_CASE("Item_Attach_Weapon_Upper_CQBSS_C"h, { "8X"e, 3 });
+		HASH_CASE("Item_Attach_Weapon_Upper_CQBSS_C"h, { "8X"e, 4 });
 		HASH_CASE("Item_Attach_Weapon_Upper_DotSight_01_C"h, { "U_Dot"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Upper_DotSight_Crossbow_C"h, { "U_Dot_Cross"e, 1 });
 		HASH_CASE("Item_Attach_Weapon_Upper_Holosight_C"h, { "U_Holo"e, 3 });

@@ -67,6 +67,7 @@ private:
 
 	void InsertMouseInfo() const {
 		if (!bRender) return;
+		if (bIgnoreMouseInput) return;
 
 		ImGuiIO& io = ImGui::GetIO();
 		if (io.BackendPlatformUserData)
@@ -207,6 +208,7 @@ public:
 	constexpr static ImU32 COLOR_GRAY = IM_COL32(192, 192, 192, 255);
 
 	bool bRender = true;
+	bool bIgnoreMouseInput = false;
 
 	MAKE_GETTER(_Width, Width);
 	MAKE_GETTER(_Height, Height);

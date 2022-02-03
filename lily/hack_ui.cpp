@@ -111,7 +111,8 @@ void Hack::ProcessImGui() {
 			}
 			if (ImGui::BeginTabItem("Debug"e))
 			{
-				ImGui::Checkbox("Debug mode (F12)"e, &bDebug);
+				ImGui::Checkbox("IgnoreMouseInput (F12)"e, &bIgnoreMouseInput);
+				ImGui::Checkbox("Debug mode"e, &bDebug);
 
 				ImGui::Checkbox("Capture Log"e, &bCaptureLog);
 				ImGui::InputTextMultiline("##source"e, debuglog.data(), debuglog.size(), { -FLT_MIN, -FLT_MIN }, ImGuiInputTextFlags_ReadOnly);
@@ -164,7 +165,7 @@ void Hack::ProcessHotkey() {
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_F12)) {
-			bDebug = !bDebug;
+			bIgnoreMouseInput = !bIgnoreMouseInput;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_ADD)) {
