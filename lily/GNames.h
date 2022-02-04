@@ -3,9 +3,9 @@
 #include <Windows.h>
 #include <string>
 
+#include "common/compiletime.h"
 #include "pubg_process.h"
 #include "pubg_struct.h"
-#include "common/compiletime.h"
 #include "pubg_class.h"
 
 class TNameEntryArray
@@ -78,16 +78,33 @@ public:
 		return GetNameHashByID(Obj.GetFName());
 	}
 
+	void EnumNames(tl::function<bool(FName ID, const char* szName)> f) const {
+		for (int Index = 1; Index < 0x100000; Index++) {
+			char szBuf[NAME_SIZE];
+			if (GetNameByID({ (int)Index, 0 }, szBuf, sizeof(szBuf)) && !f({ Index, 0 }, szBuf))
+				return;
+		}
+	}
+
+	FName FindName(const char* szNameToFind) const {
+		FName Result{};
+		EnumNames([&](FName ID, const char* szName) {
+			if (strcmp(szNameToFind, szName) != 0)
+				return true;
+			Result = ID;
+			return false;
+			});
+		return Result;
+	}
+
 	void DumpAllNames() const {
 		FILE* out = fopen("out.txt"e, "w"e);
 
-		char szBuf[NAME_SIZE];
+		EnumNames([&](FName ID, const char* szName) {
+			fprintf(out, "%06X %s\n"e, ID.ComparisonIndex, szName);
+			return true;
+			});
 
-		for (int i = 1; i < 0x100000; i++) {
-			if (!GetNameByID({ i++, 0 }, szBuf, sizeof(szBuf)))
-				continue;
-			fprintf(out, "%06X %s\n"e, i, szBuf);
-		}
 		fclose(out);
 		verify(0);
 	}

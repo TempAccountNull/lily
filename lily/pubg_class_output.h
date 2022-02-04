@@ -1,3 +1,6 @@
+class ATslLivingThing
+//function ATslLivingThing.GetWorldTimeSeconds 0x1f1d0d0
+
 class UWorld
 MemberAtOffset(EncryptedPtr<ULevel>, CurrentLevel, 0x870)
 
@@ -8,6 +11,10 @@ MemberAtOffset(EncryptedPtr<APawn>, Pawn, 0x438)
 class APlayerController
 MemberAtOffset(NativePtr<APawn>, SpectatorPawn, 0x748)
 MemberAtOffset(NativePtr<APlayerCameraManager>, PlayerCameraManager, 0x4b8)
+MemberAtOffset(NativePtr<UPlayerInput>, PlayerInput, 0x530)
+
+class UPlayerInput
+//function UPlayerInput.SetMouseSensitivity 0x4148ac0
 
 class ATslPlayerController
 MemberAtOffset(float, DefaultFOV, 0xb5c)

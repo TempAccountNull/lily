@@ -94,13 +94,9 @@ float ATslWeapon_Trajectory::GetZeroingDistance() const {
 }
 
 NativePtr<UStaticMeshComponent> UWeaponMeshComponent::GetStaticMeshComponentScopeType() const {
-	for (const auto& Element : AttachedStaticComponentMap.GetVector()) {
-		if (Element.Value.Key == EWeaponAttachmentSlotID::UpperRail) {
-			return Element.Value.Value;
-			break;
-		}
-	}
-	return 0;
+	NativePtr<UStaticMeshComponent> Result = 0;
+	AttachedStaticComponentMap.GetValue(EWeaponAttachmentSlotID::UpperRail, Result);
+	return Result;
 }
 
 float UWeaponMeshComponent::GetScopingAttachPointRelativeZ(FName ScopingAttachPoint) const {

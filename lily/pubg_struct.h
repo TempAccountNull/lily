@@ -66,8 +66,8 @@ struct FString : public TArray<wchar_t> {};
 template<class T>
 struct TSetElement {
 	T Value;
-	int HashNextId;
-	int HashIndex;
+	//int HashNextId;
+	//int HashIndex;
 };
 
 template<class T>
@@ -80,7 +80,18 @@ struct TPair {
 };
 
 template<class KeyType, class ValueType>
-class TMap : public TSet<TPair<KeyType, ValueType>> {};
+class TMap : public TSet<TPair<KeyType, ValueType>> {
+public:
+	bool GetValue(const KeyType& Key, ValueType& Value) const {
+		for (const auto& Elem : this->GetVector()) {
+			if (Elem.Value.Key == Key) {
+				Value = Elem.Value.Value;
+				return true;
+			}
+		}
+		return false;
+	}
+};
 
 template <class ObjectType, class PtrType>
 class ObjectPtr {
@@ -122,10 +133,10 @@ struct FName
 {
 	int ComparisonIndex;
 	int Number;
-	bool operator == (const FName& Name2) {
+	bool operator == (const FName& Name2) const {
 		return ComparisonIndex == Name2.ComparisonIndex && Number == Name2.Number;
 	}
-	bool operator != (const FName& Name2) {
+	bool operator != (const FName& Name2) const {
 		return !(*this == Name2);
 	}
 };
@@ -271,6 +282,21 @@ struct FRichCurveKey
 	float                                              ArriveTangentWeight;                                      // 0x0010(0x0004) (CPF_ZeroConstructor, CPF_IsPlainOldData)
 	float                                              LeaveTangent;                                             // 0x0014(0x0004) (CPF_ZeroConstructor, CPF_IsPlainOldData)
 	float                                              LeaveTangentWeight;                                       // 0x0018(0x0004) (CPF_ZeroConstructor, CPF_IsPlainOldData)
+};
+
+class UCurveFloat;
+
+// ScriptStruct Engine.InputAxisProperties
+// 0x0020
+struct FInputAxisProperties
+{
+	float                                              DEADZONE;                                                 // 0x0000(0x0004) (CPF_Edit, CPF_ZeroConstructor, CPF_IsPlainOldData)
+	float                                              OuterDeadZone;                                            // 0x0004(0x0004) (CPF_Edit, CPF_ZeroConstructor, CPF_IsPlainOldData)
+	float                                              Sensitivity;                                              // 0x0008(0x0004) (CPF_Edit, CPF_ZeroConstructor, CPF_IsPlainOldData)
+	float                                              Exponent;                                                 // 0x000C(0x0004) (CPF_Edit, CPF_ZeroConstructor, CPF_IsPlainOldData)
+	unsigned char                                      bInvert : 1;                                              // 0x0010(0x0001) (CPF_Edit)
+	unsigned char                                      UnknownData00[0x7];                                       // 0x0011(0x0007) MISSED OFFSET
+	NativePtr<UCurveFloat>                             MultiplierAxisValueCurve;	                             // 0x0018(0x0008) (CPF_Edit, CPF_ZeroConstructor, CPF_IsPlainOldData)
 };
 
 static bool IsItNotWeighted(const FRichCurveKey& Key1, const FRichCurveKey& Key2);

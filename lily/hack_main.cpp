@@ -19,6 +19,11 @@ void Hack::Loop() {
 	//NameArr.DumpAllNames();
 	//ObjectArr.DumpObject(NameArr);
 
+	const FName KeyMouseX = NameArr.FindName("MouseX"e);
+	verify(KeyMouseX.ComparisonIndex);
+	const FName KeyMouseY = NameArr.FindName("MouseY"e);
+	verify(KeyMouseY.ComparisonIndex);
+
 	//f3 0f 11 ? ? ? ? ? ? f3 0f 11 ? ? ? ? ? ? f3 44 0f ? ? ? ? ? ? ? f3 0f 10 ? ? ? ? ? e9
 	constexpr uintptr_t HookBaseAddress = 0x1192348;
 	uint8_t OriginalByte = 0;
@@ -27,6 +32,9 @@ void Hack::Loop() {
 	const PhysicalAddress AimHookAddressPA = dbvm.GetPhysicalAddress(AimHookAddressVA, mapCR3);
 	verify(AimHookAddressPA && OriginalByte);
 
+	float LastAimUpdateTime = 0.0f;
+	float RemainMouseX = 0.0f;
+	float RemainMouseY = 0.0f;
 	NativePtr<ATslCharacter> CachedMyTslCharacterPtr = 0;
 	NativePtr<ATslCharacter> LockTargetPtr = 0;
 
@@ -54,13 +62,16 @@ void Hack::Loop() {
 			DrawFPS(render.FPS, Render::COLOR_TEAL);
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
+			float TimeSeconds = 0.0f;
 			bool IsNeedToHookAim = false;
 			TArray<NativePtr<AActor>> Actors;
 			FVector CameraLocation;
 			FRotator CameraRotation;
 			FMatrix CameraRotationMatrix;
-			float CameraFOV;
+			float CameraFOV = 0.0f;
 			float DefaultFOV = 0.0f;
+			float MouseXSensitivity = 0.2f;
+			float MouseYSensitivity = 0.2f;
 
 			auto WorldToScreen = [&](const FVector& WorldLocation) {
 				return this->WorldToScreen(WorldLocation, CameraRotationMatrix, CameraLocation, CameraFOV);
@@ -127,6 +138,8 @@ void Hack::Loop() {
 				if (!UWorld::GetUWorld(World))
 					return;
 
+				TimeSeconds = World.TimeSeconds;
+
 				ULevel Level;
 				if (!World.CurrentLevel.Read(Level))
 					return;
@@ -162,6 +175,17 @@ void Hack::Loop() {
 					MyPawnPtr = (uintptr_t)PlayerController.Pawn;
 				CachedMyTslCharacterPtr = 0;
 
+				UPlayerInput PlayerInput;
+				if (!PlayerController.PlayerInput.Read(PlayerInput))
+					return;
+
+				FInputAxisProperties InputAxisProperties;
+				if (PlayerInput.AxisProperties.GetValue(KeyMouseX, InputAxisProperties))
+					MouseXSensitivity = InputAxisProperties.Sensitivity;
+				FInputAxisProperties MouseYProperty;
+				if (PlayerInput.AxisProperties.GetValue(KeyMouseY, InputAxisProperties))
+					MouseYSensitivity = InputAxisProperties.Sensitivity;
+
 				APlayerCameraManager PlayerCameraManager;
 				if (!PlayerController.PlayerCameraManager.Read(PlayerCameraManager))
 					return;
@@ -179,6 +203,13 @@ void Hack::Loop() {
 				DefaultFOV = 90.0f;
 
 			const float FOVRatio = DefaultFOV / CameraFOV;
+			auto GetMouseXY = [&](FRotator RotationInput) {
+				RotationInput.Clamp();
+				return POINT{
+					LONG(RotationInput.Yaw / MouseXSensitivity * 0.4f * FOVRatio),
+					LONG(-RotationInput.Pitch / MouseYSensitivity * 0.4f * FOVRatio)};
+			};
+
 			const float CircleFov = ConvertToRadians(CircleFovInDegrees);
 			const float AimbotCircleSize =
 				tanf(CircleFov) * render.Height *
@@ -813,7 +844,7 @@ void Hack::Loop() {
 				if (!IsWeaponed || !bPushingMouseM)
 					return;
 
-				auto AImbot_MouseMove = [&] {
+				auto AImbot_MouseMove_Old = [&] {
 					if (hGameWnd != hForeWnd)
 						return;
 
@@ -822,14 +853,42 @@ void Hack::Loop() {
 					const FVector GunCenterPos = CameraLocation + GunRotation.GetUnitVector() * DistanceToTarget;
 					const FVector LocCenter = ::WorldToScreen(GunCenterPos, CameraRotationMatrix, CameraLocation, CameraFOV, 1.0f, 1.0f);
 
-					const float MouseX = RemainMouseX + AimbotSpeedX * (LocTarget.X - LocCenter.X) * render.TimeDelta * 100000.0f;
-					const float MouseY = RemainMouseY + AimbotSpeedY * (LocTarget.Y - LocCenter.Y) * render.TimeDelta * 100000.0f;
+					const float MouseX = RemainMouseX + powf(2.0f, AimSpeedFactorX) * (LocTarget.X - LocCenter.X) * render.TimeDelta * 100000.0f;
+					const float MouseY = RemainMouseY + powf(2.0f, AimSpeedFactorY) * (LocTarget.Y - LocCenter.Y) * render.TimeDelta * 100000.0f;
 					const float TruncedMouseX = truncf(MouseX);
 					const float TruncedMouseY = truncf(MouseY);
 					RemainMouseX = MouseX - TruncedMouseX;
 					RemainMouseY = MouseY - TruncedMouseY;
-					kernel.PostRawMouseInput(hGameWnd, { .usFlags = MOUSE_MOVE_RELATIVE,
-						.lLastX = (int)TruncedMouseX, .lLastY = (int)TruncedMouseY });
+					MoveMouse(hGameWnd, { (int)TruncedMouseX , (int)TruncedMouseY });
+				};
+
+				auto AImbot_MouseMove = [&] {
+					if (hGameWnd != hForeWnd)
+						return;
+
+					if (TimeSeconds == LastAimUpdateTime)
+						return;
+
+					LastAimUpdateTime = TimeSeconds;
+
+					FRotator RotationInput = (PredictedPos - CameraLocation).GetDirectionRotator() - GunRotation;
+					RotationInput.Clamp();
+					const POINT MaxXY = GetMouseXY(RotationInput * 0.5f);
+					if (MaxXY.x == 0 && MaxXY.y == 0) {
+						RemainMouseX = RemainMouseY = 0.0f;
+						return;
+					}
+
+					FVector FMouseXY = { (float)MaxXY.x, (float)MaxXY.y, 0.0f };
+					FMouseXY.Normalize();
+					
+					const float MouseX = RemainMouseX + std::clamp(DefaultAimSpeed * powf(2.0f, AimSpeedFactorX) * render.TimeDelta * FMouseXY.X, -fabsf((float)MaxXY.x), fabsf((float)MaxXY.x));
+					const float MouseY = RemainMouseY + std::clamp(DefaultAimSpeed * powf(2.0f, AimSpeedFactorY) * render.TimeDelta * FMouseXY.Y, -fabsf((float)MaxXY.y), fabsf((float)MaxXY.y));
+					const float TruncedMouseX = truncf(MouseX);
+					const float TruncedMouseY = truncf(MouseY);
+					RemainMouseX = MouseX - TruncedMouseX;
+					RemainMouseY = MouseY - TruncedMouseY;
+					MoveMouse(hGameWnd, { (int)TruncedMouseX , (int)TruncedMouseY });
 				};
 
 				switch (nAimbot) {
@@ -857,6 +916,11 @@ void Hack::Loop() {
 					break;
 				}
 			}();
+
+			if (bTurnBack) {
+				bTurnBack = false;
+				MoveMouse(hGameWnd, GetMouseXY({ 0.0f, 180.0f, 0.0f }));
+			}
 
 			if (!IsNeedToHookAim)
 				dbvm.RemoveChangeRegisterOnBP(AimHookAddressPA);

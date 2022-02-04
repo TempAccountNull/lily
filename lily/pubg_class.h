@@ -9,6 +9,7 @@ class UGameInstance;
 class ULocalPlayer;
 class AController;
 class APlayerController;
+class UPlayerInput;
 class APlayerCameraManager;
 class AActor;
 class APlayerState;
@@ -51,9 +52,12 @@ class FWeaponAttachmentWeaponTagData;
 class FItemTableRowAttachment;
 
 //Engine.World.CurrentLevel 
+//Function TslGame.TslLivingThing.GetWorldTimeSeconds 
 DefClass(UWorld, UObject,
 	MemberAtOffset(EncryptedPtr<ULevel>, CurrentLevel, 0x870)
 	MemberAtOffset(EncryptedPtr<UGameInstance>, GameInstance, 0x138)
+
+	MemberAtOffset(float, TimeSeconds, 0x97C)
 	,
 	constexpr static uintptr_t UWORLDBASE = 0x8F703B0;
 	static bool GetUWorld(UWorld& World);
@@ -74,11 +78,19 @@ DefClass(AController, UObject,
 	MemberAtOffset(EncryptedPtr<APawn>, Pawn, 0x438)
 )
 
+//0x4148ac0
+//Function Engine.PlayerInput.SetMouseSensitivity 
+DefClass(UPlayerInput, UObject,
+	MemberAtOffset(UNPACK(TMap<FName, FInputAxisProperties>), AxisProperties, 0x148)
+)
+
 //Engine.PlayerController.SpectatorPawn 
 //Engine.PlayerController.PlayerCameraManager 
+//Engine.PlayerController.PlayerInput 
 DefClass(APlayerController, AController,
 	MemberAtOffset(NativePtr<APawn>, SpectatorPawn, 0x748)
 	MemberAtOffset(NativePtr<APlayerCameraManager>, PlayerCameraManager, 0x4b8)
+	MemberAtOffset(NativePtr<UPlayerInput>, PlayerInput, 0x530)
 )
 
 //TslGame.TslPlayerController.DefaultFOV 

@@ -17,6 +17,8 @@ private:
 	float NoticeTimeRemain = 0.0f;
 
 	bool bFighterMode = false;
+	bool bTurnBackShortKey = false;
+	bool bTurnBack = false;
 	bool bVehicle = true;
 	bool bBox = true;
 	bool bTeamKill = false;
@@ -25,13 +27,12 @@ private:
 	int nRange = 500;
 	float CircleFovInDegrees = 6.0f;
 
-	constexpr static float DefaultAimbotSpeed = 1.0f;
-	constexpr static float DefaultAimbotSpeedMax = DefaultAimbotSpeed * 2.0f * 2.0f;
-	constexpr static float DefaultAimbotSpeedMin = DefaultAimbotSpeed * 0.5f * 0.5f;
-	float AimbotSpeedX = DefaultAimbotSpeed;
-	float AimbotSpeedY = DefaultAimbotSpeed;
-	float RemainMouseX = 0.0f;
-	float RemainMouseY = 0.0f;
+	constexpr static float DefaultAimSpeed = 1000.0f;
+	constexpr static float DefaultAimSpeedFactor = 5.0f;
+	constexpr static float DefaultAimSpeedFactorMax = 5.0f;
+	constexpr static float DefaultAimSpeedFactorMin = -5.0f;
+	float AimSpeedFactorX = DefaultAimSpeedFactor;
+	float AimSpeedFactorY = DefaultAimSpeedFactor;
 
 	bool bPushingCTRL = false;
 	bool bPushingShift = false;
@@ -115,5 +116,10 @@ public:
 
 		bNeedToScroll = true;
 		debuglog += buf;
+	}
+
+	void MoveMouse(HWND hWnd, POINT Movement) {
+		kernel.PostRawMouseInput(hWnd, { .usFlags = MOUSE_MOVE_RELATIVE, .lLastX = Movement.x, .lLastY = Movement.y });
+		//mouse_event(MOUSEEVENTF_MOVE, Movement.x, Movement.y, 0, 0);
 	}
 };

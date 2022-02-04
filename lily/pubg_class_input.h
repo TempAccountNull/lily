@@ -1,3 +1,6 @@
+class ATslLivingThing
+function GetWorldTimeSeconds
+
 class UWorld
 EncryptedPtr<ULevel> CurrentLevel
 
@@ -8,6 +11,10 @@ EncryptedPtr<APawn> Pawn
 class APlayerController
 NativePtr<APawn> SpectatorPawn
 NativePtr<APlayerCameraManager> PlayerCameraManager
+NativePtr<UPlayerInput> PlayerInput
+
+class UPlayerInput
+function SetMouseSensitivity
 
 class ATslPlayerController
 float DefaultFOV

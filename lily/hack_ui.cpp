@@ -33,6 +33,7 @@ void Hack::DrawHotkey() const {
 		"OFF"e;
 	strNotice += (std::string)"\n"e;
 
+	AddOnOff("Enable TurnBack Shortkey(F6, CapsLock)"e, bTurnBackShortKey);
 	AddOnOff("TeamKill(F10)"e, bTeamKill);
 
 	strNotice += (std::string)"Current Rnage (+-) : "e;
@@ -67,6 +68,7 @@ void Hack::ProcessImGui() {
 		ImGui::PopItemWidth();
 
 		ImGui::Checkbox("Fighter Mode (~)"e, (bool*)&bFighterMode);
+		ImGui::Checkbox("Enable turnback (F6, CapsLock)"e, (bool*)&bTurnBackShortKey);
 
 		ImGui::NewLine();
 
@@ -101,8 +103,8 @@ void Hack::ProcessImGui() {
 
 				ImGui::Text("Aim Speed(X,Y)"e);
 				ImGui::PushItemWidth(-1);
-				ImGui::SliderFloat("SpeedX"e, &AimbotSpeedX, DefaultAimbotSpeedMin, DefaultAimbotSpeedMax, "%.3f"e, ImGuiSliderFlags_Logarithmic);
-				ImGui::SliderFloat("SpeedY"e, &AimbotSpeedY, DefaultAimbotSpeedMin, DefaultAimbotSpeedMax, "%.3f"e, ImGuiSliderFlags_Logarithmic);
+				ImGui::SliderFloat("SpeedX"e, &AimSpeedFactorX, DefaultAimSpeedFactorMin, DefaultAimSpeedFactorMax, "%.2f"e);
+				ImGui::SliderFloat("SpeedY"e, &AimSpeedFactorY, DefaultAimSpeedFactorMin, DefaultAimSpeedFactorMax, "%.2f"e);
 				ImGui::PopItemWidth();
 
 				ImGui::Checkbox("TeamKill (F10)"e, &bTeamKill);
@@ -132,6 +134,12 @@ void Hack::ProcessImGui() {
 }
 
 void Hack::ProcessHotkey() {
+	bTurnBack = false;
+	if (bTurnBackShortKey) {
+		if (IsKeyPushed(VK_CAPITAL)) {
+			bTurnBack = true;
+		}
+	}
 	if (IsKeyPushing(VK_MENU) || IsKeyPushing(VK_MBUTTON)) {
 		if (IsKeyPushed(VK_HOME)) {
 			bShowMenu = !bShowMenu;
@@ -158,6 +166,10 @@ void Hack::ProcessHotkey() {
 		}
 		if (IsKeyPushed(VK_F5)) {
 			nAimbot = (nAimbot + 1) % 4;
+			NoticeTimeRemain = NOTICE_TIME;
+		}
+		if (IsKeyPushed(VK_F6)) {
+			bTurnBackShortKey = !bTurnBackShortKey;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_F10)) {
