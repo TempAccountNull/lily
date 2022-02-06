@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "common/ida_defs.h"
+#include "common/defclass.h"
 #include "common/process.h"
 
 #include "ue4math/vector.h"

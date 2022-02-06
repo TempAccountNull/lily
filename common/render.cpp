@@ -20,7 +20,6 @@ ImVec2 Render::GetTextSize(float FontSize, const char* szText) {
 
 void Render::DrawString(const FVector& Pos, float Margin, const char* szText, float Size, ImColor Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const {
 	if (!bRender) return;
-
 	if (Pos.Z < 0.0f && !bShowAlways)
 		return;
 
@@ -70,21 +69,18 @@ void Render::DrawString(const FVector& Pos, float Margin, const char* szText, fl
 
 void Render::DrawRectOutlined(const FVector& from, const FVector& to, ImColor Color, float rounding, ImDrawFlags flags, float thickness) const {
 	if (!bRender) return;
-
 	if (from.Z < 0.0f) return;
 	ImGui::GetWindowDrawList()->AddRect({ from.X, from.Y }, { to.X, to.Y }, Color, rounding, flags, thickness);
 }
 
 void Render::DrawRectFilled(const FVector& from, const FVector& to, ImColor Color, float rounding, ImDrawFlags flags) const {
 	if (!bRender) return;
-
 	if (from.Z < 0.0f) return;
 	ImGui::GetWindowDrawList()->AddRectFilled({ from.X, from.Y }, { to.X, to.Y }, Color, rounding, flags);
 }
 
 void Render::DrawRatioBox(const FVector& from, const FVector& to, float Ratio, ImColor ColorRemain, ImColor ColorDamaged, ImColor ColorEdge) const {
 	if (!bRender) return;
-
 	if (from.Z < 0.0f) return;
 
 	float RemainLen = (to.X - from.X) * Ratio;
@@ -103,21 +99,25 @@ void Render::DrawRatioBox(const FVector& from, const FVector& to, float Ratio, I
 
 void Render::DrawLine(const FVector& from, const FVector& to, ImColor Color, float thickness) const {
 	if (!bRender) return;
-
 	if (from.Z < 0.0f) return;
 	ImGui::GetWindowDrawList()->AddLine({ from.X, from.Y }, { to.X, to.Y }, Color, thickness);
 }
 
 void Render::DrawCircle(const FVector& center, float radius, ImColor Color, int num_segments, float thickness) const {
 	if (!bRender) return;
-
 	if (center.Z < 0.0f) return;
 	ImGui::GetWindowDrawList()->AddCircle({ center.X, center.Y }, radius, Color, num_segments, thickness);
 }
 
 void Render::DrawCircleFilled(const FVector& center, float radius, ImColor Color, int num_segments) const {
 	if (!bRender) return;
-
 	if (center.Z < 0.0f) return;
 	ImGui::GetWindowDrawList()->AddCircleFilled({ center.X, center.Y }, radius, Color, num_segments);
+}
+
+void Render::DrawX(const FVector& center, float len, ImColor Color, float thickness) const {
+	if (!bRender) return;
+	if (center.Z < 0.0f) return;
+	DrawLine({ center.X - len, center.Y - len, center.Z }, { center.X + len, center.Y + len, center.Z }, Color, thickness);
+	DrawLine({ center.X + len, center.Y - len, center.Z }, { center.X - len, center.Y + len, center.Z }, Color, thickness);
 }

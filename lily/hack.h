@@ -27,12 +27,12 @@ private:
 	int nRange = 500;
 	float CircleFovInDegrees = 6.0f;
 
-	constexpr static float DefaultAimSpeed = 1000.0f;
-	constexpr static float DefaultAimSpeedFactor = 5.0f;
-	constexpr static float DefaultAimSpeedFactorMax = 5.0f;
-	constexpr static float DefaultAimSpeedFactorMin = -5.0f;
-	float AimSpeedFactorX = DefaultAimSpeedFactor;
-	float AimSpeedFactorY = DefaultAimSpeedFactor;
+	constexpr static float AimSpeedMaxFactor = 1.0f / 3.0f;
+	constexpr static float AimSpeedMax = 1000000.0f;
+	constexpr static float AimSpeedMin = 0.0f;
+	constexpr static float AimSpeedDefault = AimSpeedMax;
+	float AimSpeedX = AimSpeedDefault;
+	float AimSpeedY = AimSpeedDefault;
 
 	bool bPushingCTRL = false;
 	bool bPushingShift = false;
@@ -83,8 +83,8 @@ public:
 		render.DrawString({ 30.0f, 30.0f , 0.0f }, Hack::MARGIN, szText, Hack::FONTSIZE_NORMAL, Color, false, false, true);
 	}
 
-	void DrawFPS(unsigned FPS, ImColor Color) const {
-		sprintf(szBuf, "FPS : %d"e, FPS);
+	void DrawFPS(float FPS, ImColor Color) const {
+		sprintf(szBuf, "FPS : %.0f"e, FPS);
 		render.DrawString({ render.Width * 0.6f, 0.0f , 0.0f }, Hack::MARGIN, szBuf, Hack::FONTSIZE_SMALL, Color, true, true, true);
 	}
 

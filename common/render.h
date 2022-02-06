@@ -83,34 +83,30 @@ private:
 		io.MousePos.y = (float)CursorPos.y - PosY;
 	}
 
-	uint64_t PrevFPSTime = GetTickCountInMicroSeconds();
 	uint64_t _TimeInMicroSeconds = GetTickCountInMicroSeconds();
-	uint32_t FPSCount = 0;
-	uint32_t _FPS = 0;
 	float _TimeDelta = 0;
-	constexpr static float CheckFPSInterval = 0.5f;
 
 	void UpdateTimeDelta() {
-		FPSCount++;
 		const uint64_t CurrTime = GetTickCountInMicroSeconds();
-		const uint64_t Delta = CurrTime - TimeInMicroSeconds;
-
-		//limit FPS
-		//while (Delta < 5) {
-		//	CurrTime = GetAccurateTickCount();
-		//	Delta = CurrTime - PrevTime;
-		//}
-
-		//Calculate FPS each 1s 
-		if (CurrTime - PrevFPSTime > uint64_t(1000000 * CheckFPSInterval)) {
-			PrevFPSTime = CurrTime;
-			_FPS = uint32_t(FPSCount / CheckFPSInterval);
-			FPSCount = 0;
-			dprintf("%d"e, FPS);
-		}
-
+		_TimeDelta = (CurrTime - _TimeInMicroSeconds) / 1000000.0f;
 		_TimeInMicroSeconds = CurrTime;
-		_TimeDelta = (float)Delta / 1000000;
+		UpdateFPS();
+	}
+
+	constexpr static float CheckFPSInterval = 1.0f;
+	float TimeDeltaFPSAcc = 0.0f;
+	uint32_t FPSCount = 0;
+	float _FPS = 0;
+
+	void UpdateFPS() {
+		FPSCount++;
+		TimeDeltaFPSAcc += TimeDelta;
+		if (TimeDeltaFPSAcc < CheckFPSInterval)
+			return;
+
+		TimeDeltaFPSAcc -= CheckFPSInterval;
+		_FPS = FPSCount / CheckFPSInterval;
+		FPSCount = 0;
 	}
 
 	bool InitD3D() {
@@ -260,4 +256,5 @@ public:
 	void DrawCircleFilled(const FVector& center, float radius, ImColor Color, int num_segments = 0) const;
 	void DrawRectOutlined(const FVector& from, const FVector& to, ImColor Color, float rounding = 0, ImDrawFlags flags = 0, float thickness = 1.0f) const;
 	void DrawRectFilled(const FVector& from, const FVector& to, ImColor Color, float rounding = 0, ImDrawFlags flags = 0) const;
+	void DrawX(const FVector& center, float len, ImColor Color, float thickness = 1.0f) const;
 };

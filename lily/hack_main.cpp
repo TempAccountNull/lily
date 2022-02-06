@@ -32,6 +32,7 @@ void Hack::Loop() {
 	const PhysicalAddress AimHookAddressPA = dbvm.GetPhysicalAddress(AimHookAddressVA, mapCR3);
 	verify(AimHookAddressPA && OriginalByte);
 
+	float TimeDeltaAcc = 0.0f;
 	float LastAimUpdateTime = 0.0f;
 	float RemainMouseX = 0.0f;
 	float RemainMouseY = 0.0f;
@@ -182,7 +183,6 @@ void Hack::Loop() {
 				FInputAxisProperties InputAxisProperties;
 				if (PlayerInput.AxisProperties.GetValue(KeyMouseX, InputAxisProperties))
 					MouseXSensitivity = InputAxisProperties.Sensitivity;
-				FInputAxisProperties MouseYProperty;
 				if (PlayerInput.AxisProperties.GetValue(KeyMouseY, InputAxisProperties))
 					MouseYSensitivity = InputAxisProperties.Sensitivity;
 
@@ -831,49 +831,48 @@ void Hack::Loop() {
 				FVector AimScreenPos = WorldToScreen(PredictedPos);
 
 				const float LineLen = std::clamp(AimScreenPos.Y - WorldToScreen({ TargetPos.X, TargetPos.Y, TargetPos.Z + 10.0f }).Y, 4.0f, 8.0f);
-				const float LineThickness = 2.0f;
-
-				render.DrawLine(TargetScreenPos, AimScreenPos, Render::COLOR_RED, LineThickness);
-				render.DrawLine(
-					{ AimScreenPos.X - LineLen, AimScreenPos.Y - LineLen, AimScreenPos.Z },
-					{ AimScreenPos.X + LineLen, AimScreenPos.Y + LineLen, AimScreenPos.Z }, Render::COLOR_RED, LineThickness);
-				render.DrawLine(
-					{ AimScreenPos.X + LineLen, AimScreenPos.Y - LineLen, AimScreenPos.Z },
-					{ AimScreenPos.X - LineLen, AimScreenPos.Y + LineLen, AimScreenPos.Z }, Render::COLOR_RED, LineThickness);
+				render.DrawLine(TargetScreenPos, AimScreenPos, Render::COLOR_RED, 2.0f);
+				render.DrawX(AimScreenPos, LineLen, Render::COLOR_RED, 2.0f);
 
 				if (!IsWeaponed || !bPushingMouseM)
 					return;
 
+				if (hGameWnd != hForeWnd)
+					return;
+
 				auto AImbot_MouseMove_Old = [&] {
-					if (hGameWnd != hForeWnd)
+					TimeDeltaAcc += render.TimeDelta;
+					if (TimeSeconds == LastAimUpdateTime)
 						return;
+
+					LastAimUpdateTime = TimeSeconds;
+					const float TimeDelta = TimeDeltaAcc;
+					TimeDeltaAcc = 0.0f;
 
 					const FVector LocTarget = ::WorldToScreen(PredictedPos, CameraRotationMatrix, CameraLocation, CameraFOV, 1.0f, 1.0f);
 					const float DistanceToTarget = CameraLocation.Distance(PredictedPos) / 100.0f;
 					const FVector GunCenterPos = CameraLocation + GunRotation.GetUnitVector() * DistanceToTarget;
 					const FVector LocCenter = ::WorldToScreen(GunCenterPos, CameraRotationMatrix, CameraLocation, CameraFOV, 1.0f, 1.0f);
 
-					const float MouseX = RemainMouseX + powf(2.0f, AimSpeedFactorX) * (LocTarget.X - LocCenter.X) * render.TimeDelta * 100000.0f;
-					const float MouseY = RemainMouseY + powf(2.0f, AimSpeedFactorY) * (LocTarget.Y - LocCenter.Y) * render.TimeDelta * 100000.0f;
-					const float TruncedMouseX = truncf(MouseX);
-					const float TruncedMouseY = truncf(MouseY);
-					RemainMouseX = MouseX - TruncedMouseX;
-					RemainMouseY = MouseY - TruncedMouseY;
-					MoveMouse(hGameWnd, { (int)TruncedMouseX , (int)TruncedMouseY });
+					const float MouseX = RemainMouseX + AimSpeedX * (LocTarget.X - LocCenter.X) * TimeDelta * 100000.0f;
+					const float MouseY = RemainMouseY + AimSpeedY * (LocTarget.Y - LocCenter.Y) * TimeDelta * 100000.0f;
+					RemainMouseX = MouseX - truncf(MouseX);
+					RemainMouseY = MouseY - truncf(MouseY);
+					MoveMouse(hGameWnd, { (int)MouseX, (int)MouseY });
 				};
 
 				auto AImbot_MouseMove = [&] {
-					if (hGameWnd != hForeWnd)
-						return;
-
+					TimeDeltaAcc += render.TimeDelta;
 					if (TimeSeconds == LastAimUpdateTime)
 						return;
 
 					LastAimUpdateTime = TimeSeconds;
+					const float TimeDelta = TimeDeltaAcc;
+					TimeDeltaAcc = 0.0f;
 
 					FRotator RotationInput = (PredictedPos - CameraLocation).GetDirectionRotator() - GunRotation;
 					RotationInput.Clamp();
-					const POINT MaxXY = GetMouseXY(RotationInput * 0.5f);
+					const POINT MaxXY = GetMouseXY(RotationInput * AimSpeedMaxFactor);
 					if (MaxXY.x == 0 && MaxXY.y == 0) {
 						RemainMouseX = RemainMouseY = 0.0f;
 						return;
@@ -881,14 +880,12 @@ void Hack::Loop() {
 
 					FVector FMouseXY = { (float)MaxXY.x, (float)MaxXY.y, 0.0f };
 					FMouseXY.Normalize();
-					
-					const float MouseX = RemainMouseX + std::clamp(DefaultAimSpeed * powf(2.0f, AimSpeedFactorX) * render.TimeDelta * FMouseXY.X, -fabsf((float)MaxXY.x), fabsf((float)MaxXY.x));
-					const float MouseY = RemainMouseY + std::clamp(DefaultAimSpeed * powf(2.0f, AimSpeedFactorY) * render.TimeDelta * FMouseXY.Y, -fabsf((float)MaxXY.y), fabsf((float)MaxXY.y));
-					const float TruncedMouseX = truncf(MouseX);
-					const float TruncedMouseY = truncf(MouseY);
-					RemainMouseX = MouseX - TruncedMouseX;
-					RemainMouseY = MouseY - TruncedMouseY;
-					MoveMouse(hGameWnd, { (int)TruncedMouseX , (int)TruncedMouseY });
+
+					const float MouseX = RemainMouseX + std::clamp(AimSpeedX * TimeDelta * FMouseXY.X, -(float)abs(MaxXY.x), (float)abs(MaxXY.x));
+					const float MouseY = RemainMouseY + std::clamp(AimSpeedY * TimeDelta * FMouseXY.Y, -(float)abs(MaxXY.y), (float)abs(MaxXY.y));
+					RemainMouseX = MouseX - truncf(MouseX);
+					RemainMouseY = MouseY - truncf(MouseY);
+					MoveMouse(hGameWnd, { (int)MouseX, (int)MouseY });
 				};
 
 				switch (nAimbot) {

@@ -78,7 +78,6 @@ DefClass(AController, UObject,
 	MemberAtOffset(EncryptedPtr<APawn>, Pawn, 0x438)
 )
 
-//0x4148ac0
 //Function Engine.PlayerInput.SetMouseSensitivity 
 DefClass(UPlayerInput, UObject,
 	MemberAtOffset(UNPACK(TMap<FName, FInputAxisProperties>), AxisProperties, 0x148)

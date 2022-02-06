@@ -57,7 +57,7 @@ private:
 
 public:
 	PubgProcess(Kernel& kernel, HWND hWnd) : Process(kernel, GetPIDFromHWND(hWnd)), hGameWnd(hWnd) {
-		//DumpAll(process);
+		//DumpAll(*this);
 		//Dump(*this);
 		//exit(0);
 

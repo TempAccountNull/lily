@@ -47,7 +47,7 @@ private:
 		}
 
 		pD3D11DeviceContext->CopyResource(pBackBuffer.Get(), pD3D11Texture2D.Get());
-		pDXGISwapChain1->Present(1, 0);
+		pDXGISwapChain1->Present(0, 0);
 	}
 
 	virtual void ReleaseDirectCompositionTarget(HWND) {
