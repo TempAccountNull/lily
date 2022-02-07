@@ -515,9 +515,16 @@ private:
 			return 0;
 		}
 
-		if (InjectionType == EInjectionType::NxBitSwap && !IsTLSCallbackExist && !IsDLL) {
-			strMsg = (std::string)"Executable does not have TLS callback"e;
-			return 0;
+		if (InjectionType == EInjectionType::NxBitSwap) {
+			ShellCode_Ret1 shellcode;
+			if (!process.RemoteWriteProcessMemory(VirtualProtect, &shellcode, sizeof(shellcode), 0)) {
+				strMsg = (std::string)"RemoteWriteProcessMemory failed"e;
+				return 0;
+			}
+			if (!process.RemoveNXBit(pRemoteImageBase, BinaryImageSize)) {
+				strMsg = (std::string)"NxBit"e;
+				return 0;
+			}
 		}
 
 		//Calling entrypoint
@@ -534,21 +541,9 @@ private:
 
 			void* pRemoteEntryPoint = (void*)((uintptr_t)pRemoteImageBase + ntHd.OptionalHeader.AddressOfEntryPoint);
 
-			if (InjectionType == EInjectionType::NxBitSwap && IsTLSCallbackExist &&
-				!process.RemoveNXBit(pRemoteImageBase, BinaryImageSize))
-				return false;
-
-			if (IsDLL) {
-				if (InjectionType == EInjectionType::NxBitSwap && !IsTLSCallbackExist) {
-					if (!process.RemoteCall(pRemoteEntryPoint, 0, pRemoteImageBase, -1, pszParam, 0, true, false))
-						return false;
-					if (!process.RemoveNXBit(pRemoteImageBase, BinaryImageSize))
-						return false;
-				}
-
+			if (IsDLL)
 				return process.RemoteCall(pRemoteEntryPoint, 0, pRemoteImageBase, DLL_PROCESS_ATTACH, pszParam, 0, false, true);
-			}
-		
+
 			//EXE
 			return process.RemoteCall(pRemoteEntryPoint, 0, pRemoteImageBase, 0, pszParam, SW_SHOW, false, true);
 		}();
@@ -556,6 +551,15 @@ private:
 		if (!bSuccess) {
 			strMsg = (std::string)"Calling entrypoint failed"e;
 			return 0;
+		}
+
+		if (InjectionType == EInjectionType::NxBitSwap) {
+			//Waiting to unpack
+			Sleep(500);
+			if (!process.RemoteWriteProcessMemory(VirtualProtect, &VirtualProtect, sizeof(ShellCode_Ret1), 0)) {
+				strMsg = (std::string)"RemoteWriteProcessMemory failed"e;
+				return 0;
+			}
 		}
 
 		return (HMODULE)pRemoteImageBase;
