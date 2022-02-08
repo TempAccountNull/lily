@@ -515,18 +515,6 @@ private:
 			return 0;
 		}
 
-		if (InjectionType == EInjectionType::NxBitSwap) {
-			ShellCode_Ret1 shellcode;
-			if (!process.RemoteWriteProcessMemory(VirtualProtect, &shellcode, sizeof(shellcode), 0)) {
-				strMsg = (std::string)"RemoteWriteProcessMemory failed"e;
-				return 0;
-			}
-			if (!process.RemoveNXBit(pRemoteImageBase, BinaryImageSize)) {
-				strMsg = (std::string)"NxBit"e;
-				return 0;
-			}
-		}
-
 		//Calling entrypoint
 		bool bSuccess = [&]{
 			void* pszParam = 0;
@@ -556,8 +544,8 @@ private:
 		if (InjectionType == EInjectionType::NxBitSwap) {
 			//Waiting to unpack
 			Sleep(500);
-			if (!process.RemoteWriteProcessMemory(VirtualProtect, &VirtualProtect, sizeof(ShellCode_Ret1), 0)) {
-				strMsg = (std::string)"RemoteWriteProcessMemory failed"e;
+			if (!process.RemoveNXBit(pRemoteImageBase, BinaryImageSize)) {
+				strMsg = (std::string)"NxBit"e;
 				return 0;
 			}
 		}

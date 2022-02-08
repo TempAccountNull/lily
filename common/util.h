@@ -1,6 +1,7 @@
 #pragma once
 #include "harderror.h"
-#include "common/encrypt_string.h"
+#include "encrypt_string.h"
+#include "function_ref.hpp"
 
 #include <windows.h>
 #include <Psapi.h>
@@ -221,21 +222,32 @@ static DWORD GetPIDFromHWND(HWND hWnd) {
 	return dwPid;
 }
 
-static DWORD GetPIDByProcessName(const char* szProcessName) {
+static void EnumAllProcesses(tl::function<bool(PROCESSENTRY32)> CallBack) {
 	const HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	PROCESSENTRY32 pe32 = { .dwSize = sizeof(pe32) };
+	if (Process32First(hSnapShot, &pe32))
+		while (CallBack(pe32) && Process32Next(hSnapShot, &pe32));
+	CloseHandle(hSnapShot);
+}
+
+static void EnumAllThreads(tl::function<bool(THREADENTRY32)> CallBack) {
+	const HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+	THREADENTRY32 te32 = { .dwSize = sizeof(te32) };
+	if (Thread32First(hSnapShot, &te32))
+		while (CallBack(te32) && Thread32Next(hSnapShot, &te32));
+	CloseHandle(hSnapShot);
+}
+
+static DWORD GetPIDByProcessName(const char* szProcessName) {
 	DWORD Pid = 0;
 
-	PROCESSENTRY32 pe32 = { .dwSize = sizeof(pe32) };
-	if (Process32First(hSnapShot, &pe32)) {
-		do {
-			if (_stricmp(pe32.szExeFile, szProcessName) == 0) {
-				Pid = pe32.th32ProcessID;
-				break;
-			}
-		} while (Process32Next(hSnapShot, &pe32));
-	}
+	EnumAllProcesses([&](PROCESSENTRY32 pe32) {
+		if (_stricmp(pe32.szExeFile, szProcessName))
+			return true;
+		Pid = pe32.th32ProcessID;
+		return false;
+		});
 
-	CloseHandle(hSnapShot);
 	return Pid;
 }
 
@@ -275,7 +287,7 @@ static bool SetPrivilege(HANDLE hToken, const char* szPrivilege, bool bEnablePri
 };
 
 template <typename... T>
-constexpr auto make_array(T&&... t) ->
+static constexpr auto make_array(T&&... t) ->
 std::array<std::decay_t<std::common_type_t<T...>>, sizeof...(T)> {
 	return { {std::forward<T>(t)...} };
 }
@@ -288,7 +300,7 @@ default : return __VA_ARGS__
 
 #define MAKE_GETTER(Value, Name) const decltype(Value)& Name = Value
 
-void SetThreadAffinityMaskWrapper(auto f) {
+static void SetThreadAffinityMaskWrapper(auto f) {
 	const HANDLE hCurrentThread = GetCurrentThread();
 	DWORD_PTR OldAffinityMask = SetThreadAffinityMask(hCurrentThread, 1);
 	f();

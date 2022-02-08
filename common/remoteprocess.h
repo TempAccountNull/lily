@@ -10,6 +10,38 @@ private:
 	void* RemoteEntryPoint;
 	CR3 cr3;
 public:
+	void SuspendResumeWrapper(auto f) const {
+		EnumAllThreads([&](THREADENTRY32 te32) {
+			if (te32.th32OwnerProcessID != dwPid)
+				return true;
+
+			const HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, te32.th32ThreadID);
+			if (!hThread)
+				return true;
+
+			SuspendThread(hThread);
+			CONTEXT Context = { .ContextFlags = CONTEXT_ALL };
+			GetThreadContext(hThread, &Context);
+			CloseHandle(hThread);
+			return true;
+			});
+
+		f();
+
+		EnumAllThreads([&](THREADENTRY32 te32) {
+			if (te32.th32OwnerProcessID != dwPid)
+				return true;
+
+			const HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, te32.th32ThreadID);
+			if (!hThread)
+				return true;
+
+			ResumeThread(hThread);
+			CloseHandle(hThread);
+			return true;
+			});
+	}
+
 	bool VirtualProtectWrapper(void* pRemoteAddress, size_t Size, auto f) const {
 		DWORD dwOldProtect;
 		if (!RemoteVirtualProtect(pRemoteAddress, Size, PAGE_EXECUTE_READWRITE, &dwOldProtect))
@@ -187,32 +219,38 @@ public:
 	bool RemoveNXBit(void* pRemoteAddress, size_t Size) const {
 		verify(cr3);
 
-		DWORD dwOldProtect;
-		if (!RemoteVirtualProtect(pRemoteAddress, Size, PAGE_EXECUTE_READWRITE, &dwOldProtect) ||
-			!RemoteVirtualProtect(pRemoteAddress, Size, PAGE_READWRITE, &dwOldProtect)) {
-			return false;
-		}
+		bool bSuccess = false;
 
-		for (size_t i = 0; i < Size; i += 0x1000) {
-			uintptr_t VirtualAddress = (uintptr_t)pRemoteAddress + i;
+		SuspendResumeWrapper([&] {
+			DWORD dwOldProtect;
+			if (!RemoteVirtualProtect(pRemoteAddress, Size, PAGE_EXECUTE_READWRITE, &dwOldProtect) ||
+				!RemoteVirtualProtect(pRemoteAddress, Size, PAGE_READWRITE, &dwOldProtect)) {
+				return;
+			}
 
-			uint8_t byte;
-			if (!RemoteReadProcessMemory((void*)VirtualAddress, &byte, sizeof(byte), 0))
-				return false;
+			for (size_t i = 0; i < Size; i += 0x1000) {
+				uintptr_t VirtualAddress = (uintptr_t)pRemoteAddress + i;
 
-			PhysicalAddress PTEAddress = pKernel->dbvm.GetPTEAddress(VirtualAddress, cr3);
-			if (!PTEAddress)
-				return false;
+				uint8_t byte;
+				if (!RemoteReadProcessMemory((void*)VirtualAddress, &byte, sizeof(byte), 0))
+					return;
 
-			PTE pte;
-			if (!pKernel->dbvm.ReadPhysicalMemory(PTEAddress, &pte, sizeof(pte)))
-				return false;
-			pte.ExecuteDisable = 0;
-			if (!pKernel->dbvm.WritePhysicalMemory(PTEAddress, &pte, sizeof(pte)))
-				return false;
-		}
+				PhysicalAddress PTEAddress = pKernel->dbvm.GetPTEAddress(VirtualAddress, cr3);
+				if (!PTEAddress)
+					return;
 
-		return true;
+				PTE pte;
+				if (!pKernel->dbvm.ReadPhysicalMemory(PTEAddress, &pte, sizeof(pte)))
+					return;
+				pte.ExecuteDisable = 0;
+				if (!pKernel->dbvm.WritePhysicalMemory(PTEAddress, &pte, sizeof(pte)))
+					return;
+			}
+
+			bSuccess = true;
+			});
+
+		return bSuccess;
 	}
 
 	bool BypassCFG() const {
