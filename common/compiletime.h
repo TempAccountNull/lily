@@ -8,10 +8,15 @@ private:
 	constexpr static unsigned Rand_Increment = 0x269EC3;
 	constexpr static unsigned Rand_Modulus = 0x7FFF;
 public:
-	constexpr static unsigned TimeSeed =
-		(__TIME__[7] - '0') * 1 + (__TIME__[6] - '0') * 10 +
-		(__TIME__[4] - '0') * 60 + (__TIME__[3] - '0') * 600 +
-		(__TIME__[1] - '0') * 3600 + (__TIME__[0] - '0') * 36000;
+	template<class Type>
+	constexpr static unsigned Hash(const Type* Data, size_t Size, unsigned Seed) {
+		unsigned Result = 5381 + Seed;
+		for (auto i = 0; i < Size; i++)
+			Result = Data[i] + 33 * Result;
+		return Result;
+	}
+
+	constexpr static unsigned TimeSeed = Hash(__DATE__, sizeof(__DATE__), 0);
 
 	constexpr static unsigned Rand(unsigned& Seed) {
 		Seed = Seed * Rand_Multiplier + Rand_Increment;
@@ -27,10 +32,7 @@ public:
 
 	template<class Type>
 	constexpr static unsigned Hash(const Type* Data, size_t Size) {
-		unsigned Result = unsigned(5381 + TimeSeed);
-		for (auto i = 0; i < Size; i++)
-			Result = Data[i] + 33 * Result;
-		return Result;
+		return Hash(Data, Size, TimeSeed);
 	}
 
 	template<class Type>

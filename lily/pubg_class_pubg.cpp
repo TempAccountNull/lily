@@ -61,11 +61,23 @@ std::pair<float, float> GetBulletDropAndTravelTime(const FVector& GunLocation, c
 	return std::pair(AdditiveZ , TravelTime);
 }
 
-FName UItem::GetItemID() {
+FName UItem::GetItemID() const {
 	FItemTableRowBase ItemTableRowBase;
 	if (!ItemTable.Read(ItemTableRowBase))
 		return { 0, 0 };
 	return ItemTableRowBase.ItemID;
+}
+
+unsigned UItem::GetHash() const {
+	return g_Pubg->NameArr.GetNameHashByID(GetItemID());
+}
+
+ItemInfo UItem::GetInfo() const {
+	return GetItemInfo(GetHash());
+}
+
+std::string ATslWeapon::GetWeaponName() const {
+	return ::GetWeaponName(GetNameHash()).data();
 }
 
 float ATslWeapon_Trajectory::GetZeroingDistance() const {
@@ -115,17 +127,29 @@ float UWeaponMeshComponent::GetScopingAttachPointRelativeZ(FName ScopingAttachPo
 	return Default;
 }
 
-bool ATslCharacter::GetTslWeapon(ATslWeapon_Trajectory& OutTslWeapon) const {
+bool ATslCharacter::GetTslWeapon_Trajectory(ATslWeapon_Trajectory& OutTslWeapon) const {
 	UWeaponProcessorComponent WeaponProcessorComponent;
 	if (!WeaponProcessor.Read(WeaponProcessorComponent))
 		return false;
 
 	BYTE WeaponIndex = WeaponProcessorComponent.WeaponArmInfo_RightWeaponIndex;
-	if (WeaponIndex < 0 || WeaponIndex >= 3)
+	if (WeaponIndex != 0 && WeaponIndex != 1 && WeaponIndex != 2)
 		return false;
 
 	NativePtr<ATslWeapon> TslWeaponPtr;
 	if (!WeaponProcessorComponent.EquippedWeapons.GetValue(WeaponIndex, TslWeaponPtr))
+		return false;
+
+	return TslWeaponPtr.ReadOtherType(OutTslWeapon);
+}
+
+bool ATslCharacter::GetTslWeapon(ATslWeapon& OutTslWeapon) const {
+	UWeaponProcessorComponent WeaponProcessorComponent;
+	if (!WeaponProcessor.Read(WeaponProcessorComponent))
+		return false;
+
+	NativePtr<ATslWeapon> TslWeaponPtr;
+	if (!WeaponProcessorComponent.EquippedWeapons.GetValue(WeaponProcessorComponent.WeaponArmInfo_RightWeaponIndex, TslWeaponPtr))
 		return false;
 
 	return TslWeaponPtr.ReadOtherType(OutTslWeapon);

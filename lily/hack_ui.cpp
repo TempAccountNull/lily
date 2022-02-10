@@ -17,15 +17,16 @@ void Hack::DrawHotkey() const {
 	};
 
 	AddOnOff("Fighter Mode(~)"e, bFighterMode);
-	AddOnOff("ESP(F1)"e, bESP);
-	AddOnOff("Vehicle(F2)"e, bVehicle);
-	AddOnOff("Box(F3)"e, bBox);
+	AddOnOff("ESP : Player(F1)"e, bPlayer);
+	AddOnOff("ESP : Radar(F2)"e, bRadar);
+	AddOnOff("ESP : Vehicle(F3)"e, bVehicle);
+	AddOnOff("ESP : Box(F4)"e, bBox);
 
-	strNotice += (std::string)"Item(F4) : "e;
+	strNotice += (std::string)"ESP : Item(F5) : "e;
 	strNotice += nItem > 0 ? std::to_string(nItem) : "OFF"e;
 	strNotice += (std::string)"\n"e;
 
-	strNotice += (std::string)"Aimbot(F5) : "e;
+	strNotice += (std::string)"Aimbot(F6) : "e;
 	strNotice +=
 		nAimbot == 1 ? (std::string)"Normal"e :
 		nAimbot == 2 ? (std::string)"Silent"e :
@@ -33,8 +34,9 @@ void Hack::DrawHotkey() const {
 		"OFF"e;
 	strNotice += (std::string)"\n"e;
 
-	AddOnOff("Enable TurnBack Shortkey(F6, CapsLock)"e, bTurnBackShortKey);
+	AddOnOff("Enable TurnBack Shortkey(F7, CapsLock)"e, bTurnBackShortKey);
 	AddOnOff("TeamKill(F10)"e, bTeamKill);
+	AddOnOff("Total ESP(F12)"e, bESP);
 
 	strNotice += (std::string)"Current Rnage (+-) : "e;
 	strNotice += std::to_string(nRange);
@@ -68,18 +70,37 @@ void Hack::ProcessImGui() {
 		ImGui::PopItemWidth();
 
 		ImGui::Checkbox("Fighter Mode (~)"e, (bool*)&bFighterMode);
-		ImGui::Checkbox("Enable turnback (F6, CapsLock)"e, (bool*)&bTurnBackShortKey);
+		ImGui::Checkbox("Enable turnback (F7, CapsLock)"e, (bool*)&bTurnBackShortKey);
 
 		ImGui::NewLine();
 
 		if (ImGui::BeginTabBar("MyTabBar"e))
 		{
-			if (ImGui::BeginTabItem("Visual"e))
+			if (ImGui::BeginTabItem("ESP"e))
 			{
-				ImGui::Checkbox("ESP (F1)"e, &bESP);
-				ImGui::Checkbox("Vehicle (F2)"e, &bVehicle);
-				ImGui::Checkbox("Box (F3)"e, &bBox);
-				ImGui::Checkbox("Item (F4)"e, (bool*)&nItem);
+				ImGui::Checkbox("ESP(F12)"e, &bESP);
+				ImGui::Checkbox("Player(F1)"e, &bPlayer);
+
+				if (ImGui::TreeNode("Details"e)) {
+					if (ImGui::BeginTable("Split3"e, 3))
+					{
+						ImGui::TableNextColumn(); ImGui::Checkbox("Skeleton"e, &ESP_PlayerSetting.bSkeleton);
+						ImGui::TableNextColumn(); ImGui::Checkbox("Health"e, &ESP_PlayerSetting.bHealth);
+						ImGui::TableNextColumn(); ImGui::Checkbox("NickName"e, &ESP_PlayerSetting.bNickName);
+						ImGui::TableNextColumn(); ImGui::Checkbox("Team"e, &ESP_PlayerSetting.bTeam);
+						ImGui::TableNextColumn(); ImGui::Checkbox("Weapon"e, &ESP_PlayerSetting.bWeapon);
+						ImGui::TableNextColumn(); ImGui::Checkbox("Distance"e, &ESP_PlayerSetting.bDistance);
+						ImGui::TableNextColumn(); ImGui::Checkbox("Kill"e, &ESP_PlayerSetting.bKill);
+						ImGui::TableNextColumn(); ImGui::Checkbox("Damage"e, &ESP_PlayerSetting.bDamage);
+						ImGui::EndTable();
+					}
+					ImGui::TreePop();
+				}
+
+				ImGui::Checkbox("Radar(F2)"e, &bRadar);
+				ImGui::Checkbox("Vehicle(F3)"e, &bVehicle);
+				ImGui::Checkbox("Box(F4)"e, &bBox);
+				ImGui::Checkbox("Item(F5)"e, (bool*)&nItem);
 				if (nItem > 0) {
 					ImGui::PushItemWidth(-1);
 					ImGui::SliderInt("Item"e, &nItem, 1, 4, "%d"e, ImGuiSliderFlags_AlwaysClamp);
@@ -89,7 +110,7 @@ void Hack::ProcessImGui() {
 			}
 			if (ImGui::BeginTabItem("Aimbot"e))
 			{
-				ImGui::Checkbox("Aimbot (F5)"e, (bool*)&nAimbot);
+				ImGui::Checkbox("Aimbot(F6)"e, (bool*)&nAimbot);
 				if (nAimbot > 0) {
 					ImGui::RadioButton("Normal"e, &nAimbot, 1);
 					ImGui::RadioButton("Silent"e, &nAimbot, 2);
@@ -107,13 +128,13 @@ void Hack::ProcessImGui() {
 				ImGui::SliderFloat("SpeedY"e, &AimSpeedY, AimSpeedMin, AimSpeedMax, "Y : %.0f"e, ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_NoRoundToFormat);
 				ImGui::PopItemWidth();
 
-				ImGui::Checkbox("TeamKill (F10)"e, &bTeamKill);
+				ImGui::Checkbox("TeamKill(F10)"e, &bTeamKill);
 
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Debug"e))
 			{
-				ImGui::Checkbox("IgnoreMouseInput (F12)"e, &bIgnoreMouseInput);
+				ImGui::Checkbox("IgnoreMouseInput"e, &bIgnoreMouseInput);
 				ImGui::Checkbox("Debug mode"e, &bDebug);
 
 				ImGui::Checkbox("Capture Log"e, &bCaptureLog);
@@ -149,26 +170,30 @@ void Hack::ProcessHotkey() {
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_F1)) {
-			bESP = !bESP;
+			bPlayer = !bPlayer;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_F2)) {
-			bVehicle = !bVehicle;
+			bRadar = !bRadar;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_F3)) {
-			bBox = !bBox;
+			bVehicle = !bVehicle;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_F4)) {
-			nItem = (nItem + 1) % 5;
+			bBox = !bBox;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_F5)) {
-			nAimbot = (nAimbot + 1) % 4;
+			nItem = (nItem + 1) % 5;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_F6)) {
+			nAimbot = (nAimbot + 1) % 4;
+			NoticeTimeRemain = NOTICE_TIME;
+		}
+		if (IsKeyPushed(VK_F7)) {
 			bTurnBackShortKey = !bTurnBackShortKey;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
@@ -177,7 +202,7 @@ void Hack::ProcessHotkey() {
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_F12)) {
-			bIgnoreMouseInput = !bIgnoreMouseInput;
+			bESP = !bESP;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_ADD)) {

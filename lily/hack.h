@@ -19,13 +19,26 @@ private:
 	bool bFighterMode = false;
 	bool bTurnBackShortKey = false;
 	bool bTurnBack = false;
+	bool bPlayer = true;
 	bool bVehicle = true;
+	bool bRadar = true;
 	bool bBox = true;
 	bool bTeamKill = false;
 	int nItem = 1;
 	int nAimbot = 1;
 	int nRange = 500;
 	float CircleFovInDegrees = 6.0f;
+
+	struct {
+		bool bSkeleton = true;
+		bool bHealth = true;
+		bool bNickName = true;
+		bool bTeam = true;
+		bool bWeapon = true;
+		bool bDistance = true;
+		bool bKill = true;
+		bool bDamage = true;
+	}ESP_PlayerSetting;
 
 	constexpr static float AimSpeedMaxFactor = 1.0f / 3.0f;
 	constexpr static float AimSpeedMax = 1000000.0f;
@@ -62,6 +75,62 @@ public:
 	constexpr static float FONTSIZE_NORMAL = 20.0f;
 	constexpr static float FONTSIZE_BIG = 40.0f;
 	constexpr static float FONTSIZE = FONTSIZE_SMALL;
+
+	const ImColor TeamColors[51] = {
+		ImColor::HSV(1.0f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(2.0f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(3.0f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(4.0f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(5.0f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(6.5f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(10.0f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(11.0f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(12.0f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(13.0f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(14.0f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(15.0f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(17.5f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(18.5f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(19.5f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(20.5f / 24.0f, 1.0f, 0.8f),
+		ImColor::HSV(22.0f / 24.0f, 1.0f, 0.8f),
+
+		ImColor::HSV(1.0f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(2.0f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(3.0f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(4.0f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(5.0f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(6.5f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(10.0f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(11.0f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(12.0f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(13.0f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(14.0f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(15.0f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(17.5f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(18.5f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(19.5f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(20.5f / 24.0f, 0.5f, 0.8f),
+		ImColor::HSV(22.0f / 24.0f, 0.5f, 0.8f),
+
+		ImColor::HSV(1.0f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(2.0f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(3.0f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(4.0f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(5.0f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(6.5f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(10.0f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(11.0f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(12.0f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(13.0f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(14.0f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(15.0f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(17.5f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(18.5f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(19.5f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(20.5f / 24.0f, 0.5f, 0.6f),
+		ImColor::HSV(22.0f / 24.0f, 0.5f, 0.6f),
+	};
 
 	PubgProcess& pubg;
 	KernelLily& kernel;

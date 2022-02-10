@@ -302,7 +302,7 @@ public:
 		if (PsSuspendProcess(Process) != 0)
 			return false;
 
-		Sleep(100);
+		Sleep(200);
 		f();
 
 		return PsResumeProcess(Process) == 0;

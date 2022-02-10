@@ -149,6 +149,7 @@ TArray<float> WeaponConfig + WeaponData.IronSightZeroingDistances
 class ATslWeapon_Gun
 int CurrentZeroLevel
 FName ScopingAttachPoint
+uint16_t CurrentAmmoData
 
 class ATslWeapon_Trajectory
 NativePtr<UWeaponTrajectoryData> WeaponTrajectoryData

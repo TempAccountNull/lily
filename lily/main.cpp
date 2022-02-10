@@ -11,6 +11,7 @@
 #include "kernel_lily.h"
 #include "render_lily.h"
 #include "hack.h"
+#include "dump.h"
 
 void realmain() {
 #ifdef DPRINT
@@ -41,6 +42,11 @@ void realmain() {
 		const HWND hGameWnd = FindWindowA("UnrealWindow"e, 0);
 		if (!hGameWnd)
 			continue;
+
+		//Process process(kernel, GetPIDFromHWND(hGameWnd));
+		////DumpAll(process);
+		//Dump(process);
+		//exit(0);
 
 		ExceptionHandler::TryExcept([&] {
 			PubgProcess pubg(kernel, hGameWnd);

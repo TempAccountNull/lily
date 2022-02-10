@@ -168,6 +168,7 @@
     <ClInclude Include="info_package.h" />
     <ClInclude Include="info_proj.h" />
     <ClInclude Include="info_vehicle.h" />
+    <ClInclude Include="info_weapon.h" />
     <ClInclude Include="pubg_class.h" />
     <ClInclude Include="pubg_class_input.h" />
     <ClInclude Include="pubg_class_output.h" />
@@ -196,6 +197,7 @@
     <ClCompile Include="dllmain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="GNames.cpp" />
     <ClCompile Include="hack_main.cpp" />
     <ClCompile Include="hack_ui.cpp" />
     <ClCompile Include="main.cpp" />

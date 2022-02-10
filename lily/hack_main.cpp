@@ -5,27 +5,24 @@
 #include "GObjects.h"
 
 #include "info_bone.h"
-#include "info_item.h"
 #include "info_vehicle.h"
 #include "info_proj.h"
 #include "info_package.h"
 #include "info_character.h"
 
 void Hack::Loop() {
-	const HWND hGameWnd = pubg.GetHwnd();
+	const HWND hGameWnd = pubg.hGameWnd;
 	const CR3 mapCR3 = kernel.GetMapCR3();
-	const TNameEntryArray NameArr;
 	//FUObjectArray ObjectArr;
-	//NameArr.DumpAllNames();
 	//ObjectArr.DumpObject(NameArr);
 
-	const FName KeyMouseX = NameArr.FindName("MouseX"e);
+	const FName KeyMouseX = pubg.NameArr.FindName("MouseX"e);
 	verify(KeyMouseX.ComparisonIndex);
-	const FName KeyMouseY = NameArr.FindName("MouseY"e);
+	const FName KeyMouseY = pubg.NameArr.FindName("MouseY"e);
 	verify(KeyMouseY.ComparisonIndex);
 
 	//f3 0f 11 ? ? ? ? ? ? f3 0f 11 ? ? ? ? ? ? f3 44 0f ? ? ? ? ? ? ? f3 0f 10 ? ? ? ? ? e9
-	constexpr uintptr_t HookBaseAddress = 0x1192348;
+	constexpr uintptr_t HookBaseAddress = 0x13B85E3;
 	uint8_t OriginalByte = 0;
 	pubg.ReadBase(HookBaseAddress, &OriginalByte);
 	const uintptr_t AimHookAddressVA = pubg.GetBaseAddress() + HookBaseAddress;
@@ -98,14 +95,15 @@ void Hack::Loop() {
 				if (!ItemPtr.Read(Item))
 					return false;
 
-				const unsigned ItemHash = NameArr.GetNameHashByID(Item.GetItemID());
-				if (!ItemHash)
+				auto ItemInfo = Item.GetInfo();
+				if (ItemInfo.ItemName[0] == 0)
+					pubg.NameArr.GetNameByID(Item.GetItemID(), ItemInfo.ItemName.data(), sizeof(ItemInfo.ItemName));
+
+				if (ItemInfo.ItemName[0] == 0)
 					return false;
 
-				const auto ItemInfo = GetItemInfo(ItemHash);
 				const char* szItemName = ItemInfo.ItemName.data();
 				const int ItemPriority = ItemInfo.ItemPriority;
-
 				if (ItemPriority < nItem && !bDebug)
 					return false;
 
@@ -124,6 +122,32 @@ void Hack::Loop() {
 
 				DrawString(ItemLocation, szItemName, ItemColor, false);
 				return true;
+			};
+			auto GetWeaponInfo = [&](ATslCharacter Character) {
+				ATslWeapon TslWeapon;
+				if (!Character.GetTslWeapon(TslWeapon))
+					return std::string{};
+
+				std::string WeaponInfo = TslWeapon.GetWeaponName();
+				if (WeaponInfo.empty() && bDebug)
+					WeaponInfo = TslWeapon.GetName();
+
+				const auto Ammo = [&] {
+					ATslWeapon_Trajectory TslWeapon;
+					if (!Character.GetTslWeapon_Trajectory(TslWeapon))
+						return -1;
+					if (HIBYTE(TslWeapon.CurrentAmmoData))
+						return -1;
+					return (int)TslWeapon.CurrentAmmoData;
+				}();
+
+				if (Ammo != -1) {
+					WeaponInfo += (std::string)"("e;
+					WeaponInfo += std::to_string(Ammo);
+					WeaponInfo += (std::string)")"e;
+				}
+
+				return WeaponInfo;
 			};
 
 			constexpr float BallisticDragScale = 1.0f;
@@ -207,7 +231,7 @@ void Hack::Loop() {
 				RotationInput.Clamp();
 				return POINT{
 					LONG(RotationInput.Yaw / MouseXSensitivity * 0.4f * FOVRatio),
-					LONG(-RotationInput.Pitch / MouseYSensitivity * 0.4f * FOVRatio)};
+					LONG(-RotationInput.Pitch / MouseYSensitivity * 0.4f * FOVRatio) };
 			};
 
 			const float CircleFov = ConvertToRadians(CircleFovInDegrees);
@@ -219,7 +243,7 @@ void Hack::Loop() {
 			float AimbotDistant = AimbotCircleSize;
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
-			const unsigned MyCharacterNameHash = NameArr.GetNameHashByObject(MyPawnPtr);
+			const unsigned MyCharacterNameHash = pubg.NameArr.GetNameHashByObjectPtr(MyPawnPtr);
 			if (!MyCharacterNameHash)
 				return;
 
@@ -274,7 +298,7 @@ void Hack::Loop() {
 				//MyCharacter Weapon Info
 				[&] {
 					ATslWeapon_Trajectory TslWeapon;
-					if (!MyTslCharacter.GetTslWeapon(TslWeapon))
+					if (!MyTslCharacter.GetTslWeapon_Trajectory(TslWeapon))
 						return;
 
 					IsWeaponed = true;
@@ -307,7 +331,7 @@ void Hack::Loop() {
 
 			if (!CachedMyTslCharacterPtr)
 				CharacterMap.clear();
-			
+
 			auto IsLockTargetValid = [&] {
 				if (!CachedMyTslCharacterPtr)
 					return false;
@@ -367,10 +391,10 @@ void Hack::Loop() {
 					if (RootComponent.AttachParent.Read(AttachParent) && AttachParent.Owner == MyPawnPtr)
 						return false;
 
-					if (!NameArr.GetNameByID(Actor.GetFName(), szBuf, sizeof(szBuf)))
+					if (!Actor.GetName(szBuf, sizeof(szBuf)))
 						return false;
 
-					ActorNameHash = CompileTime::StrHash(szBuf);
+					ActorNameHash = Actor.GetNameHash();
 
 					if (bDebug) {
 						FVector v2_DebugLoc = ActorLocationScreen;
@@ -541,7 +565,7 @@ void Hack::Loop() {
 						if (!Element.Value.ReadOtherType(ItemComponent))
 							continue;
 
-						unsigned ItemComponentHash = NameArr.GetNameHashByID(ItemComponent.GetFName());
+						unsigned ItemComponentHash = ItemComponent.GetNameHash();
 						if (!ItemComponentHash)
 							continue;
 
@@ -573,10 +597,12 @@ void Hack::Loop() {
 
 					int NumKills = 0;
 					float DamageDealtOnEnemy = 0.0f;
-					bool IsInVehicle = false;
 
 					//GetPlayerState
 					[&] {
+						if (IsPlayerDead)
+							return;
+
 						if (!TslCharacter.PlayerState)
 							return;
 
@@ -588,8 +614,13 @@ void Hack::Loop() {
 						DamageDealtOnEnemy = TslPlayerState.DamageDealtOnEnemy;
 					}();
 
+					bool IsInVehicle = false;
+
 					//GetPlayerVehicleInfo
 					[&] {
+						if (IsPlayerDead)
+							return;
+
 						UVehicleRiderComponent VehicleRiderComponent;
 						if (!TslCharacter.VehicleRiderComponent.Read(VehicleRiderComponent))
 							return;
@@ -614,10 +645,10 @@ void Hack::Loop() {
 
 					//DrawRadar
 					[&] {
-						if (IsPlayerDead)
+						if (!bRadar)
 							return;
 
-						if (TslCharacter.LastTeamNum == MyTeamNum)
+						if (IsPlayerDead)
 							return;
 
 						FVector ALfromME = ActorLocation - MyLocation;
@@ -632,13 +663,23 @@ void Hack::Loop() {
 						v.X = (render.Width * (0.9807f + 0.8474f) / 2.0f) + (RadarX / 200.0f * render.Width * (0.9807f - 0.8474f) / 2.0f);
 						v.Y = (render.Height * (0.9722f + 0.7361f) / 2.0f) + (RadarY / 200.0f * render.Height * (0.9722f - 0.7361f) / 2.0f);
 
-						ImColor Color = Render::COLOR_RED;
+						//GetColor
+						ImColor Color = [&]()->ImColor {
+							if (TslCharacter.LastTeamNum == MyTeamNum)
+								return Render::COLOR_GREEN;
+							if (IsInVehicle)
+								return Render::COLOR_BLUE;
+							if (Health <= 0.0f)
+								return Render::COLOR_GRAY;
+							if (IsAICharacter(ActorNameHash))
+								return Render::COLOR_TEAL;
+							if (TslCharacter.LastTeamNum < 51)
+								return TeamColors[TslCharacter.LastTeamNum];
 
-						if (IsInVehicle)
-							Color = Render::COLOR_BLUE;
-						if (GroggyHealth > 0.0f && Health <= 0.0f)
-							Color = Render::COLOR_GRAY;
+							return Render::COLOR_RED;
+						}();
 
+						render.DrawCircle(v, 5.0f, render.COLOR_BLACK);
 						render.DrawCircleFilled(v, 4.0f, Color);
 					}();
 
@@ -750,8 +791,11 @@ void Hack::Loop() {
 
 						//DrawCharacter
 						[&] {
+							if (!bPlayer)
+								return;
+
 							//GetColor
-							ImColor Color = [&] {
+							ImColor Color = [&]()->ImColor {
 								if (ActorPtr == LockTargetPtr)
 									return Render::COLOR_PURPLE;
 								if (TslCharacter.LastTeamNum == MyTeamNum)
@@ -764,12 +808,17 @@ void Hack::Loop() {
 									return Render::COLOR_GRAY;
 								if (IsAICharacter(ActorNameHash))
 									return Render::COLOR_TEAL;
+								if (TslCharacter.LastTeamNum < 51)
+									return TeamColors[TslCharacter.LastTeamNum];
+
 								return (DamageDealtOnEnemy > 510.0) ? Render::COLOR_RED : IM_COL32(255, 255 - int(DamageDealtOnEnemy / 2), 255 - int(DamageDealtOnEnemy / 2), 255);
 							}();
 
 							//Draw Skeleton
-							for (auto DrawPair : GetDrawPairArray())
-								render.DrawLine(BonesScreenPos[DrawPair.first], BonesScreenPos[DrawPair.second], Color);
+							if (ESP_PlayerSetting.bSkeleton) {
+								for (auto DrawPair : GetDrawPairArray())
+									render.DrawLine(BonesScreenPos[DrawPair.first], BonesScreenPos[DrawPair.second], Color);
+							}
 
 							//Draw HealthBar
 							FVector HealthBarPos = BonesPos[neck_01];
@@ -778,26 +827,78 @@ void Hack::Loop() {
 							HealthBarScreenPos.Y -= 5.0f;
 
 							float HealthBarScreenLengthY = 0.0f;
-							const float CameraDistance = CameraLocation.Distance(HealthBarPos) / 100.0f;
-							if (Health > 0.0)
-								HealthBarScreenLengthY = DrawRatioBox(HealthBarScreenPos, CameraDistance, 0.7f,
-									Health / HealthMax, Render::COLOR_GREEN, Render::COLOR_RED, Render::COLOR_BLACK).y;
-							else if (GroggyHealth > 0.0)
-								HealthBarScreenLengthY = DrawRatioBox(HealthBarScreenPos, CameraDistance, 0.7f,
-									GroggyHealth / GroggyHealthMax, Render::COLOR_RED, Render::COLOR_GRAY, Render::COLOR_BLACK).y;
+							if (ESP_PlayerSetting.bHealth) {
+								const float CameraDistance = CameraLocation.Distance(HealthBarPos) / 100.0f;
+								if (Health > 0.0)
+									HealthBarScreenLengthY = DrawRatioBox(HealthBarScreenPos, CameraDistance, 0.7f,
+										Health / HealthMax, Render::COLOR_GREEN, Render::COLOR_RED, Render::COLOR_BLACK).y;
+								else if (GroggyHealth > 0.0)
+									HealthBarScreenLengthY = DrawRatioBox(HealthBarScreenPos, CameraDistance, 0.7f,
+										GroggyHealth / GroggyHealthMax, Render::COLOR_RED, Render::COLOR_GRAY, Render::COLOR_BLACK).y;
+							}
 
 							//Draw CharacterInfo
-							wchar_t PlayerName[0x100];
-							TslCharacter.CharacterName.GetValues(*PlayerName, 0x100);
+							std::string PlayerInfo;
+							std::string Line;
 
-							if (TslCharacter.LastTeamNum >= 200 || TslCharacter.LastTeamNum == MyTeamNum)
-								sprintf(szBuf, "%ws %d\n%.0fM %.0f"e, PlayerName, NumKills, DistanceToActor, DamageDealtOnEnemy);
-							else
-								sprintf(szBuf, "%ws %d\n%.0fM %d %.0f"e, PlayerName, NumKills, DistanceToActor, TslCharacter.LastTeamNum, DamageDealtOnEnemy);
+							if (ESP_PlayerSetting.bNickName) {
+								wchar_t PlayerName[0x100];
+								TslCharacter.CharacterName.GetValues(*PlayerName, 0x100);
+								Line += ws2s(PlayerName);
+							}
+
+							if (ESP_PlayerSetting.bTeam) {
+								if (TslCharacter.LastTeamNum < 200 && TslCharacter.LastTeamNum != MyTeamNum) {
+									if (!Line.empty())
+										PlayerInfo += (std::string)" "e;
+									PlayerInfo += std::to_string(TslCharacter.LastTeamNum);
+								}
+							}
+
+							if (!Line.empty()) {
+								PlayerInfo += Line;
+								PlayerInfo += (std::string)"\n"e;
+								Line = {};
+							}
+
+							if (ESP_PlayerSetting.bWeapon) {
+								std::string WeaponInfo = GetWeaponInfo(TslCharacter);
+								if (WeaponInfo.size())
+									Line += WeaponInfo;
+							}
+
+							if (!Line.empty()) {
+								PlayerInfo += Line;
+								PlayerInfo += (std::string)"\n"e;
+								Line = {};
+							}
+
+							if (ESP_PlayerSetting.bDistance) {
+								Line += std::to_string((int)DistanceToActor);
+								Line += (std::string)"M"e;
+							}
+
+							if (ESP_PlayerSetting.bKill) {
+								if (!Line.empty())
+									Line += (std::string)" "e;
+								Line += std::to_string(NumKills);
+							}
+
+							if (ESP_PlayerSetting.bDamage) {
+								if (!Line.empty())
+									Line += (std::string)" "e;
+								Line += std::to_string((int)DamageDealtOnEnemy);
+							}
+
+							if (!Line.empty()) {
+								PlayerInfo += Line;
+								PlayerInfo += (std::string)"\n"e;
+								Line = {};
+							}
 
 							DrawString(
-								{ HealthBarScreenPos.X, HealthBarScreenPos.Y - HealthBarScreenLengthY - render.GetTextSize(FONTSIZE, szBuf).y / 2.0f, HealthBarScreenPos.Z },
-								szBuf, Color, true);
+								{ HealthBarScreenPos.X, HealthBarScreenPos.Y - HealthBarScreenLengthY - render.GetTextSize(FONTSIZE, PlayerInfo.c_str()).y / 2.0f, HealthBarScreenPos.Z },
+								PlayerInfo.c_str(), Color, true);
 						}();
 					}();
 				}();
@@ -902,11 +1003,11 @@ void Hack::Loop() {
 					DirectionInput.Normalize();
 
 					ChangeRegOnBPInfo Info{};
-					Info.changeXMM7_0 = true;
 					Info.changeXMM6_0 = true;
+					Info.changeXMM7_0 = true;
 					Info.changeXMM8_0 = true;
-					Info.XMM7.Float_0 = DirectionInput.X;
-					Info.XMM6.Float_0 = DirectionInput.Y;
+					Info.XMM6.Float_0 = DirectionInput.X;
+					Info.XMM7.Float_0 = DirectionInput.Y;
 					Info.XMM8.Float_0 = DirectionInput.Z;
 					dbvm.ChangeRegisterOnBP(AimHookAddressPA, Info);
 					IsNeedToHookAim = true;
@@ -932,9 +1033,9 @@ void Hack::Loop() {
 				render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f, 0.0f }, AimbotCircleSize, Render::COLOR_WHITE);
 		};
 
-		render.RenderArea(hGameWnd, Render::COLOR_CLEAR, [&] { 
+		render.RenderArea(hGameWnd, Render::COLOR_CLEAR, [&] {
 			if (!ExceptionHandler::TryExcept(FuncInRenderArea))
-				printlog("Error : %d"e, ExceptionHandler::GetLastExceptionCode());
+				printlog("Error : %X\n"e, ExceptionHandler::GetLastExceptionCode());
 			});
 	}
 }

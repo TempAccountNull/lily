@@ -134,12 +134,8 @@ struct FName
 {
 	int ComparisonIndex;
 	int Number;
-	bool operator == (const FName& Name2) const {
-		return ComparisonIndex == Name2.ComparisonIndex && Number == Name2.Number;
-	}
-	bool operator != (const FName& Name2) const {
-		return !(*this == Name2);
-	}
+	bool operator == (const FName& rhs) const { return ComparisonIndex == rhs.ComparisonIndex && Number == rhs.Number; }
+	bool operator != (const FName& rhs) const { return !(*this == rhs); }
 };
 
 struct FMeshBoneInfo

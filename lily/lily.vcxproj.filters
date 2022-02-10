@@ -45,9 +45,6 @@
     <ClInclude Include="info_bone.h">
       <Filter>hack\pubg\info</Filter>
     </ClInclude>
-    <ClInclude Include="info_character.h">
-      <Filter>hack\pubg\info</Filter>
-    </ClInclude>
     <ClInclude Include="info_item.h">
       <Filter>hack\pubg\info</Filter>
     </ClInclude>
@@ -195,6 +192,12 @@
     <ClInclude Include="..\common\render_ddraw.h">
       <Filter>common</Filter>
     </ClInclude>
+    <ClInclude Include="info_weapon.h">
+      <Filter>hack\pubg\info</Filter>
+    </ClInclude>
+    <ClInclude Include="info_character.h">
+      <Filter>hack\pubg\info</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hack_main.cpp">
@@ -204,9 +207,6 @@
       <Filter>hack\pubg</Filter>
     </ClCompile>
     <ClCompile Include="pubg_class_ue4.cpp">
-      <Filter>hack\pubg</Filter>
-    </ClCompile>
-    <ClCompile Include="pubg_struct.cpp">
       <Filter>hack\pubg</Filter>
     </ClCompile>
     <ClCompile Include="crtmain.cpp">
@@ -256,6 +256,12 @@
     </ClCompile>
     <ClCompile Include="..\common\render.cpp">
       <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="GNames.cpp">
+      <Filter>hack\pubg</Filter>
+    </ClCompile>
+    <ClCompile Include="pubg_struct.cpp">
+      <Filter>hack\pubg</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

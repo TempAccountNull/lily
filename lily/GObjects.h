@@ -10,7 +10,7 @@ class TNameEntryArray;
 class UObject
 {
 private:
-	uint8_t pad[0x40];
+	uint8_t pad[0x38];
 public:
 	//DWORD64 GetClass() {
 	//	__int64 a1 = (__int64)this;
@@ -20,7 +20,7 @@ public:
 	//	return v2 ^ (v2 << 0x20) ^ 0xA7950E40FAB9478i64;
 	//}
 
-	FName GetFName() {
+	FName GetFName() const {
 		__int64 a1 = (__int64)this;
 		int v1;
 		int v2;
@@ -28,12 +28,12 @@ public:
 		int v4;
 		__int64 v37;
 
-		v1 = *(_DWORD*)(a1 + 0x1C) ^ 0xFB2ABB43;
-		v2 = __ROR4__(*(_DWORD*)(a1 + 0x18) ^ 0xD695BFD5, 2);
-		v3 = v2 ^ (v2 << 0x10) ^ 0x4069BB43;
+		v1 = *(_DWORD*)(a1 + 0x14) ^ 0x24040F2C;
+		v2 = __ROL4__(*(_DWORD*)(a1 + 0x10) ^ 0xA2278A0C, 0xC);
+		v3 = v2 ^ (v2 << 0x10) ^ 0x2B280F2C;
 		LODWORD(v37) = v3;
-		v4 = __ROL4__(v1, 6);
-		HIDWORD(v37) = v4 ^ (v4 << 0x10) ^ 0x6940BFD5;
+		v4 = __ROR4__(v1, 0xC);
+		HIDWORD(v37) = v4 ^ (v4 << 0x10) ^ 0x282B8A0C;
 
 		FName name;
 		name.ComparisonIndex = LODWORD(v37);
@@ -66,6 +66,15 @@ public:
 	//	v2 = v4 ^ (v4 << 0x20) ^ 0x3811FD43E3F5A7C4i64;
 	//	return v2;
 	//}
+
+	unsigned GetNameHash() const { return g_Pubg->NameArr.GetNameHashByID(GetFName()); }
+	bool GetName(char* szBuf, size_t SizeMax) const { return g_Pubg->NameArr.GetNameByID(GetFName(), szBuf, SizeMax); }
+	std::string GetName() const {
+		char szBuf[0x100];
+		if (!GetName(szBuf, sizeof(szBuf)))
+			return {};
+		return szBuf;
+	}
 };
 
 class FUObjectItem
@@ -78,7 +87,7 @@ private:	uint8_t Pad2[0x20];
 class FUObjectArray
 {
 private:
-	static constexpr uintptr_t ADDRESS_GOBJECTS = 0x8D1E3C8;
+	static constexpr uintptr_t ADDRESS_GOBJECTS = 0x8F70468;
 
 	uintptr_t BaseAddress;
 	uint32_t NumElements;
