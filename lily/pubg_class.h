@@ -55,6 +55,7 @@ class ATslPlayerState;
 class UCurveVector;
 class FWeaponAttachmentWeaponTagData;
 class FItemTableRowAttachment;
+class UWeaponAttachmentDataAsset;
 
 //Engine.World.CurrentLevel 
 //Function TslGame.TslLivingThing.GetWorldTimeSeconds 
@@ -346,7 +347,6 @@ DefClass(UWeaponProcessorComponent, UActorComponent,
 	MemberAtOffset(BYTE, WeaponArmInfo_RightWeaponIndex, 0x2d8 + 0x1)
 )
 
-//MemberAtOffset(UNPACK(TMap<FName, NativePtr<FWeaponAttachmentWeaponTagData>>), WeaponAttachmentWeaponTagDataMap, 0x150)
 //Function TslGame.AttachableItem.GetAttachmentData 
 DefClass(UAttachableItem, UItem,
 	MemberAtOffset(NativePtr<FItemTableRowAttachment>, WeaponAttachmentData, 0x130)
@@ -361,8 +361,13 @@ DefBaseClass(FWeaponAttachmentData,
 	MemberAtOffset(FName, Name, 0x10)
 )
 
+//TslGame.WeaponAttachmentDataAsset.AttachmentData 
+DefBaseClass(UWeaponAttachmentDataAsset,
+	MemberAtOffset(FWeaponAttachmentData, AttachmentData, 0x40)
+)
+
 DefClass(FItemTableRowAttachment, FItemTableRowBase,
-	MemberAtOffset(FWeaponAttachmentData, AttachmentData, 0x270)
+	MemberAtOffset(NativePtr<UWeaponAttachmentDataAsset>, WeaponAttachmentData, 0x268)
 )
 
 //TslGame.TslWeapon.AttachedItems 

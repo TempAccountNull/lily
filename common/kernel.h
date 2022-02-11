@@ -70,7 +70,7 @@ public:
 		if (dbvm.GetPhysicalAddress(GsBase, UserCR3))
 			return UserCR3;
 
-		error("KVA-SHADOWED");
+		error("KVA-SHADOWED"e);
 
 		CR3 cr3 = 0;
 		//Finding KernelDirectoryBase...

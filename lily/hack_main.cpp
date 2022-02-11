@@ -850,8 +850,8 @@ void Hack::Loop() {
 							if (ESP_PlayerSetting.bTeam) {
 								if (TslCharacter.LastTeamNum < 200 && TslCharacter.LastTeamNum != MyTeamNum) {
 									if (!Line.empty())
-										PlayerInfo += (std::string)" "e;
-									PlayerInfo += std::to_string(TslCharacter.LastTeamNum);
+										Line += (std::string)" "e;
+									Line += std::to_string(TslCharacter.LastTeamNum);
 								}
 							}
 

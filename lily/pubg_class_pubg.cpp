@@ -92,10 +92,14 @@ float ATslWeapon_Trajectory::GetZeroingDistance() const {
 		if (!AttachableItem.WeaponAttachmentData.Read(ItemTableRowAttachment))
 			continue;
 
-		if (ItemTableRowAttachment.AttachmentData.AttachmentSlotID != EWeaponAttachmentSlotID::UpperRail)
+		UWeaponAttachmentDataAsset WeaponAttachmentDataAsset;
+		if (!ItemTableRowAttachment.WeaponAttachmentData.Read(WeaponAttachmentDataAsset))
 			continue;
 
-		if (ItemTableRowAttachment.AttachmentData.ZeroingDistances.GetValue(CurrentZeroLevel, ZeroingDistance))
+		if (WeaponAttachmentDataAsset.AttachmentData.AttachmentSlotID != EWeaponAttachmentSlotID::UpperRail)
+			continue;
+
+		if (WeaponAttachmentDataAsset.AttachmentData.ZeroingDistances.GetValue(CurrentZeroLevel, ZeroingDistance))
 			return ZeroingDistance;
 	}
 

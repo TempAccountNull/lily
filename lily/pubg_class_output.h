@@ -136,8 +136,11 @@ MemberAtOffsetZero(BYTE, AttachmentSlotID, 0x0)
 MemberAtOffset(TArray<float>, ZeroingDistances, 0x50)
 MemberAtOffset(FName, Name, 0x10)
 
+class UWeaponAttachmentDataAsset
+MemberAtOffset(FWeaponAttachmentData, AttachmentData, 0x40)
+
 struct FItemTableRowAttachment
-MemberAtOffset(FWeaponAttachmentData, AttachmentData, 0x270)
+MemberAtOffset(NativePtr<UWeaponAttachmentDataAsset>, WeaponAttachmentData, 0x268)
 
 class ATslWeapon
 MemberAtOffset(TArray<NativePtr<UAttachableItem>>, AttachedItems, 0x7e8)

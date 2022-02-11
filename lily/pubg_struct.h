@@ -67,8 +67,8 @@ struct FString : public TArray<wchar_t> {};
 template<class T>
 struct TSetElement {
 	T Value;
-	//int HashNextId;
-	//int HashIndex;
+	int HashNextId;
+	int HashIndex;
 };
 
 template<class T>
@@ -293,8 +293,10 @@ struct FInputAxisProperties
 	float                                              Exponent;                                                 // 0x000C(0x0004) (CPF_Edit, CPF_ZeroConstructor, CPF_IsPlainOldData)
 	unsigned char                                      bInvert : 1;                                              // 0x0010(0x0001) (CPF_Edit)
 	unsigned char                                      UnknownData00[0x7];                                       // 0x0011(0x0007) MISSED OFFSET
-	NativePtr<UCurveFloat>                             MultiplierAxisValueCurve;	                             // 0x0018(0x0008) (CPF_Edit, CPF_ZeroConstructor, CPF_IsPlainOldData)
+	//NativePtr<UCurveFloat>                           MultiplierAxisValueCurve;	                             // 0x0018(0x0008) (CPF_Edit, CPF_ZeroConstructor, CPF_IsPlainOldData)
 };
+
+static_assert(sizeof(FInputAxisProperties) == 0x18);
 
 static bool IsItNotWeighted(const FRichCurveKey& Key1, const FRichCurveKey& Key2);
 static float WeightedEvalForTwoKeys(

@@ -136,8 +136,11 @@ BYTE AttachmentSlotID
 TArray<float> ZeroingDistances
 FName Name
 
-struct ItemTableRowAttachment
+class UWeaponAttachmentDataAsset
 FWeaponAttachmentData AttachmentData
+
+struct ItemTableRowAttachment
+NativePtr<UWeaponAttachmentDataAsset> WeaponAttachmentData
 
 class ATslWeapon
 TArray<NativePtr<UAttachableItem>> AttachedItems
