@@ -48,3 +48,4 @@
 *.dll
 injector/lily.dll
 injector/lily.vmp.dll
+*.zip

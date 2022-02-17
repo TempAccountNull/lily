@@ -21,8 +21,8 @@ void Hack::Loop() {
 	const FName KeyMouseY = pubg.NameArr.FindName("MouseY"e);
 	verify(KeyMouseY.ComparisonIndex);
 
-	//f3 0f 11 ? ? ? ? ? ? f3 0f 11 ? ? ? ? ? ? f3 44 0f ? ? ? ? ? ? ? f3 0f 10 ? ? ? ? ? e9
-	constexpr uintptr_t HookBaseAddress = 0x13B85E3;
+	//41 0f ? ? 73 ? f3 0f 10 ? ? ? ? ? f3 0f 11 ? ? ? ? 00 00
+	constexpr uintptr_t HookBaseAddress = 0x77fe9e;
 	uint8_t OriginalByte = 0;
 	pubg.ReadBase(HookBaseAddress, &OriginalByte);
 	const uintptr_t AimHookAddressVA = pubg.GetBaseAddress() + HookBaseAddress;
@@ -35,17 +35,53 @@ void Hack::Loop() {
 	float RemainMouseY = 0.0f;
 	NativePtr<ATslCharacter> CachedMyTslCharacterPtr = 0;
 	NativePtr<ATslCharacter> LockTargetPtr = 0;
+	NativePtr<ATslCharacter> EnemyFocusingMePtr = 0;
+	bool bPushedCapsLock = false;
 
 	struct CharacterInfo {
+		NativePtr<ATslCharacter> Ptr;
+		int Team = -1;
+		int SpectatedCount = 0;
+		bool IsWeaponed = false;
+		bool IsScoping = false;
+		bool IsVisible = false;
+		bool IsAI = false;
+		float Health = 0.0f;
+		float GroggyHealth = 0.0f;
+		bool IsDead() const { return Health <= 0.0f && GroggyHealth <= 0.0f; }
+		float ZeroingDistance = 100.0f;
+		NativePtr<UCurveVector> BallisticCurve = 0;
+		float Gravity = -9.8f;
+		float BDS = 1.0f;
+		float VDragCoefficient = 1.0f;
+		float SimulationSubstepTime = 0.016f;
+		float InitialSpeed = 800.0f;
+		float BulletDropAdd = 7.0f;
+		FVector Location;
+		FVector GunLocation;
+		FRotator GunRotation;
+		FVector AimLocation;
+		FRotator AimRotation;
+		FVector Velocity;
+
+		bool IsInVehicle = false;
+		int NumKills = 0;
+		float Damage = 0.0f;
+		std::map<int, FVector> BonesPos, BonesScreenPos;
+		std::string PlayerName;
+		std::string WeaponName;
+		int Ammo = -1;
+	};
+	struct CharacterPosInfo {
 		struct PosInfo {
 			uint64_t Time = 0;
 			FVector Pos;
 		};
 		std::vector<PosInfo> Info;
-		FVector Velocity;
 	};
-
-	std::map<uint64_t, CharacterInfo> CharacterMap;
+	std::map<uint64_t, CharacterPosInfo> PosInfoMap;
+	std::map<uint64_t, float> EnemiesFocusingMeMap;
+	std::map<uint64_t, bool> CharacterSave;
 
 	while (IsWindow(hGameWnd)) {
 		const HWND hForeWnd = GetForegroundWindow();
@@ -70,6 +106,8 @@ void Hack::Loop() {
 			float DefaultFOV = 0.0f;
 			float MouseXSensitivity = 0.2f;
 			float MouseYSensitivity = 0.2f;
+
+			CharacterInfo MyInfo;
 
 			auto WorldToScreen = [&](const FVector& WorldLocation) {
 				return this->WorldToScreen(WorldLocation, CameraRotationMatrix, CameraLocation, CameraFOV);
@@ -96,13 +134,11 @@ void Hack::Loop() {
 					return false;
 
 				auto ItemInfo = Item.GetInfo();
-				if (ItemInfo.ItemName[0] == 0)
-					pubg.NameArr.GetNameByID(Item.GetItemID(), ItemInfo.ItemName.data(), sizeof(ItemInfo.ItemName));
+				char* szItemName = ItemInfo.ItemName.data();
 
-				if (ItemInfo.ItemName[0] == 0)
+				if (!*szItemName && !pubg.NameArr.GetNameByID(Item.GetItemID(), szItemName, sizeof(ItemInfo.ItemName)))
 					return false;
 
-				const char* szItemName = ItemInfo.ItemName.data();
 				const int ItemPriority = ItemInfo.ItemPriority;
 				if (ItemPriority < nItem && !bDebug)
 					return false;
@@ -123,40 +159,197 @@ void Hack::Loop() {
 				DrawString(ItemLocation, szItemName, ItemColor, false);
 				return true;
 			};
-			auto GetWeaponInfo = [&](ATslCharacter Character) {
-				ATslWeapon TslWeapon;
-				if (!Character.GetTslWeapon(TslWeapon))
-					return std::string{};
+			auto GetCharacterInfo = [&](NativePtr<ATslCharacter> CharacterPtr, CharacterInfo& Info) -> bool {
+				const unsigned NameHash = pubg.NameArr.GetNameHashByObjectPtr(CharacterPtr);
+				if (!IsPlayerCharacter(NameHash) && !IsAICharacter(NameHash))
+					return false;
 
-				std::string WeaponInfo = TslWeapon.GetWeaponName();
-				if (WeaponInfo.empty() && bDebug)
-					WeaponInfo = TslWeapon.GetName();
+				ATslCharacter TslCharacter;
+				if (!CharacterPtr.ReadOtherType(TslCharacter))
+					return false;
 
-				const auto Ammo = [&] {
-					ATslWeapon_Trajectory TslWeapon;
-					if (!Character.GetTslWeapon_Trajectory(TslWeapon))
-						return -1;
-					if (HIBYTE(TslWeapon.CurrentAmmoData))
-						return -1;
-					return (int)TslWeapon.CurrentAmmoData;
-				}();
+				USkeletalMeshComponent Mesh;
+				if (!TslCharacter.Mesh.Read(Mesh))
+					return false;
 
-				if (Ammo != -1) {
-					WeaponInfo += (std::string)"("e;
-					WeaponInfo += std::to_string(Ammo);
-					WeaponInfo += (std::string)")"e;
+				UTslAnimInstance TslAnimInstance;
+				if (!Mesh.AnimScriptInstance.ReadOtherType(TslAnimInstance))
+					return false;
+
+				//Bones
+				auto BoneSpaceTransforms = Mesh.BoneSpaceTransforms.GetVector();
+				size_t BoneSpaceTransformsSize = BoneSpaceTransforms.size();
+				if (!BoneSpaceTransformsSize)
+					return false;
+
+				for (auto BoneIndex : GetBoneIndexArray()) {
+					verify(BoneIndex < BoneSpaceTransformsSize);
+					FVector Pos = (BoneSpaceTransforms[BoneIndex] * Mesh.ComponentToWorld).Translation;
+					Info.BonesPos[BoneIndex] = Pos;
+					Info.BonesScreenPos[BoneIndex] = WorldToScreen(Pos);
 				}
 
-				return WeaponInfo;
+				Info.Location = Mesh.ComponentToWorld.Translation;
+				Info.Velocity = Mesh.ComponentVelocity;
+				Info.IsVisible = Mesh.IsVisible();
+
+				Info.Ptr = CharacterPtr;
+				Info.IsAI = IsAICharacter(NameHash);
+				Info.Health = TslCharacter.Health / TslCharacter.HealthMax;
+				Info.GroggyHealth = TslCharacter.GroggyHealth / TslCharacter.GroggyHealthMax;
+				Info.Team = TslCharacter.LastTeamNum;
+				Info.SpectatedCount = TslCharacter.SpectatedCount;
+				Info.IsScoping = TslAnimInstance.bIsScoping_CP;
+
+				wchar_t PlayerName[0x100];
+				if (TslCharacter.CharacterName.GetValues(*PlayerName, 0x100))
+					Info.PlayerName = ws2s(PlayerName);
+
+				//Velocity
+				[&] {
+					auto& PosInfo = PosInfoMap[CharacterPtr].Info;
+
+					if (Info.IsDead() || !Info.IsVisible) {
+						PosInfo.clear();
+						return;
+					}
+
+					PosInfo.push_back({ render.TimeInMicroSeconds, Info.Location });
+
+					float SumTimeDelta = 0.0f;
+					FVector SumPosDif;
+					for (size_t i = 1; i < PosInfo.size(); i++) {
+						const float DeltaTime = (PosInfo[i].Time - PosInfo[i - 1].Time) / 1000000.0f;
+						if (DeltaTime > 0.5f) {
+							PosInfo.clear();
+							return;
+						}
+
+						const FVector DeltaPos = PosInfo[i].Pos - PosInfo[i - 1].Pos;
+						if (DeltaPos.Length() / 100.0f > 1.0f) {
+							PosInfo.clear();
+							return;
+						}
+
+						SumTimeDelta = SumTimeDelta + DeltaTime;
+						SumPosDif = SumPosDif + DeltaPos;
+					}
+
+					if (SumTimeDelta < 0.1f)
+						return;
+
+					if (SumTimeDelta > 0.15f)
+						PosInfo.erase(PosInfo.begin());
+
+					Info.Velocity = SumPosDif * (1.0f / SumTimeDelta);
+				}();
+
+				if (Info.IsDead())
+					return true;
+
+				//PlayerState
+				[&] {
+					if (!TslCharacter.PlayerState)
+						return;
+
+					ATslPlayerState TslPlayerState;
+					if (!TslCharacter.PlayerState.ReadOtherType(TslPlayerState))
+						return;
+
+					Info.NumKills = TslPlayerState.PlayerStatistics_NumKills;
+					Info.Damage = TslPlayerState.DamageDealtOnEnemy;
+				}();
+
+				//Vehicle
+				[&] {
+					UVehicleRiderComponent VehicleRiderComponent;
+					if (!TslCharacter.VehicleRiderComponent.Read(VehicleRiderComponent))
+						return;
+
+					if (VehicleRiderComponent.SeatIndex == -1)
+						return;
+
+					APawn LastVehiclePawn;
+					if (!VehicleRiderComponent.LastVehiclePawn.Read(LastVehiclePawn))
+						return;
+
+					Info.IsInVehicle = true;
+					Info.Velocity = LastVehiclePawn.ReplicatedMovement.LinearVelocity;
+
+					ATslPlayerState TslPlayerState;
+					if (!LastVehiclePawn.PlayerState.ReadOtherType(TslPlayerState))
+						return;
+
+					Info.NumKills = TslPlayerState.PlayerStatistics_NumKills;
+					Info.Damage = TslPlayerState.DamageDealtOnEnemy;
+				}();
+
+				//WeaponInfo
+				[&] {
+					ATslWeapon TslWeapon;
+					if (!TslCharacter.GetTslWeapon(TslWeapon))
+						return;
+
+					Info.WeaponName = TslWeapon.GetWeaponName();
+					if (Info.WeaponName.empty() && bDebug)
+						Info.WeaponName = TslWeapon.GetName();
+
+					Info.Ammo = [&] {
+						ATslWeapon_Trajectory TslWeapon;
+						if (!TslCharacter.GetTslWeapon_Trajectory(TslWeapon))
+							return -1;
+						if (HIBYTE(TslWeapon.CurrentAmmoData))
+							return -1;
+						return (int)TslWeapon.CurrentAmmoData;
+					}();
+				}();
+
+				//Weapon
+				[&] {
+					ATslWeapon_Trajectory TslWeapon;
+					if (!TslCharacter.GetTslWeapon_Trajectory(TslWeapon))
+						return;
+
+					Info.IsWeaponed = true;
+					Info.Gravity = TslWeapon.TrajectoryGravityZ;
+					if (Info.IsScoping)
+						Info.ZeroingDistance = TslWeapon.GetZeroingDistance();
+
+					UWeaponTrajectoryData WeaponTrajectoryData;
+					if (TslWeapon.WeaponTrajectoryData.Read(WeaponTrajectoryData)) {
+						Info.BDS = WeaponTrajectoryData.TrajectoryConfig.BDS;
+						Info.VDragCoefficient = WeaponTrajectoryData.TrajectoryConfig.VDragCoefficient;
+						Info.SimulationSubstepTime = WeaponTrajectoryData.TrajectoryConfig.SimulationSubstepTime;
+						Info.BallisticCurve = WeaponTrajectoryData.TrajectoryConfig.BallisticCurve;
+						Info.InitialSpeed = WeaponTrajectoryData.TrajectoryConfig.InitialSpeed;
+					}
+
+					UWeaponMeshComponent WeaponMesh;
+					if (TslWeapon.Mesh3P.Read(WeaponMesh)) {
+						FTransform GunTransform = WeaponMesh.GetSocketTransform(TslWeapon.FiringAttachPoint, RTS_World);
+						Info.GunLocation = GunTransform.Translation;
+						Info.GunRotation = GunTransform.Rotation;
+						Info.BulletDropAdd = WeaponMesh.GetScopingAttachPointRelativeZ(TslWeapon.ScopingAttachPoint) -
+							GunTransform.GetRelativeTransform(WeaponMesh.ComponentToWorld).Translation.Z;
+					}
+				}();
+
+				Info.AimLocation = Info.GunLocation.Length() > 0.0f ? Info.GunLocation : Info.Location;
+				if (Info.IsScoping)
+					Info.AimRotation = Info.GunRotation;
+				else {
+					FRotator Recoil_CP = TslAnimInstance.RecoilADSRotation_CP;
+					Recoil_CP.Yaw += (TslAnimInstance.LeanRightAlpha_CP - TslAnimInstance.LeanLeftAlpha_CP) * Recoil_CP.Pitch / 3.0f;
+					Info.AimRotation = TslAnimInstance.ControlRotation_CP + Recoil_CP;
+				}
+
+				return true;
 			};
 
 			constexpr float BallisticDragScale = 1.0f;
 			constexpr float BallisticDropScale = 1.0f;
 
 			NativePtr<UObject> MyPawnPtr = 0;
-			FVector MyLocation;
-			FVector GunLocation;
-			FRotator GunRotation;
 
 			[&] {
 				UWorld World;
@@ -214,8 +407,8 @@ void Hack::Loop() {
 				if (!PlayerController.PlayerCameraManager.Read(PlayerCameraManager))
 					return;
 
-				GunLocation = MyLocation = CameraLocation = PlayerCameraManager.CameraCache_POV_Location;
-				GunRotation = CameraRotation = PlayerCameraManager.CameraCache_POV_Rotation;
+				MyInfo.Location = CameraLocation = PlayerCameraManager.CameraCache_POV_Location;
+				CameraRotation = PlayerCameraManager.CameraCache_POV_Rotation;
 				CameraRotationMatrix = PlayerCameraManager.CameraCache_POV_Rotation.GetMatrix();
 				CameraFOV = PlayerCameraManager.CameraCache_POV_FOV;
 			}();
@@ -235,128 +428,353 @@ void Hack::Loop() {
 			};
 
 			const float CircleFov = ConvertToRadians(CircleFovInDegrees);
-			const float AimbotCircleSize =
-				tanf(CircleFov) * render.Height *
-				powf(1.6f, log2f(FOVRatio)) *
-				(nAimbot >= 2 ? 1.25f : 1.0f);
+			const float AimbotCircleSize = tanf(CircleFov) * render.Height * powf(1.6f, log2f(FOVRatio));
 
 			float AimbotDistant = AimbotCircleSize;
-			////////////////////////////////////////////////////////////////////////////////////////////////////////
-			////////////////////////////////////////////////////////////////////////////////////////////////////////
-			const unsigned MyCharacterNameHash = pubg.NameArr.GetNameHashByObjectPtr(MyPawnPtr);
-			if (!MyCharacterNameHash)
-				return;
 
-			int MyTeamNum = -1;
-			int SpectatedCount = 0;
-			bool IsWeaponed = false;
-			bool IsScoping = false;
-
-			float ZeroingDistance = FLT_MIN;
-			NativePtr<UCurveVector> BallisticCurve = 0;
-			float Gravity = -9.8f;
-			float BDS = 1.0f;
-			float VDragCoefficient = 1.0f;
-			float SimulationSubstepTime = 0.016f;
-			float InitialSpeed = 800.0f;
-			float BulletDropAdd = 7.0f;
-
-			//MyCharacterInfo
-			[&] {
-				if (!IsPlayerCharacter(MyCharacterNameHash))
-					return;
-
-				ATslCharacter MyTslCharacter;
-				if (!MyPawnPtr.ReadOtherType(MyTslCharacter))
-					return;
-
+			if (GetCharacterInfo((uintptr_t)MyPawnPtr, MyInfo))
 				CachedMyTslCharacterPtr = (uintptr_t)MyPawnPtr;
-				MyTeamNum = MyTslCharacter.LastTeamNum;
-				SpectatedCount = MyTslCharacter.SpectatedCount;
 
-				if (MyTslCharacter.Health <= 0.0f)
-					return;
+			if (!CachedMyTslCharacterPtr) {
+				PosInfoMap.clear();
+				EnemiesFocusingMeMap.clear();
+				CharacterSave.clear();
+				LockTargetPtr = 0;
+			}
 
-				//MyCharacter Mesh Info
-				[&] {
-					USkeletalMeshComponent Mesh;
-					if (!MyTslCharacter.Mesh.Read(Mesh))
-						return;
+			if (!bPushingMouseM)
+				LockTargetPtr = 0;
 
-					GunLocation = MyLocation = Mesh.ComponentToWorld.Translation;
+			CharacterInfo LockedTargetInfo;
+			if (!GetCharacterInfo(LockTargetPtr, LockedTargetInfo))
+				LockTargetPtr = 0;
 
-					UTslAnimInstance TslAnimInstance;
-					if (!Mesh.AnimScriptInstance.ReadOtherType(TslAnimInstance))
-						return;
+			if (LockedTargetInfo.IsDead())
+				LockTargetPtr = 0;
 
-					IsScoping = TslAnimInstance.bIsScoping_CP;
-					FRotator Recoil_CP = TslAnimInstance.RecoilADSRotation_CP;
-					Recoil_CP.Yaw += (TslAnimInstance.LeanRightAlpha_CP - TslAnimInstance.LeanLeftAlpha_CP) * Recoil_CP.Pitch / 3.0f;
-					GunRotation = TslAnimInstance.ControlRotation_CP + Recoil_CP;
-				}();
-
-				//MyCharacter Weapon Info
-				[&] {
-					ATslWeapon_Trajectory TslWeapon;
-					if (!MyTslCharacter.GetTslWeapon_Trajectory(TslWeapon))
-						return;
-
-					IsWeaponed = true;
-					Gravity = TslWeapon.TrajectoryGravityZ;
-					if (IsScoping)
-						ZeroingDistance = TslWeapon.GetZeroingDistance();
-
-					UWeaponTrajectoryData WeaponTrajectoryData;
-					if (TslWeapon.WeaponTrajectoryData.Read(WeaponTrajectoryData)) {
-						BDS = WeaponTrajectoryData.TrajectoryConfig.BDS;
-						VDragCoefficient = WeaponTrajectoryData.TrajectoryConfig.VDragCoefficient;
-						SimulationSubstepTime = WeaponTrajectoryData.TrajectoryConfig.SimulationSubstepTime;
-						BallisticCurve = WeaponTrajectoryData.TrajectoryConfig.BallisticCurve;
-						InitialSpeed = WeaponTrajectoryData.TrajectoryConfig.InitialSpeed;
-					}
-
-					UWeaponMeshComponent WeaponMesh;
-					if (TslWeapon.Mesh3P.Read(WeaponMesh)) {
-						FTransform GunTransform = WeaponMesh.GetSocketTransform(TslWeapon.FiringAttachPoint, RTS_World);
-
-						GunLocation = GunTransform.Translation;
-						if (IsScoping)
-							GunRotation = GunTransform.Rotation;
-
-						BulletDropAdd = WeaponMesh.GetScopingAttachPointRelativeZ(TslWeapon.ScopingAttachPoint) -
-							GunTransform.GetRelativeTransform(WeaponMesh.ComponentToWorld).Translation.Z;
-					}
-				}();
-			}();
-
-			if (!CachedMyTslCharacterPtr)
-				CharacterMap.clear();
-
-			auto IsLockTargetValid = [&] {
-				if (!CachedMyTslCharacterPtr)
-					return false;
-
-				if (!bPushingMouseM)
-					return false;
-
-				ATslCharacter TslCharacter;
-				if (!LockTargetPtr.Read(TslCharacter))
-					return false;
-
-				if (TslCharacter.Health > 0.0f)
-					return true;
-
-				if (TslCharacter.GroggyHealth <= 0.0f || !bPushingCTRL)
-					return false;
-
-				return true;
-			};
-			if (!IsLockTargetValid())
+			if (LockedTargetInfo.Health <= 0.0f && !bPushingCTRL)
 				LockTargetPtr = 0;
 
 			NativePtr<ATslCharacter> CurrentTargetPtr = 0;
 			bool bFoundTarget = false;
 			FVector TargetPos;
+			FVector TargetVelocity;
+
+			auto ProcessTslCharacter = [&](uint64_t ActorPtr) {
+				if (MyPawnPtr == ActorPtr)
+					return;
+
+				CharacterInfo Info;
+				if (!GetCharacterInfo((uintptr_t)ActorPtr, Info)) {
+					CharacterSave.erase(ActorPtr);
+					return;
+				}
+
+				CharacterSave[ActorPtr] = true;
+
+				float Distance = MyInfo.Location.Distance(Info.Location) / 100.0f;
+				if (Distance >= nRange)
+					return;
+
+				bool bFocusingMe = false;
+				//Get bFocusingMe
+				[&] {
+					float AccTime = EnemiesFocusingMeMap[Info.Ptr];
+					EnemiesFocusingMeMap[Info.Ptr] = 0.0f;
+
+					if (MyInfo.Health <= 0.0f)
+						return;
+					if (Info.Health <= 0.0f)
+						return;
+					if (!Info.IsWeaponed)
+						return;
+					if (Info.GunRotation.Length() == 0.0f)
+						return;
+					if (!bTeamKill && Info.Team == MyInfo.Team)
+						return;
+
+					auto Result = GetBulletDropAndTravelTime(
+						Info.GunLocation,
+						Info.GunRotation,
+						MyInfo.Location,
+						Info.ZeroingDistance,
+						Info.BulletDropAdd,
+						Info.InitialSpeed,
+						Info.Gravity,
+						BallisticDragScale,
+						BallisticDropScale,
+						Info.BDS,
+						Info.SimulationSubstepTime,
+						Info.VDragCoefficient,
+						Info.BallisticCurve);
+
+					float BulletDrop = Result.first;
+					float TravelTime = Result.second;
+
+					float MinPitch = FLT_MAX;
+					float MaxPitch = -FLT_MAX;
+					float MinYaw = FLT_MAX;
+					float MaxYaw = -FLT_MAX;
+
+					for (auto BoneIndex : GetBoneIndexArray()) {
+						FVector PredictedPos = MyInfo.BonesPos[BoneIndex];
+						PredictedPos.Z += BulletDrop;
+						PredictedPos = PredictedPos + MyInfo.Velocity * TravelTime;
+						FRotator Rotator = (PredictedPos - Info.GunLocation).GetDirectionRotator();
+						Rotator.Clamp();
+						MinPitch = std::clamp(Rotator.Pitch, -FLT_MAX, MinPitch);
+						MaxPitch = std::clamp(Rotator.Pitch, MaxPitch, FLT_MAX);
+						MinYaw = std::clamp(Rotator.Yaw, -FLT_MAX, MinYaw);
+						MaxYaw = std::clamp(Rotator.Yaw, MaxYaw, FLT_MAX);
+					}
+
+					float CenterYaw = (MinYaw + MaxYaw) / 2.0f;
+					float RangeYaw = (MaxYaw - MinYaw) / 2.0f;
+					RangeYaw += std::clamp(RangeYaw * 0.5f, 0.5f, FLT_MAX);
+
+					FRotator GunRotation = Info.GunRotation;
+					GunRotation.Clamp();
+
+					if (GunRotation.Yaw > CenterYaw - RangeYaw &&
+						GunRotation.Yaw < CenterYaw + RangeYaw) {
+						EnemiesFocusingMeMap[Info.Ptr] = AccTime + render.TimeDelta;
+						if (EnemiesFocusingMeMap[Info.Ptr] >= MinFocusTime)
+							bFocusingMe = true;
+					}
+				}();
+
+				//DrawRadar
+				[&] {
+					if (!bRadar)
+						return;
+
+					if (Info.IsDead())
+						return;
+
+					FVector ALfromME = Info.Location - MyInfo.Location;
+					int RadarX = (int)round(ALfromME.X / 100);
+					int RadarY = (int)round(ALfromME.Y / 100);
+
+					//when ememy in the radar radius.
+					if (RadarX > 200 || RadarX < -200 || RadarY > 200 || RadarY < -200)
+						return;
+
+					FVector v;
+					v.X = (render.Width * (0.9807f + 0.8474f) / 2.0f) + (RadarX / 200.0f * render.Width * (0.9807f - 0.8474f) / 2.0f);
+					v.Y = (render.Height * (0.9722f + 0.7361f) / 2.0f) + (RadarY / 200.0f * render.Height * (0.9722f - 0.7361f) / 2.0f);
+
+					//GetColor
+					ImColor Color = [&]()->ImColor {
+						if (Info.Team == MyInfo.Team)
+							return Render::COLOR_GREEN;
+						if (Info.Health <= 0.0f)
+							return Render::COLOR_GRAY;
+						if (bFocusingMe)
+							return Render::COLOR_RED;
+						if (Info.IsAI)
+							return Render::COLOR_TEAL;
+						if (Info.IsInVehicle)
+							return Render::COLOR_BLUE;
+						if (Info.Team < 51)
+							return TeamColors[Info.Team];
+
+						return Render::COLOR_WHITE;
+					}();
+
+					float Size = 4.0f;
+
+					if (Info.GunRotation.Length() != 0.0f) {
+						FVector GunDir = FRotator(0.0f, Info.GunRotation.Yaw, 0.0f).GetUnitVector();
+
+						float Degree90 = ConvertToRadians(90.0f);
+						FVector Dir1 = {
+							GunDir.X * cosf(Degree90) - GunDir.Y * sinf(Degree90),
+							GunDir.X * sinf(Degree90) + GunDir.Y * cosf(Degree90),
+							0.0f };
+
+						FVector Dir2 = {
+							GunDir.X * cosf(-Degree90) - GunDir.Y * sinf(-Degree90),
+							GunDir.X * sinf(-Degree90) + GunDir.Y * cosf(-Degree90),
+							0.0f };
+
+						FVector p1 = v + GunDir * (Size + 1.0f) * 2.0f;
+						FVector p2 = v + Dir1 * (Size + 1.0f);
+						FVector p3 = v + Dir2 * (Size + 1.0f);
+						render.DrawTriangle(p1, p2, p3, render.COLOR_BLACK);
+						render.DrawCircle(v, Size + 1.0f, render.COLOR_BLACK);
+
+						p1 = v + GunDir * Size * 2.0f;
+						p2 = v + Dir1 * Size;
+						p3 = v + Dir2 * Size;
+						render.DrawTriangleFilled(p1, p2, p3, Color);
+						render.DrawCircleFilled(v, Size, Color);
+					}
+					else {
+						render.DrawCircle(v, Size + 1.0f, render.COLOR_BLACK);
+						render.DrawCircleFilled(v, Size, Color);
+					}
+				}();
+
+				bool IsInCircle = false;
+				//Aimbot
+				[&] {
+					if (!MyInfo.IsWeaponed)
+						return;
+					if (Info.IsDead())
+						return;
+					if (!Info.IsVisible)
+						return;
+					if (!bTeamKill && Info.Team == MyInfo.Team)
+						return;
+					if (!bPushingCTRL && Info.Health <= 0.0f)
+						return;
+
+					FVector VecEnemy = bPushingShift ? Info.BonesPos[forehead] : (Info.BonesPos[neck_01] + Info.BonesPos[spine_02]) * 0.5f;
+					FVector VecEnemy2D = WorldToScreen(VecEnemy);
+					if (VecEnemy2D.Z < 0.0f)
+						return;
+
+					VecEnemy2D.Z = 0.0f;
+					FVector Center2D = { render.Width / 2.0f, render.Height / 2.0f, 0 };
+
+					float DistanceFromCenter = Center2D.Distance(VecEnemy2D);
+
+					if (DistanceFromCenter < AimbotCircleSize)
+						IsInCircle = true;
+
+					if (DistanceFromCenter > AimbotDistant)
+						return;
+
+					if (LockTargetPtr && LockTargetPtr != ActorPtr)
+						return;
+
+					bFoundTarget = true;
+					CurrentTargetPtr = (uintptr_t)ActorPtr;
+					AimbotDistant = DistanceFromCenter;
+					TargetPos = VecEnemy;
+					TargetVelocity = Info.Velocity;
+				}();
+
+				//DrawCharacter
+				[&] {
+					if (!bPlayer)
+						return;
+
+					if (Info.IsDead())
+						return;
+
+					//GetColor
+					ImColor Color = [&]()->ImColor {
+						if (ActorPtr == LockTargetPtr)
+							return Render::COLOR_PURPLE;
+						if (Info.Team == MyInfo.Team)
+							return Render::COLOR_GREEN;
+						if (Info.Health <= 0.0f)
+							return Render::COLOR_GRAY;
+						if (bFocusingMe)
+							return Render::COLOR_RED;
+						if (Info.IsAI)
+							return Render::COLOR_TEAL;
+						if (IsInCircle)
+							return Render::COLOR_YELLOW;
+						if (Info.IsInVehicle)
+							return Render::COLOR_BLUE;
+						if (Info.Team < 51)
+							return TeamColors[Info.Team];
+
+						return Render::COLOR_WHITE;
+					}();
+
+					//Draw Skeleton
+					if (ESP_PlayerSetting.bSkeleton) {
+						for (auto DrawPair : GetDrawPairArray())
+							render.DrawLine(Info.BonesScreenPos[DrawPair.first], Info.BonesScreenPos[DrawPair.second], Color);
+					}
+
+					//Draw HealthBar
+					FVector HealthBarPos = Info.BonesPos[neck_01];
+					HealthBarPos.Z += 35.0f;
+					FVector HealthBarScreenPos = WorldToScreen(HealthBarPos);
+					HealthBarScreenPos.Y -= 5.0f;
+
+					float HealthBarScreenLengthY = 0.0f;
+					if (ESP_PlayerSetting.bHealth) {
+						const float CameraDistance = CameraLocation.Distance(HealthBarPos) / 100.0f;
+						if (Info.Health > 0.0)
+							HealthBarScreenLengthY = DrawRatioBox(HealthBarScreenPos, CameraDistance, 0.7f,
+								Info.Health, Render::COLOR_GREEN, Render::COLOR_RED, Render::COLOR_BLACK).y;
+						else if (Info.GroggyHealth > 0.0)
+							HealthBarScreenLengthY = DrawRatioBox(HealthBarScreenPos, CameraDistance, 0.7f,
+								Info.GroggyHealth, Render::COLOR_RED, Render::COLOR_GRAY, Render::COLOR_BLACK).y;
+					}
+
+					//Draw CharacterInfo
+					std::string PlayerInfo;
+					std::string Line;
+
+					if (ESP_PlayerSetting.bNickName)
+						Line += Info.PlayerName;
+
+					if (ESP_PlayerSetting.bTeam) {
+						if (Info.Team < 200 && Info.Team != MyInfo.Team) {
+							if (!Line.empty())
+								Line += (std::string)" "e;
+							Line += std::to_string(Info.Team);
+						}
+					}
+
+					if (!Line.empty()) {
+						PlayerInfo += Line;
+						PlayerInfo += (std::string)"\n"e;
+						Line = {};
+					}
+
+					if (ESP_PlayerSetting.bWeapon) {
+						if (Info.WeaponName.size()) {
+							if (Info.Ammo == -1)
+								Line += Info.WeaponName;
+							else
+								Line += Info.WeaponName + (std::string)"("e + std::to_string(Info.Ammo) + (std::string)")"e;
+						}
+					}
+
+					if (!Line.empty()) {
+						PlayerInfo += Line;
+						PlayerInfo += (std::string)"\n"e;
+						Line = {};
+					}
+
+					if (ESP_PlayerSetting.bDistance) {
+						Line += std::to_string((int)Distance);
+						Line += (std::string)"M"e;
+					}
+
+					if (ESP_PlayerSetting.bKill) {
+						if (!Line.empty())
+							Line += (std::string)" "e;
+						Line += std::to_string(Info.NumKills);
+					}
+
+					if (ESP_PlayerSetting.bDamage) {
+						if (!Line.empty())
+							Line += (std::string)" "e;
+						Line += std::to_string((int)Info.Damage);
+					}
+
+					if (!Line.empty()) {
+						PlayerInfo += Line;
+						PlayerInfo += (std::string)"\n"e;
+						Line = {};
+					}
+
+					DrawString(
+						{ HealthBarScreenPos.X, HealthBarScreenPos.Y - HealthBarScreenLengthY - render.GetTextSize(FONTSIZE, PlayerInfo.c_str()).y / 2.0f, HealthBarScreenPos.Z },
+						PlayerInfo.c_str(), Color, true);
+				}();
+			};
+
+			for (auto& Elem : CharacterSave)
+				Elem.second = false;
 
 			//Actor loop
 			for (const auto& ActorPtr : Actors.GetVector()) {
@@ -381,9 +799,9 @@ void Hack::Loop() {
 					ActorVelocity = RootComponent.ComponentVelocity;
 					ActorLocation = RootComponent.ComponentToWorld.Translation;
 					ActorLocationScreen = WorldToScreen(ActorLocation);
-					DistanceToActor = MyLocation.Distance(ActorLocation) / 100.0f;
+					DistanceToActor = MyInfo.Location.Distance(ActorLocation) / 100.0f;
 
-					if (nRange != 1000 && DistanceToActor > nRange)
+					if (nRange != 1000 && DistanceToActor >= nRange)
 						return false;
 
 					USceneComponent AttachParent;
@@ -577,369 +995,50 @@ void Hack::Loop() {
 					}
 				}();
 
-				//Character
-				[&] {
-					if (!IsPlayerCharacter(ActorNameHash) && !IsAICharacter(ActorNameHash))
-						return;
-
-					if (MyPawnPtr == ActorPtr)
-						return;
-
-					ATslCharacter TslCharacter;
-					if (!ActorPtr.ReadOtherType(TslCharacter))
-						return;
-
-					const float Health = TslCharacter.Health;
-					const float HealthMax = TslCharacter.HealthMax;
-					const float GroggyHealth = TslCharacter.GroggyHealth;
-					const float GroggyHealthMax = TslCharacter.GroggyHealthMax;
-					const bool IsPlayerDead = (Health <= 0.0f && GroggyHealth <= 0.0f);
-
-					int NumKills = 0;
-					float DamageDealtOnEnemy = 0.0f;
-
-					//GetPlayerState
-					[&] {
-						if (IsPlayerDead)
-							return;
-
-						if (!TslCharacter.PlayerState)
-							return;
-
-						ATslPlayerState TslPlayerState;
-						if (!TslCharacter.PlayerState.ReadOtherType(TslPlayerState))
-							return;
-
-						NumKills = TslPlayerState.PlayerStatistics_NumKills;
-						DamageDealtOnEnemy = TslPlayerState.DamageDealtOnEnemy;
-					}();
-
-					bool IsInVehicle = false;
-
-					//GetPlayerVehicleInfo
-					[&] {
-						if (IsPlayerDead)
-							return;
-
-						UVehicleRiderComponent VehicleRiderComponent;
-						if (!TslCharacter.VehicleRiderComponent.Read(VehicleRiderComponent))
-							return;
-
-						if (VehicleRiderComponent.SeatIndex == -1)
-							return;
-
-						APawn LastVehiclePawn;
-						if (!VehicleRiderComponent.LastVehiclePawn.Read(LastVehiclePawn))
-							return;
-
-						IsInVehicle = true;
-						ActorVelocity = LastVehiclePawn.ReplicatedMovement.LinearVelocity;
-
-						ATslPlayerState TslPlayerState;
-						if (!LastVehiclePawn.PlayerState.ReadOtherType(TslPlayerState))
-							return;
-
-						NumKills = TslPlayerState.PlayerStatistics_NumKills;
-						DamageDealtOnEnemy = TslPlayerState.DamageDealtOnEnemy;
-					}();
-
-					//DrawRadar
-					[&] {
-						if (!bRadar)
-							return;
-
-						if (IsPlayerDead)
-							return;
-
-						FVector ALfromME = ActorLocation - MyLocation;
-						int RadarX = (int)round(ALfromME.X / 100);
-						int RadarY = (int)round(ALfromME.Y / 100);
-
-						//when ememy in the radar radius.
-						if (RadarX > 200 || RadarX < -200 || RadarY > 200 || RadarY < -200)
-							return;
-
-						FVector v;
-						v.X = (render.Width * (0.9807f + 0.8474f) / 2.0f) + (RadarX / 200.0f * render.Width * (0.9807f - 0.8474f) / 2.0f);
-						v.Y = (render.Height * (0.9722f + 0.7361f) / 2.0f) + (RadarY / 200.0f * render.Height * (0.9722f - 0.7361f) / 2.0f);
-
-						//GetColor
-						ImColor Color = [&]()->ImColor {
-							if (TslCharacter.LastTeamNum == MyTeamNum)
-								return Render::COLOR_GREEN;
-							if (IsInVehicle)
-								return Render::COLOR_BLUE;
-							if (Health <= 0.0f)
-								return Render::COLOR_GRAY;
-							if (IsAICharacter(ActorNameHash))
-								return Render::COLOR_TEAL;
-							if (TslCharacter.LastTeamNum < 51)
-								return TeamColors[TslCharacter.LastTeamNum];
-
-							return Render::COLOR_RED;
-						}();
-
-						render.DrawCircle(v, 5.0f, render.COLOR_BLACK);
-						render.DrawCircleFilled(v, 4.0f, Color);
-					}();
-
-					//Character Mesh stuff
-					[&] {
-						USkeletalMeshComponent Mesh;
-						if (!TslCharacter.Mesh.Read(Mesh))
-							return;
-
-						//GetVelocity
-						[&] {
-							CharacterMap[ActorPtr].Velocity = ActorVelocity;
-							auto& Info = CharacterMap[ActorPtr].Info;
-
-							if (IsPlayerDead || !Mesh.IsVisible()) {
-								Info.clear();
-								return;
-							}
-
-							Info.push_back({ render.TimeInMicroSeconds, Mesh.ComponentToWorld.Translation });
-
-							float SumTimeDelta = 0.0f;
-							FVector SumTargetPosDif;
-							for (size_t i = 1; i < Info.size(); i++) {
-								const float DeltaTime = (Info[i].Time - Info[i - 1].Time) / 1000000.0f;
-								if (DeltaTime > 0.5f) {
-									Info.clear();
-									return;
-								}
-
-								const FVector DeltaPos = Info[i].Pos - Info[i - 1].Pos;
-								if (DeltaPos.Length() / 100.0f > 1.0f) {
-									Info.clear();
-									return;
-								}
-
-								SumTimeDelta = SumTimeDelta + DeltaTime;
-								SumTargetPosDif = SumTargetPosDif + DeltaPos;
-							}
-
-							if (SumTimeDelta < 0.1f)
-								return;
-
-							if (SumTimeDelta > 0.15f)
-								Info.erase(Info.begin());
-
-							CharacterMap[ActorPtr].Velocity = SumTargetPosDif * (1.0f / SumTimeDelta);
-						}();
-
-						if (IsPlayerDead)
-							return;
-
-						std::map<int, FVector> BonesPos, BonesScreenPos;
-
-						//GetBonesPosition
-						[&] {
-							auto BoneSpaceTransforms = Mesh.BoneSpaceTransforms.GetVector();
-							size_t BoneSpaceTransformsSize = BoneSpaceTransforms.size();
-							if (!BoneSpaceTransformsSize)
-								return;
-
-							for (auto BoneIndex : GetBoneIndexArray()) {
-								verify(BoneIndex < BoneSpaceTransformsSize);
-								FVector Pos = (BoneSpaceTransforms[BoneIndex] * Mesh.ComponentToWorld).Translation;
-								BonesPos[BoneIndex] = Pos;
-								BonesScreenPos[BoneIndex] = WorldToScreen(Pos);
-							}
-						}();
-
-						bool IsInCircle = false;
-						//Aimbot
-						[&] {
-							if (!IsWeaponed)
-								return;
-							if (!Mesh.IsVisible())
-								return;
-							if (!bTeamKill && TslCharacter.LastTeamNum == MyTeamNum)
-								return;
-							if (!bPushingCTRL && Health <= 0.0f)
-								return;
-
-							FVector VecEnemy = (BonesPos[neck_01] + BonesPos[spine_02]) * 0.5f;
-							if (bPushingShift)
-								VecEnemy = BonesPos[forehead];
-
-							FVector VecEnemy2D = WorldToScreen(VecEnemy);
-							if (VecEnemy2D.Z < 0.0f)
-								return;
-
-							VecEnemy2D.Z = 0.0f;
-							FVector Center2D = { render.Width / 2.0f, render.Height / 2.0f, 0 };
-
-							float DistanceFromCenter = Center2D.Distance(VecEnemy2D);
-
-							if (DistanceFromCenter < AimbotCircleSize)
-								IsInCircle = true;
-
-							if (DistanceFromCenter > AimbotDistant)
-								return;
-
-							if (LockTargetPtr && LockTargetPtr != ActorPtr)
-								return;
-
-							bFoundTarget = true;
-							CurrentTargetPtr = (uintptr_t)ActorPtr;
-							AimbotDistant = DistanceFromCenter;
-							TargetPos = VecEnemy;
-						}();
-
-						//DrawCharacter
-						[&] {
-							if (!bPlayer)
-								return;
-
-							//GetColor
-							ImColor Color = [&]()->ImColor {
-								if (ActorPtr == LockTargetPtr)
-									return Render::COLOR_PURPLE;
-								if (TslCharacter.LastTeamNum == MyTeamNum)
-									return Render::COLOR_GREEN;
-								if (IsInCircle)
-									return Render::COLOR_YELLOW;
-								if (IsInVehicle)
-									return Render::COLOR_BLUE;
-								if (Health <= 0.0f)
-									return Render::COLOR_GRAY;
-								if (IsAICharacter(ActorNameHash))
-									return Render::COLOR_TEAL;
-								if (TslCharacter.LastTeamNum < 51)
-									return TeamColors[TslCharacter.LastTeamNum];
-
-								return (DamageDealtOnEnemy > 510.0) ? Render::COLOR_RED : IM_COL32(255, 255 - int(DamageDealtOnEnemy / 2), 255 - int(DamageDealtOnEnemy / 2), 255);
-							}();
-
-							//Draw Skeleton
-							if (ESP_PlayerSetting.bSkeleton) {
-								for (auto DrawPair : GetDrawPairArray())
-									render.DrawLine(BonesScreenPos[DrawPair.first], BonesScreenPos[DrawPair.second], Color);
-							}
-
-							//Draw HealthBar
-							FVector HealthBarPos = BonesPos[neck_01];
-							HealthBarPos.Z += 35.0f;
-							FVector HealthBarScreenPos = WorldToScreen(HealthBarPos);
-							HealthBarScreenPos.Y -= 5.0f;
-
-							float HealthBarScreenLengthY = 0.0f;
-							if (ESP_PlayerSetting.bHealth) {
-								const float CameraDistance = CameraLocation.Distance(HealthBarPos) / 100.0f;
-								if (Health > 0.0)
-									HealthBarScreenLengthY = DrawRatioBox(HealthBarScreenPos, CameraDistance, 0.7f,
-										Health / HealthMax, Render::COLOR_GREEN, Render::COLOR_RED, Render::COLOR_BLACK).y;
-								else if (GroggyHealth > 0.0)
-									HealthBarScreenLengthY = DrawRatioBox(HealthBarScreenPos, CameraDistance, 0.7f,
-										GroggyHealth / GroggyHealthMax, Render::COLOR_RED, Render::COLOR_GRAY, Render::COLOR_BLACK).y;
-							}
-
-							//Draw CharacterInfo
-							std::string PlayerInfo;
-							std::string Line;
-
-							if (ESP_PlayerSetting.bNickName) {
-								wchar_t PlayerName[0x100];
-								TslCharacter.CharacterName.GetValues(*PlayerName, 0x100);
-								Line += ws2s(PlayerName);
-							}
-
-							if (ESP_PlayerSetting.bTeam) {
-								if (TslCharacter.LastTeamNum < 200 && TslCharacter.LastTeamNum != MyTeamNum) {
-									if (!Line.empty())
-										Line += (std::string)" "e;
-									Line += std::to_string(TslCharacter.LastTeamNum);
-								}
-							}
-
-							if (!Line.empty()) {
-								PlayerInfo += Line;
-								PlayerInfo += (std::string)"\n"e;
-								Line = {};
-							}
-
-							if (ESP_PlayerSetting.bWeapon) {
-								std::string WeaponInfo = GetWeaponInfo(TslCharacter);
-								if (WeaponInfo.size())
-									Line += WeaponInfo;
-							}
-
-							if (!Line.empty()) {
-								PlayerInfo += Line;
-								PlayerInfo += (std::string)"\n"e;
-								Line = {};
-							}
-
-							if (ESP_PlayerSetting.bDistance) {
-								Line += std::to_string((int)DistanceToActor);
-								Line += (std::string)"M"e;
-							}
-
-							if (ESP_PlayerSetting.bKill) {
-								if (!Line.empty())
-									Line += (std::string)" "e;
-								Line += std::to_string(NumKills);
-							}
-
-							if (ESP_PlayerSetting.bDamage) {
-								if (!Line.empty())
-									Line += (std::string)" "e;
-								Line += std::to_string((int)DamageDealtOnEnemy);
-							}
-
-							if (!Line.empty()) {
-								PlayerInfo += Line;
-								PlayerInfo += (std::string)"\n"e;
-								Line = {};
-							}
-
-							DrawString(
-								{ HealthBarScreenPos.X, HealthBarScreenPos.Y - HealthBarScreenLengthY - render.GetTextSize(FONTSIZE, PlayerInfo.c_str()).y / 2.0f, HealthBarScreenPos.Z },
-								PlayerInfo.c_str(), Color, true);
-						}();
-					}();
-				}();
+				ProcessTslCharacter(ActorPtr);
 			}
+
+			for (const auto& Elem : CharacterSave)
+				if (!Elem.second) ProcessTslCharacter(Elem.first);
 
 			float CustomTimeDilation = 1.0f;
 
 			//TargetCharacter
 			[&] {
+				if (!MyInfo.IsWeaponed)
+					return;
+
 				if (!bFoundTarget)
 					return;
 
 				if (bPushingMouseM && !LockTargetPtr)
 					LockTargetPtr = CurrentTargetPtr;
 
-				if (nAimbot == 2 || nAimbot == 3 || !IsScoping)
-					ZeroingDistance = FLT_MIN;
-
 				auto Result = GetBulletDropAndTravelTime(
-					GunLocation, GunRotation, TargetPos, ZeroingDistance, BulletDropAdd, InitialSpeed,
-					Gravity, BallisticDragScale, BallisticDropScale, BDS, SimulationSubstepTime, VDragCoefficient, BallisticCurve);
+					MyInfo.AimLocation,
+					MyInfo.AimRotation,
+					TargetPos,
+					MyInfo.ZeroingDistance,
+					MyInfo.BulletDropAdd,
+					MyInfo.InitialSpeed,
+					MyInfo.Gravity,
+					BallisticDragScale,
+					BallisticDropScale,
+					MyInfo.BDS,
+					MyInfo.SimulationSubstepTime,
+					MyInfo.VDragCoefficient,
+					MyInfo.BallisticCurve);
 
 				float BulletDrop = Result.first;
 				float TravelTime = Result.second;
 
-				FVector PredictedPos = TargetPos;
-				PredictedPos.Z += BulletDrop;
-				PredictedPos = PredictedPos + (CharacterMap[CurrentTargetPtr].Velocity * (TravelTime / CustomTimeDilation));
-
+				FVector PredictedPos = FVector(TargetPos.X, TargetPos.Y, TargetPos.Z + BulletDrop) + TargetVelocity * (TravelTime / CustomTimeDilation);
 				FVector TargetScreenPos = WorldToScreen(TargetPos);
 				FVector AimScreenPos = WorldToScreen(PredictedPos);
 
 				const float LineLen = std::clamp(AimScreenPos.Y - WorldToScreen({ TargetPos.X, TargetPos.Y, TargetPos.Z + 10.0f }).Y, 4.0f, 8.0f);
 				render.DrawLine(TargetScreenPos, AimScreenPos, Render::COLOR_RED, 2.0f);
 				render.DrawX(AimScreenPos, LineLen, Render::COLOR_RED, 2.0f);
-
-				if (!IsWeaponed || !bPushingMouseM)
-					return;
-
-				if (hGameWnd != hForeWnd)
-					return;
 
 				auto AImbot_MouseMove_Old = [&] {
 					TimeDeltaAcc += render.TimeDelta;
@@ -952,7 +1051,7 @@ void Hack::Loop() {
 
 					const FVector LocTarget = ::WorldToScreen(PredictedPos, CameraRotationMatrix, CameraLocation, CameraFOV, 1.0f, 1.0f);
 					const float DistanceToTarget = CameraLocation.Distance(PredictedPos) / 100.0f;
-					const FVector GunCenterPos = CameraLocation + GunRotation.GetUnitVector() * DistanceToTarget;
+					const FVector GunCenterPos = CameraLocation + MyInfo.AimRotation.GetUnitVector() * DistanceToTarget;
 					const FVector LocCenter = ::WorldToScreen(GunCenterPos, CameraRotationMatrix, CameraLocation, CameraFOV, 1.0f, 1.0f);
 
 					const float MouseX = RemainMouseX + AimSpeedX * (LocTarget.X - LocCenter.X) * TimeDelta * 100000.0f;
@@ -971,7 +1070,7 @@ void Hack::Loop() {
 					const float TimeDelta = TimeDeltaAcc;
 					TimeDeltaAcc = 0.0f;
 
-					FRotator RotationInput = (PredictedPos - CameraLocation).GetDirectionRotator() - GunRotation;
+					FRotator RotationInput = (PredictedPos - CameraLocation).GetDirectionRotator() - MyInfo.AimRotation;
 					RotationInput.Clamp();
 					const POINT MaxXY = GetMouseXY(RotationInput * AimSpeedMaxFactor);
 					if (MaxXY.x == 0 && MaxXY.y == 0) {
@@ -989,17 +1088,36 @@ void Hack::Loop() {
 					MoveMouse(hGameWnd, { (int)MouseX, (int)MouseY });
 				};
 
-				switch (nAimbot) {
-				case 1:
+				if (!bPushingMouseM)
+					return;
+
+				if (hGameWnd != hForeWnd)
+					return;
+
+				if (bAimbot)
 					AImbot_MouseMove();
-					break;
-				case 2:
-					if (!IsScoping) {
-						AImbot_MouseMove();
-						break;
-					}
-				case 3:
-					FVector DirectionInput = PredictedPos - GunLocation;
+
+				if (bSilentAim && (bSilentAim_DangerousMode || MyInfo.IsScoping)) {
+					Result = GetBulletDropAndTravelTime(
+						MyInfo.AimLocation,
+						MyInfo.AimRotation,
+						TargetPos,
+						FLT_MIN,
+						MyInfo.BulletDropAdd,
+						MyInfo.InitialSpeed,
+						MyInfo.Gravity,
+						BallisticDragScale,
+						BallisticDropScale,
+						MyInfo.BDS,
+						MyInfo.SimulationSubstepTime,
+						MyInfo.VDragCoefficient,
+						MyInfo.BallisticCurve);
+
+					BulletDrop = Result.first;
+					TravelTime = Result.second;
+					PredictedPos = FVector(TargetPos.X, TargetPos.Y, TargetPos.Z + BulletDrop) + TargetVelocity * (TravelTime / CustomTimeDilation);
+
+					FVector DirectionInput = PredictedPos - MyInfo.AimLocation;
 					DirectionInput.Normalize();
 
 					ChangeRegOnBPInfo Info{};
@@ -1011,25 +1129,90 @@ void Hack::Loop() {
 					Info.XMM8.Float_0 = DirectionInput.Z;
 					dbvm.ChangeRegisterOnBP(AimHookAddressPA, Info);
 					IsNeedToHookAim = true;
-					break;
 				}
 			}();
 
-			if (bTurnBack) {
-				bTurnBack = false;
-				MoveMouse(hGameWnd, GetMouseXY({ 0.0f, 180.0f, 0.0f }));
+			if (!bPushingCapsLock) {
+				EnemyFocusingMePtr = 0;
+				bPushedCapsLock = false;
+			}
+			else if(!bPushedCapsLock) {
+				bPushedCapsLock = true;
+
+				switch (nCapsLockMode) {
+				case 1:
+					MoveMouse(hGameWnd, GetMouseXY({ 0.0f, 180.0f, 0.0f }));
+					break;
+				case 2:
+					NativePtr<ATslCharacter> Ptr;
+
+					for (auto Elem : EnemiesFocusingMeMap) {
+						if (Elem.second > MinFocusTime) {
+							if (Elem.first == EnemyFocusingMePtr)
+								break;
+							if (!Ptr)
+								Ptr = Elem.first;
+						}
+						else if (Elem.first == EnemyFocusingMePtr)
+							EnemyFocusingMePtr = 0;
+					}
+
+					CharacterInfo Info;
+					if (!GetCharacterInfo(Ptr, Info))
+						break;
+
+					LockTargetPtr = Info.Ptr;
+					EnemyFocusingMePtr = Info.Ptr;
+
+					auto Result = GetBulletDropAndTravelTime(
+						MyInfo.AimLocation,
+						MyInfo.AimRotation,
+						Info.BonesPos[forehead],
+						MyInfo.ZeroingDistance,
+						MyInfo.BulletDropAdd,
+						MyInfo.InitialSpeed,
+						MyInfo.Gravity,
+						BallisticDragScale,
+						BallisticDropScale,
+						MyInfo.BDS,
+						MyInfo.SimulationSubstepTime,
+						MyInfo.VDragCoefficient,
+						MyInfo.BallisticCurve);
+
+					float BulletDrop = Result.first;
+					float TravelTime = Result.second;
+
+					FVector PredictedPos = bPushingShift ? Info.BonesPos[forehead] : (Info.BonesPos[neck_01] + Info.BonesPos[spine_02]) * 0.5f;
+					PredictedPos.Z += BulletDrop;
+					PredictedPos = PredictedPos + Info.Velocity * (TravelTime / CustomTimeDilation);
+
+					FRotator RotationInput = (PredictedPos - CameraLocation).GetDirectionRotator() - MyInfo.AimRotation;
+					RotationInput.Clamp();
+					MoveMouse(hGameWnd, GetMouseXY(RotationInput));
+					break;
+				}
 			}
 
 			if (!IsNeedToHookAim)
 				dbvm.RemoveChangeRegisterOnBP(AimHookAddressPA);
 
-			if (SpectatedCount > 0)
-				DrawSpectatedCount(SpectatedCount, Render::COLOR_RED);
+			if (MyInfo.SpectatedCount > 0)
+				DrawSpectatedCount(MyInfo.SpectatedCount, Render::COLOR_RED);
 
-			if (!IsNearlyZero(ZeroingDistance))
-				DrawZeroingDistance(ZeroingDistance, Render::COLOR_TEAL);
+			std::string Enemies;
+			for (auto Elem : EnemiesFocusingMeMap) {
+				if (Elem.second < MinFocusTime)
+					continue;
 
-			if (IsWeaponed)
+				CharacterInfo Info;
+				if (!GetCharacterInfo(Elem.first, Info))
+					continue;
+
+				Enemies += Info.PlayerName + (std::string)"\n"e;
+			}
+			DrawEnemiesFocusingMe(Enemies.c_str(), Render::COLOR_RED);
+
+			if (MyInfo.IsWeaponed)
 				render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f, 0.0f }, AimbotCircleSize, Render::COLOR_WHITE);
 		};
 

@@ -17,15 +17,17 @@ private:
 	float NoticeTimeRemain = 0.0f;
 
 	bool bFighterMode = false;
-	bool bTurnBackShortKey = false;
-	bool bTurnBack = false;
+	int nCapsLockMode = 0;
+	bool bAimToEnemyFocusingMe = false;
 	bool bPlayer = true;
 	bool bVehicle = true;
 	bool bRadar = true;
 	bool bBox = true;
 	bool bTeamKill = false;
 	int nItem = 1;
-	int nAimbot = 1;
+	bool bAimbot = true;
+	bool bSilentAim = false;
+	bool bSilentAim_DangerousMode = false;
 	int nRange = 500;
 	float CircleFovInDegrees = 6.0f;
 
@@ -52,6 +54,7 @@ private:
 	bool bPushingMouseM = false;
 	bool bPushingMouseL = false;
 	bool bPushingMouseR = false;
+	bool bPushingCapsLock = false;
 
 	bool bShowMenu = true;
 	bool bDebug = false;
@@ -67,6 +70,8 @@ private:
 	std::string debuglog;
 	bool bCaptureLog = true;
 	bool bNeedToScroll = false;
+
+	constexpr static float MinFocusTime = 0.1f;
 
 public:
 	constexpr static unsigned MARGIN = 10;
@@ -157,9 +162,8 @@ public:
 		render.DrawString({ render.Width * 0.6f, 0.0f , 0.0f }, Hack::MARGIN, szBuf, Hack::FONTSIZE_SMALL, Color, true, true, true);
 	}
 
-	void DrawZeroingDistance(float ZeroingDistance, ImColor Color) const {
-		sprintf(szBuf, "Zero : %.0f"e, ZeroingDistance);
-		render.DrawString({ render.Width * 0.5f, 0.0f , 0.0f }, Hack::MARGIN, szBuf, Hack::FONTSIZE_SMALL, Color, true, true, true);
+	void DrawEnemiesFocusingMe(const char* szPlayers, ImColor Color) const {
+		render.DrawString({ render.Width * 0.5f, 0.0f , 0.0f }, Hack::MARGIN, szPlayers, Hack::FONTSIZE_SMALL, Color, true, true, true);
 	}
 
 	void DrawSpectatedCount(unsigned SpectatedCount, ImColor Color) const {

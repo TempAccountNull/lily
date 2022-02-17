@@ -19,7 +19,7 @@
 //15.1.6.7
 #define szPatternAllClass "48 8d 05 ? ? ? ? 48 ? ? ? ? 4c 8d 0d ? ? ? ? 4c 8d 05 ? ? ? ? 48 8d 15 ? ? ? ? 48 8d 0d ? ? ? ? e8"e
 #define szPatternAllStruct "4c 8d 05 ? ? ? ? 48 ? ? 48 8d 0d ? ? ? ? e8 ? ? ? ? 48 89 05"e
-#define szPatternFuncOffset "4c 8d ? ? ? 00 00 48 ? ? 08 49 ? ? eb"e
+//#define szPatternFuncOffset "4c 8d ? ? ? 00 00 48 ? ? 08 49 ? ? eb"e
 
 enum class Type {
 	Member,
@@ -27,6 +27,7 @@ enum class Type {
 	Enum
 };
 
+//e8 ? ? 00 00 48 8b d0 f7 83 ? ? 00 00 00 04 00 00
 inline DWORD UObjectFuncOffset;
 
 static auto GetStructMap(Process& process) {
@@ -348,11 +349,12 @@ static auto GetMemberMap(Process& process, uintptr_t StartAddress) {
 }
 
 static void DumpAll(Process& process) {
-	uintptr_t ScanResult = process.ScanCurrentModule(szPatternFuncOffset);
-	if (!ScanResult || !process.Read(ScanResult + 0x3, &UObjectFuncOffset)) {
-		dprintf("UObjectFuncOffset not found");
-		return;
-	}
+	//uintptr_t ScanResult = process.ScanCurrentModule(szPatternFuncOffset);
+	//if (!ScanResult || !process.Read(ScanResult + 0x3, &UObjectFuncOffset)) {
+	//	dprintf("UObjectFuncOffset not found");
+	//	return;
+	//}
+	UObjectFuncOffset = 0x140;
 
 	std::map<std::wstring, uintptr_t> ClassMap = GetClassMap(process);
 	std::map<std::wstring, uintptr_t> StructMap = GetStructMap(process);
@@ -421,11 +423,12 @@ static void DumpAll(Process& process) {
 }
 
 static bool Dump(Process& process) {
-	uintptr_t ScanResult = process.ScanCurrentModule(szPatternFuncOffset);
-	if (!ScanResult || !process.Read(ScanResult + 0x3, &UObjectFuncOffset)) {
-		dprintf("UObjectFuncOffset not found");
-		return false;
-	}
+	//uintptr_t ScanResult = process.ScanCurrentModule(szPatternFuncOffset);
+	//if (!ScanResult || !process.Read(ScanResult + 0x3, &UObjectFuncOffset)) {
+	//	dprintf("UObjectFuncOffset not found");
+	//	return;
+	//}
+	UObjectFuncOffset = 0x140;
 
 	std::map<std::wstring, uintptr_t> ClassMap = GetClassMap(process);
 	std::map<std::wstring, uintptr_t> StructMap = GetStructMap(process);

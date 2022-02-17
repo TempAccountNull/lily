@@ -257,4 +257,6 @@ public:
 	void DrawRectOutlined(const FVector& from, const FVector& to, ImColor Color, float rounding = 0, ImDrawFlags flags = 0, float thickness = 1.0f) const;
 	void DrawRectFilled(const FVector& from, const FVector& to, ImColor Color, float rounding = 0, ImDrawFlags flags = 0) const;
 	void DrawX(const FVector& center, float len, ImColor Color, float thickness = 1.0f) const;
+	void DrawTriangle(const FVector& p1, const FVector& p2, const FVector& p3, ImColor Color, float thickness = 1.0f) const;
+	void DrawTriangleFilled(const FVector& p1, const FVector& p2, const FVector& p3, ImColor Color) const;
 };

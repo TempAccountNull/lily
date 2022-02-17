@@ -26,15 +26,8 @@ void Hack::DrawHotkey() const {
 	strNotice += nItem > 0 ? std::to_string(nItem) : "OFF"e;
 	strNotice += (std::string)"\n"e;
 
-	strNotice += (std::string)"Aimbot(F6) : "e;
-	strNotice +=
-		nAimbot == 1 ? (std::string)"Normal"e :
-		nAimbot == 2 ? (std::string)"Silent"e :
-		nAimbot == 3 ? (std::string)"Silent (Dangerous!)"e :
-		"OFF"e;
-	strNotice += (std::string)"\n"e;
-
-	AddOnOff("Enable TurnBack Shortkey(F7, CapsLock)"e, bTurnBackShortKey);
+	AddOnOff("Aimbot(F6)"e, bAimbot);
+	AddOnOff("Silent Aimbot(F7)"e, bSilentAim);
 	AddOnOff("TeamKill(F10)"e, bTeamKill);
 	AddOnOff("Total ESP(F12)"e, bESP);
 
@@ -69,8 +62,11 @@ void Hack::ProcessImGui() {
 		ImGui::SliderInt("Range"e, &nRange, 100, 1000, "%dM"e, ImGuiSliderFlags_AlwaysClamp);
 		ImGui::PopItemWidth();
 
-		ImGui::Checkbox("Fighter Mode (~)"e, (bool*)&bFighterMode);
-		ImGui::Checkbox("Enable turnback (F7, CapsLock)"e, (bool*)&bTurnBackShortKey);
+		ImGui::Checkbox("Fighter Mode (~)"e, &bFighterMode);
+
+		ImGui::RadioButton("CapsLock Mode : OFF"e, &nCapsLockMode, 0);
+		ImGui::RadioButton("CapsLock Mode : TurnBack"e, &nCapsLockMode, 1);
+		ImGui::RadioButton("CapsLock Mode : AimToEnemyFocusingMe"e, &nCapsLockMode, 2);
 
 		ImGui::NewLine();
 
@@ -110,11 +106,12 @@ void Hack::ProcessImGui() {
 			}
 			if (ImGui::BeginTabItem("Aimbot"e))
 			{
-				ImGui::Checkbox("Aimbot(F6)"e, (bool*)&nAimbot);
-				if (nAimbot > 0) {
-					ImGui::RadioButton("Normal"e, &nAimbot, 1);
-					ImGui::RadioButton("Silent"e, &nAimbot, 2);
-					ImGui::RadioButton("Silent (Dangerous!)"e, &nAimbot, 3);
+				ImGui::Checkbox("Aimbot(F6)"e, &bAimbot);
+				ImGui::Checkbox("Silent Aim(F7)"e, &bSilentAim);
+
+				if (ImGui::TreeNode("Details"e)) {
+					ImGui::Checkbox("Dangerous Mode"e, &bSilentAim_DangerousMode);
+					ImGui::TreePop();
 				}
 
 				ImGui::Text("Fov"e);
@@ -155,12 +152,6 @@ void Hack::ProcessImGui() {
 }
 
 void Hack::ProcessHotkey() {
-	bTurnBack = false;
-	if (bTurnBackShortKey) {
-		if (IsKeyPushed(VK_CAPITAL)) {
-			bTurnBack = true;
-		}
-	}
 	if (IsKeyPushing(VK_MENU) || IsKeyPushing(VK_MBUTTON)) {
 		if (IsKeyPushed(VK_HOME)) {
 			bShowMenu = !bShowMenu;
@@ -190,11 +181,11 @@ void Hack::ProcessHotkey() {
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_F6)) {
-			nAimbot = (nAimbot + 1) % 4;
+			bAimbot = !bAimbot;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_F7)) {
-			bTurnBackShortKey = !bTurnBackShortKey;
+			bSilentAim = !bSilentAim;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_F10)) {
@@ -229,4 +220,5 @@ void Hack::ProcessHotkey() {
 	bPushingShift = IsKeyPushing(VK_LSHIFT);
 	bPushingCTRL = IsKeyPushing(VK_LCONTROL);
 	bPushingMouseR = IsKeyPushing(VK_RBUTTON);
+	bPushingCapsLock = IsKeyPushing(VK_CAPITAL);
 }

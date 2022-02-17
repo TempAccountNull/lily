@@ -24,20 +24,20 @@ public:
 		__int64 a1 = (__int64)this;
 		int v1;
 		int v2;
-		unsigned int v3;
-		int v4;
-		__int64 v37;
+		int v3;
+		__int64 v5;
+		__int64 v73;
 
-		v1 = *(_DWORD*)(a1 + 0x14) ^ 0x24040F2C;
-		v2 = __ROL4__(*(_DWORD*)(a1 + 0x10) ^ 0xA2278A0C, 0xC);
-		v3 = v2 ^ (v2 << 0x10) ^ 0x2B280F2C;
-		LODWORD(v37) = v3;
-		v4 = __ROR4__(v1, 0xC);
-		HIDWORD(v37) = v4 ^ (v4 << 0x10) ^ 0x282B8A0C;
+		v1 = *(_DWORD*)(a1 + 0x2C) ^ 0x48B2EC95;
+		LODWORD(v5) = __ROL4__(*(_DWORD*)(a1 + 0x28) ^ 0xF38FD42B, 6);
+		v2 = int(v5 ^ ((_DWORD)v5 << 0x10) ^ 0xA427EC95);
+		LODWORD(v73) = v2;
+		v3 = __ROR4__(v1, 2);
+		HIDWORD(v73) = v3 ^ (v3 << 0x10) ^ 0x27A4D42B;
 
 		FName name;
-		name.ComparisonIndex = LODWORD(v37);
-		name.Number = HIDWORD(v37);
+		name.ComparisonIndex = LODWORD(v73);
+		name.Number = HIDWORD(v73);
 
 		return name;
 	}

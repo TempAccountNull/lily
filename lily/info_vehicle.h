@@ -48,8 +48,15 @@ static VehicleInfo GetVehicleInfo(unsigned Hash) {
 		HASH_CASE("BP_M_Rony_A_01_C"h, { "Rony"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_M_Rony_A_02_C"h, { "Rony"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_M_Rony_A_03_C"h, { "Rony"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Mirado_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Mirado_A_01_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_Mirado_A_02_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Mirado_A_03_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_Mirado_A_03_Esports_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Mirado_A_04_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Mirado_Open_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Mirado_Open_01_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Mirado_Open_02_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_Mirado_Open_03_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_Mirado_Open_04_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_Motorbike_04_C"h, { "Motor"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });

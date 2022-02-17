@@ -79,6 +79,18 @@ void Render::DrawRectFilled(const FVector& from, const FVector& to, ImColor Colo
 	ImGui::GetWindowDrawList()->AddRectFilled({ from.X, from.Y }, { to.X, to.Y }, Color, rounding, flags);
 }
 
+void Render::DrawTriangle(const FVector& p1, const FVector& p2, const FVector& p3, ImColor Color, float thickness) const {
+	if (!bRender) return;
+	if (p1.Z < 0.0f) return;
+	ImGui::GetWindowDrawList()->AddTriangle({ p1.X, p1.Y }, { p2.X, p2.Y }, { p3.X, p3.Y }, Color, thickness);
+}
+
+void Render::DrawTriangleFilled(const FVector& p1, const FVector& p2, const FVector& p3, ImColor Color) const {
+	if (!bRender) return;
+	if (p1.Z < 0.0f) return;
+	ImGui::GetWindowDrawList()->AddTriangleFilled({ p1.X, p1.Y }, { p2.X, p2.Y }, { p3.X, p3.Y }, Color);
+}
+
 void Render::DrawRatioBox(const FVector& from, const FVector& to, float Ratio, ImColor ColorRemain, ImColor ColorDamaged, ImColor ColorEdge) const {
 	if (!bRender) return;
 	if (from.Z < 0.0f) return;

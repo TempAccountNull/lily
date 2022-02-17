@@ -103,7 +103,7 @@ class UStaticMesh
 TArray<NativePtr<UStaticMeshSocket>> Sockets
 
 class UWeaponMeshComponent
-UNPACK(TMap<BYTE,NativePtr<UStaticMeshComponent>>) AttachedStaticComponentMap
+UNPACK(TMap<uint8_t,NativePtr<UStaticMeshComponent>>) AttachedStaticComponentMap
 
 class USkeleton
 TArray<NativePtr<USkeletalMeshSocket>> Sockets
@@ -126,13 +126,13 @@ NativePtr<APawn> LastVehiclePawn
 
 class UWeaponProcessorComponent
 TArray<NativePtr<ATslWeapon>> EquippedWeapons
-BYTE WeaponArmInfo + WeaponArmInfo.RightWeaponIndex
+uint8_t WeaponArmInfo + WeaponArmInfo.RightWeaponIndex
 
 class UAttachableItem
 function GetAttachmentData
 
 struct WeaponAttachmentData
-BYTE AttachmentSlotID
+uint8_t AttachmentSlotID
 TArray<float> ZeroingDistances
 FName Name
 
@@ -163,7 +163,7 @@ FRotator ControlRotation_CP
 FRotator RecoilADSRotation_CP
 float LeanLeftAlpha_CP
 float LeanRightAlpha_CP
-BYTE bIsScoping_CP
+uint8_t bIsScoping_CP
 
 class UWeaponTrajectoryData
 FWeaponTrajectoryConfig TrajectoryConfig

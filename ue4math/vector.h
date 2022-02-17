@@ -71,9 +71,12 @@ public:
 		return FVector(X * Value, Y * Value, Z * Value);
 	}
 
+	FVector GetNormalizedVector() const {
+		return operator*(1.0f / sqrtf(X * X + Y * Y + Z * Z));
+	}
+
 	void Normalize() {
-		float factor = 1.0f / sqrtf(X * X + Y * Y + Z * Z);
-		(*this) = (*this) * factor;
+		*this = GetNormalizedVector();
 	}
 
 	float Length() const {
