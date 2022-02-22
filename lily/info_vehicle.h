@@ -18,7 +18,7 @@ enum class VehicleType3 {
 };
 
 struct VehicleInfo {
-	fixstr::basic_fixed_string<char, 0x100> VehicleName;
+	fixstr::basic_fixed_string<char, 0x100> Name;
 	VehicleType1 Type1;
 	VehicleType2 Type2;
 	VehicleType3 Type3;

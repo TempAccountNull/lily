@@ -66,7 +66,14 @@ static int CreateProcessCMD(const char* szPath) {
 }
 
 static bool IsKeyPushing(int vKey) { return (GetAsyncKeyState(vKey) & 0x8000) != 0; }
-static bool IsKeyPushed(int vKey) { return (GetAsyncKeyState(vKey) & 0x1) != 0; }
+static bool IsKeyPushed(int vKey) {
+	static bool bSaveState[0x100] = { 0 };
+	const bool bPrevState = bSaveState[(uint8_t)vKey];
+	const bool bCurrState = IsKeyPushing(vKey);
+	const bool Result = !bPrevState && bCurrState;
+	bSaveState[(uint8_t)vKey] = bCurrState;
+	return Result;
+}
 
 static std::wstring s2ws(const std::string& str) {
 	USES_CONVERSION;

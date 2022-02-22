@@ -31,7 +31,7 @@ void Hack::DrawHotkey() const {
 	AddOnOff("TeamKill(F10)"e, bTeamKill);
 	AddOnOff("Total ESP(F12)"e, bESP);
 
-	strNotice += (std::string)"Current Rnage (+-) : "e;
+	strNotice += (std::string)"Range (+-) : "e;
 	strNotice += std::to_string(nRange);
 	strNotice += (std::string)"M"e;
 	DrawNotice(strNotice.c_str(), Render::COLOR_TEAL);
@@ -155,6 +155,7 @@ void Hack::ProcessHotkey() {
 	if (IsKeyPushing(VK_MENU) || IsKeyPushing(VK_MBUTTON)) {
 		if (IsKeyPushed(VK_HOME)) {
 			bShowMenu = !bShowMenu;
+			bIgnoreMouseInput = false;
 		}
 		if (IsKeyPushed(VK_OEM_3)) {
 			bFighterMode = !bFighterMode;

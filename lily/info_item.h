@@ -2,7 +2,7 @@
 #include "common/util.h"
 
 struct ItemInfo {
-	fixstr::basic_fixed_string<char, 0x100> ItemName;
+	fixstr::basic_fixed_string<char, 0x100> Name;
 	int ItemPriority;
 };
 

@@ -45,7 +45,7 @@ private:
 	constexpr static float AimSpeedMaxFactor = 1.0f / 3.0f;
 	constexpr static float AimSpeedMax = 1000000.0f;
 	constexpr static float AimSpeedMin = 0.0f;
-	constexpr static float AimSpeedDefault = AimSpeedMax;
+	constexpr static float AimSpeedDefault = 1000.0f;
 	float AimSpeedX = AimSpeedDefault;
 	float AimSpeedY = AimSpeedDefault;
 

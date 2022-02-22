@@ -81,7 +81,6 @@ void Hack::Loop() {
 	};
 	std::map<uint64_t, CharacterPosInfo> PosInfoMap;
 	std::map<uint64_t, float> EnemiesFocusingMeMap;
-	std::map<uint64_t, bool> CharacterSave;
 
 	while (IsWindow(hGameWnd)) {
 		const HWND hForeWnd = GetForegroundWindow();
@@ -134,9 +133,9 @@ void Hack::Loop() {
 					return false;
 
 				auto ItemInfo = Item.GetInfo();
-				char* szItemName = ItemInfo.ItemName.data();
+				auto& ItemName = ItemInfo.Name;
 
-				if (!*szItemName && !pubg.NameArr.GetNameByID(Item.GetItemID(), szItemName, sizeof(ItemInfo.ItemName)))
+				if (!ItemName[0] && !pubg.NameArr.GetNameByID(Item.GetItemID(), ItemName.data(), sizeof(ItemName)))
 					return false;
 
 				const int ItemPriority = ItemInfo.ItemPriority;
@@ -156,7 +155,7 @@ void Hack::Loop() {
 					}
 				}();
 
-				DrawString(ItemLocation, szItemName, ItemColor, false);
+				DrawString(ItemLocation, ItemName.data(), ItemColor, false);
 				return true;
 			};
 			auto GetCharacterInfo = [&](NativePtr<ATslCharacter> CharacterPtr, CharacterInfo& Info) -> bool {
@@ -438,7 +437,6 @@ void Hack::Loop() {
 			if (!CachedMyTslCharacterPtr) {
 				PosInfoMap.clear();
 				EnemiesFocusingMeMap.clear();
-				CharacterSave.clear();
 				LockTargetPtr = 0;
 			}
 
@@ -465,16 +463,10 @@ void Hack::Loop() {
 					return;
 
 				CharacterInfo Info;
-				if (!GetCharacterInfo((uintptr_t)ActorPtr, Info)) {
-					CharacterSave.erase(ActorPtr);
+				if (!GetCharacterInfo((uintptr_t)ActorPtr, Info))
 					return;
-				}
-
-				CharacterSave[ActorPtr] = true;
 
 				float Distance = MyInfo.Location.Distance(Info.Location) / 100.0f;
-				if (Distance >= nRange)
-					return;
 
 				bool bFocusingMe = false;
 				//Get bFocusingMe
@@ -773,9 +765,6 @@ void Hack::Loop() {
 				}();
 			};
 
-			for (auto& Elem : CharacterSave)
-				Elem.second = false;
-
 			//Actor loop
 			for (const auto& ActorPtr : Actors.GetVector()) {
 				TSet<NativePtr<UActorComponent>> OwnedComponents;
@@ -784,6 +773,7 @@ void Hack::Loop() {
 				FVector ActorLocationScreen;
 				float DistanceToActor = 0.0f;
 				unsigned ActorNameHash = 0;
+				bool bAircraftCarePackage = false;
 
 				auto GetValidActorInfo = [&]() {
 					AActor Actor;
@@ -812,6 +802,7 @@ void Hack::Loop() {
 					if (!Actor.GetName(szBuf, sizeof(szBuf)))
 						return false;
 
+					bAircraftCarePackage = (strncmp(szBuf, "AircraftCarePackage"e, sizeof("AircraftCarePackage"e) - 1) == 0);
 					ActorNameHash = Actor.GetNameHash();
 
 					if (bDebug) {
@@ -825,16 +816,25 @@ void Hack::Loop() {
 				if (!GetValidActorInfo())
 					continue;
 
+				//DrawAircraft
+				[&] {
+					if (!bAircraftCarePackage)
+						return;
+
+					sprintf(szBuf, "%s\n%.0fM"e, (const char*)"Aircraft"e, DistanceToActor);
+					DrawString(ActorLocationScreen, szBuf, Render::COLOR_TEAL, false);
+				}();
+
 				//DrawProj
 				[&] {
 					if (DistanceToActor > 300.0f)
 						return;
 
-					const char* szProjName = GetProjName(ActorNameHash).data();
-					if (!*szProjName)
+					auto ProjName = GetProjName(ActorNameHash);
+					if (!ProjName[0])
 						return;
 
-					sprintf(szBuf, "%s\n%.0fM"e, szProjName, DistanceToActor);
+					sprintf(szBuf, "%s\n%.0fM"e, ProjName.data(), DistanceToActor);
 					DrawString(ActorLocationScreen, szBuf, Render::COLOR_RED, false);
 				}();
 
@@ -850,8 +850,8 @@ void Hack::Loop() {
 					}
 
 					auto VehicleInfo = GetVehicleInfo(ActorNameHash);
-					const char* szVehicleName = VehicleInfo.VehicleName.data();
-					if (!*szVehicleName)
+					auto& VehicleName = VehicleInfo.Name;
+					if (!VehicleName[0])
 						return;
 
 					float Health = 100.0f;
@@ -905,7 +905,7 @@ void Hack::Loop() {
 					if (Health <= 0.0f || Fuel <= 0.0f)
 						Color = Render::COLOR_GRAY;
 
-					sprintf(szBuf, "%s\n%.0fM"e, szVehicleName, DistanceToActor);
+					sprintf(szBuf, "%s\n%.0fM"e, VehicleName.data(), DistanceToActor);
 					DrawString(ActorLocationScreen, szBuf, Color, false);
 
 					//Draw vehicle health, fuel
@@ -927,16 +927,24 @@ void Hack::Loop() {
 					}();
 				}();
 
-				//DrawBox
+				//DrawPackage
 				[&] {
 					if (!bBox || bFighterMode)
 						return;
 
-					const char* szPackageName = GetPackageName(ActorNameHash).data();
-					if (!*szPackageName)
+					auto PackageInfo = GetPackageInfo(ActorNameHash);
+					auto& PackageName = PackageInfo.Name;
+					if (!PackageName[0])
 						return;
 
-					sprintf(szBuf, "%s\n%.0fM"e, szPackageName, DistanceToActor);
+					if (PackageInfo.IsSmall && DistanceToActor > 300.0f)
+						return;
+
+					if (PackageInfo.IsSmall)
+						sprintf(szBuf, "%s"e, PackageName.data());
+					else
+						sprintf(szBuf, "%s\n%.0fM"e, PackageName.data(), DistanceToActor);
+					
 					DrawString(ActorLocationScreen, szBuf, Render::COLOR_TEAL, false);
 
 					//DrawBoxContents
@@ -997,9 +1005,6 @@ void Hack::Loop() {
 
 				ProcessTslCharacter(ActorPtr);
 			}
-
-			for (const auto& Elem : CharacterSave)
-				if (!Elem.second) ProcessTslCharacter(Elem.first);
 
 			float CustomTimeDilation = 1.0f;
 
