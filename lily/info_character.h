@@ -1,14 +1,22 @@
 #pragma once
 #include "common/util.h"
 
-inline bool IsPlayerCharacter(unsigned Hash) {
-	if (Hash == "PlayerFemale_A_C"h || Hash == "PlayerMale_A_C"h)
-		return true;
-	return false;
+static bool IsPlayerCharacter(unsigned Hash) {
+	switch (Hash) {
+		HASH_DEFAULT(false);
+
+		HASH_CASE("PlayerFemale_A_C"h, true);
+		HASH_CASE("PlayerMale_A_C"h, true);
+	}
 }
 
-inline bool IsAICharacter(unsigned Hash) {
-	if (Hash == "AIPawn_Base_Female_C"h || Hash == "AIPawn_Base_Male_C"h || Hash == "UltAIPawn_Base_Female_C"h || Hash == "UltAIPawn_Base_Male_C"h)
-		return true;
-	return false;
+static bool IsAICharacter(unsigned Hash) {
+	switch (Hash) {
+		HASH_DEFAULT(false);
+
+		HASH_CASE("AIPawn_Base_Female_C"h, true);
+		HASH_CASE("AIPawn_Base_Male_C"h, true);
+		HASH_CASE("UltAIPawn_Base_Female_C"h, true);
+		HASH_CASE("UltAIPawn_Base_Male_C"h, true);
+	}
 }

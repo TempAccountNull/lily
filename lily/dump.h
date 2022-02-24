@@ -28,7 +28,7 @@ enum class Type {
 };
 
 //e8 ? ? 00 00 48 8b d0 f7 83 ? ? 00 00 00 04 00 00
-inline DWORD UObjectFuncOffset;
+inline DWORD UObjectFuncOffset = 0x120;
 
 static auto GetStructMap(Process& process) {
 	std::map<std::wstring, uintptr_t> StructMap;
@@ -354,7 +354,6 @@ static void DumpAll(Process& process) {
 	//	dprintf("UObjectFuncOffset not found");
 	//	return;
 	//}
-	UObjectFuncOffset = 0x140;
 
 	std::map<std::wstring, uintptr_t> ClassMap = GetClassMap(process);
 	std::map<std::wstring, uintptr_t> StructMap = GetStructMap(process);
@@ -428,7 +427,6 @@ static bool Dump(Process& process) {
 	//	dprintf("UObjectFuncOffset not found");
 	//	return;
 	//}
-	UObjectFuncOffset = 0x140;
 
 	std::map<std::wstring, uintptr_t> ClassMap = GetClassMap(process);
 	std::map<std::wstring, uintptr_t> StructMap = GetStructMap(process);

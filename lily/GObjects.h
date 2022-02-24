@@ -10,7 +10,7 @@ class TNameEntryArray;
 class UObject
 {
 private:
-	uint8_t pad[0x38];
+	uint8_t pad[0x40];
 public:
 	//DWORD64 GetClass() {
 	//	__int64 a1 = (__int64)this;
@@ -28,12 +28,12 @@ public:
 		__int64 v5;
 		__int64 v73;
 
-		v1 = *(_DWORD*)(a1 + 0x2C) ^ 0x48B2EC95;
-		LODWORD(v5) = __ROL4__(*(_DWORD*)(a1 + 0x28) ^ 0xF38FD42B, 6);
-		v2 = int(v5 ^ ((_DWORD)v5 << 0x10) ^ 0xA427EC95);
+		v1 = *(_DWORD*)(a1 + 0x14) ^ 0xA0BAF312;
+		LODWORD(v5) = __ROL4__(*(_DWORD*)(a1 + 0x10) ^ 0x408DE8DE, 5);
+		v2 = int(v5 ^ ((_DWORD)v5 << 0x10) ^ 0x53A8F312);
 		LODWORD(v73) = v2;
-		v3 = __ROR4__(v1, 2);
-		HIDWORD(v73) = v3 ^ (v3 << 0x10) ^ 0x27A4D42B;
+		v3 = __ROR4__(v1, 3);
+		HIDWORD(v73) = v3 ^ (v3 << 0x10) ^ 0xA853E8DE;
 
 		FName name;
 		name.ComparisonIndex = LODWORD(v73);

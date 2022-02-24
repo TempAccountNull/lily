@@ -6,8 +6,8 @@ struct FName;
 class TNameEntryArray
 {
 private:
-	static constexpr uintptr_t ADDRESS_GNAMES = 0x944B7C8;
-	static constexpr uint32_t ElementsPerChunk = 0x41C4;
+	static constexpr uintptr_t ADDRESS_GNAMES = 0x898C7E8;
+	static constexpr uint32_t ElementsPerChunk = 0x415C;
 
 	//NumElements can be increased when name added to list
 	//Don't use this for check index range -> "if(ID.ComparisonIndex >= NumElements)"

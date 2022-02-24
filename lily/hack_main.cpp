@@ -22,7 +22,7 @@ void Hack::Loop() {
 	verify(KeyMouseY.ComparisonIndex);
 
 	//41 0f ? ? 73 ? f3 0f 10 ? ? ? ? ? f3 0f 11 ? ? ? ? 00 00
-	constexpr uintptr_t HookBaseAddress = 0x77fe9e;
+	constexpr uintptr_t HookBaseAddress = 0x81768A;
 	uint8_t OriginalByte = 0;
 	pubg.ReadBase(HookBaseAddress, &OriginalByte);
 	const uintptr_t AimHookAddressVA = pubg.GetBaseAddress() + HookBaseAddress;
@@ -1213,12 +1213,15 @@ void Hack::Loop() {
 				if (!GetCharacterInfo(Elem.first, Info))
 					continue;
 
-				Enemies += Info.PlayerName + (std::string)"\n"e;
+				float Distance = MyInfo.Location.Distance(Info.Location) / 100.0f;
+
+				Enemies += Info.PlayerName + (std::string)" : "e + std::to_string((int)Distance) + (std::string)"M\n"e;
 			}
 			DrawEnemiesFocusingMe(Enemies.c_str(), Render::COLOR_RED);
 
 			if (MyInfo.IsWeaponed)
-				render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f, 0.0f }, AimbotCircleSize, Render::COLOR_WHITE);
+				render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f, 0.0f },
+					AimbotCircleSize, bSilentAim ? Render::COLOR_YELLOW : Render::COLOR_WHITE);
 		};
 
 		render.RenderArea(hGameWnd, Render::COLOR_CLEAR, [&] {
