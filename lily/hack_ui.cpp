@@ -108,7 +108,6 @@ void Hack::ProcessImGui() {
 			{
 				ImGui::Checkbox("Aimbot(F6)"e, &bAimbot);
 				if (ImGui::TreeNode("Details"e)) {
-					ImGui::Checkbox("FocusNextEnemy"e, &bFocusNextEnemy);
 					ImGui::Text("Fov"e);
 					ImGui::PushItemWidth(-1);
 					ImGui::SliderFloat("Fov"e, &CircleFovInDegrees, 6.0f, 12.0f);

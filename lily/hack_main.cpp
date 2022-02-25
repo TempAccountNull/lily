@@ -10,6 +10,12 @@
 #include "info_package.h"
 #include "info_character.h"
 
+enum class CharacterState {
+	Dead,
+	Alive,
+	Groggy
+};
+
 void Hack::Loop() {
 	const HWND hGameWnd = pubg.hGameWnd;
 	const CR3 mapCR3 = kernel.GetMapCR3();
@@ -50,7 +56,7 @@ void Hack::Loop() {
 		bool IsAI = false;
 		float Health = 0.0f;
 		float GroggyHealth = 0.0f;
-		bool IsDead() const { return Health <= 0.0f && GroggyHealth <= 0.0f; }
+		CharacterState State = CharacterState::Dead;
 		float ZeroingDistance = 100.0f;
 		NativePtr<UCurveVector> BallisticCurve = 0;
 		float Gravity = -9.8f;
@@ -60,6 +66,8 @@ void Hack::Loop() {
 		float InitialSpeed = 800.0f;
 		float BulletDropAdd = 7.0f;
 		FVector Location;
+		FVector AimPoint;
+		bool IsLocked = false;
 		FVector GunLocation;
 		FRotator GunRotation;
 		FVector AimLocation;
@@ -85,10 +93,17 @@ void Hack::Loop() {
 		}PosInfo;
 
 		struct {
-			int Ammo;
-			float RemainTime;
+			int Ammo = -1;
+			float RemainTime = 0.0f;
 			FRotator GunRotation;
 		}FiringInfo;
+
+		struct {
+			bool IsLocked = false;
+			FVector AimPoint;
+			FVector Velocity;
+			CharacterState State = CharacterState::Dead;
+		}AimbotInfo;
 
 		float FocusTime = 0.0f;
 	};
@@ -212,6 +227,12 @@ void Hack::Loop() {
 				Info.Team = TslCharacter.LastTeamNum;
 				Info.SpectatedCount = TslCharacter.SpectatedCount;
 				Info.IsScoping = TslAnimInstance.bIsScoping_CP;
+				Info.State =
+					Info.Health > 0.0f ? CharacterState::Alive :
+					Info.GroggyHealth > 0.0f ? CharacterState::Groggy :
+					CharacterState::Dead;
+
+				Info.AimPoint = bPushingShift ? Info.BonesPos[forehead] : (Info.BonesPos[neck_01] + Info.BonesPos[spine_02]) * 0.5f;
 
 				wchar_t PlayerName[0x100];
 				if (TslCharacter.CharacterName.GetValues(*PlayerName, 0x100))
@@ -224,7 +245,7 @@ void Hack::Loop() {
 				[&] {
 					auto& PosInfo = EnemyInfoMap[CharacterPtr].PosInfo.Info;
 
-					if (Info.IsDead() || !Info.IsVisible) {
+					if (Info.State == CharacterState::Dead || !Info.IsVisible) {
 						PosInfo.clear();
 						return;
 					}
@@ -259,7 +280,39 @@ void Hack::Loop() {
 					Info.Velocity = SumPosDif * (1.0f / SumTimeDelta);
 				}();
 
-				if (Info.IsDead())
+				if (CharacterPtr == LockTargetPtr) {
+					if (EnemyInfoMap[CharacterPtr].AimbotInfo.IsLocked) {
+						Info.AimPoint = EnemyInfoMap[CharacterPtr].AimbotInfo.AimPoint;
+						Info.Velocity = EnemyInfoMap[CharacterPtr].AimbotInfo.Velocity;
+					}
+					else {
+						const bool bLockAimPoint = [&] {
+							CharacterState PrevState = EnemyInfoMap[CharacterPtr].AimbotInfo.State;
+
+							if (PrevState == CharacterState::Alive && Info.State == CharacterState::Groggy)
+								return true;
+							if (PrevState == CharacterState::Alive && Info.State == CharacterState::Dead)
+								return true;
+							if (PrevState == CharacterState::Groggy && Info.State == CharacterState::Dead)
+								return true;
+
+							return false;
+						}();
+
+						if (bLockAimPoint) {
+							EnemyInfoMap[CharacterPtr].AimbotInfo.AimPoint = Info.AimPoint;
+							EnemyInfoMap[CharacterPtr].AimbotInfo.Velocity = Info.Velocity;
+							EnemyInfoMap[CharacterPtr].AimbotInfo.IsLocked = true;
+						}
+					}
+				}
+				else
+					EnemyInfoMap[CharacterPtr].AimbotInfo.IsLocked = false;
+
+				Info.IsLocked = EnemyInfoMap[CharacterPtr].AimbotInfo.IsLocked;
+				EnemyInfoMap[CharacterPtr].AimbotInfo.State = Info.State;
+
+				if (Info.State == CharacterState::Dead)
 					return true;
 
 				//PlayerState
@@ -473,17 +526,7 @@ void Hack::Loop() {
 			if (!GetCharacterInfo(LockTargetPtr, LockedTargetInfo))
 				LockTargetPtr = 0;
 
-			if (bFocusNextEnemy) {
-				if (LockedTargetInfo.IsDead())
-					LockTargetPtr = 0;
-				if (LockedTargetInfo.Health <= 0.0f && !bPushingCTRL)
-					LockTargetPtr = 0;
-			}
-
 			NativePtr<ATslCharacter> CurrentTargetPtr = 0;
-			bool bFoundTarget = false;
-			FVector TargetPos;
-			FVector TargetVelocity;
 
 			auto ProcessTslCharacter = [&](uint64_t ActorPtr) {
 				if (MyPawnPtr == ActorPtr)
@@ -567,7 +610,7 @@ void Hack::Loop() {
 					if (!bRadar)
 						return;
 
-					if (Info.IsDead())
+					if (Info.State == CharacterState::Dead)
 						return;
 
 					const FVector RadarPos = (Info.Location - MyInfo.Location) * 0.01f;
@@ -645,14 +688,16 @@ void Hack::Loop() {
 				[&] {
 					if (!MyInfo.IsWeaponed)
 						return;
-					if (Info.IsDead())
-						return;
 					if (!Info.IsVisible)
 						return;
 					if (!bTeamKill && Info.Team == MyInfo.Team)
 						return;
-					if (!bPushingCTRL && Info.Health <= 0.0f)
-						return;
+					if (!Info.IsLocked) {
+						if (Info.State == CharacterState::Dead)
+							return;
+						if (Info.State == CharacterState::Groggy && !bPushingCTRL)
+							return;
+					}
 
 					FVector VecEnemy = bPushingShift ? Info.BonesPos[forehead] : (Info.BonesPos[neck_01] + Info.BonesPos[spine_02]) * 0.5f;
 					FVector VecEnemy2D = WorldToScreen(VecEnemy);
@@ -670,14 +715,8 @@ void Hack::Loop() {
 					if (DistanceFromCenter > AimbotDistant)
 						return;
 
-					if (LockTargetPtr && LockTargetPtr != ActorPtr)
-						return;
-
-					bFoundTarget = true;
 					CurrentTargetPtr = (uintptr_t)ActorPtr;
 					AimbotDistant = DistanceFromCenter;
-					TargetPos = VecEnemy;
-					TargetVelocity = Info.Velocity;
 				}();
 
 				//DrawCharacter
@@ -685,7 +724,7 @@ void Hack::Loop() {
 					if (!bPlayer)
 						return;
 
-					if (Info.IsDead())
+					if (Info.State == CharacterState::Dead)
 						return;
 
 					//GetColor
@@ -1046,11 +1085,18 @@ void Hack::Loop() {
 				if (!MyInfo.IsWeaponed)
 					return;
 
-				if (!bFoundTarget)
+				if (!CurrentTargetPtr)
 					return;
 
-				if (bPushingMouseM && !LockTargetPtr)
+				if (!LockTargetPtr)
 					LockTargetPtr = CurrentTargetPtr;
+
+				CharacterInfo TargetInfo;
+				if (!GetCharacterInfo(LockTargetPtr, TargetInfo))
+					return;
+
+				const FVector TargetPos = TargetInfo.AimPoint;
+				const FVector TargetVelocity = TargetInfo.Velocity;
 
 				auto Result = GetBulletDropAndTravelTime(
 					MyInfo.AimLocation,

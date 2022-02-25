@@ -28,7 +28,6 @@ private:
 	bool bAimbot = true;
 	bool bSilentAim = false;
 	bool bSilentAim_DangerousMode = false;
-	bool bFocusNextEnemy = false;
 	int nRange = 500;
 	float CircleFovInDegrees = 6.0f;
 
