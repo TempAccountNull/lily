@@ -1,7 +1,8 @@
 #include "render.h"
 
 void AddText(const ImFont* font, float font_size, const ImVec2& pos, ImColor Color, const char* szText, float wrap_width = 0.0f, const ImVec4* cpu_fine_clip_rect = 0) {
-	ImGui::GetWindowDrawList()->AddText(font, font_size, pos, Color, szText, 0, wrap_width, cpu_fine_clip_rect);
+	const ImVec2 AddPos = ImGui::GetWindowPos();
+	ImGui::GetWindowDrawList()->AddText(font, font_size, { pos.x + AddPos.x, pos.y + AddPos.y }, Color, szText, 0, wrap_width, cpu_fine_clip_rect);
 }
 
 void AddTextOutlined(const ImFont* font, float font_size, const ImVec2& pos, ImColor Color, const char* szText, float wrap_width, const ImVec4* cpu_fine_clip_rect) {
@@ -18,7 +19,7 @@ ImVec2 Render::GetTextSize(float FontSize, const char* szText) {
 	return pFont->CalcTextSizeA(FontSize, FLT_MAX, 0.0f, szText, 0, 0);
 }
 
-void Render::DrawString(const FVector& Pos, float Margin, const char* szText, float Size, ImColor Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const {
+void Render::DrawString(FVector Pos, float Margin, const char* szText, float Size, ImColor Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const {
 	if (!bRender) return;
 	if (Pos.Z < 0.0f && !bShowAlways)
 		return;
@@ -67,31 +68,49 @@ void Render::DrawString(const FVector& Pos, float Margin, const char* szText, fl
 	}
 }
 
-void Render::DrawRectOutlined(const FVector& from, const FVector& to, ImColor Color, float rounding, ImDrawFlags flags, float thickness) const {
+void Render::DrawRectOutlined(FVector from, FVector to, ImColor Color, float rounding, ImDrawFlags flags, float thickness) const {
 	if (!bRender) return;
 	if (from.Z < 0.0f) return;
+	const ImVec2 AddPos = ImGui::GetWindowPos();
+	const FVector AddVector = { AddPos.x, AddPos.y, 0.0f };
+	from = from + AddVector;
+	to = to + AddVector;
 	ImGui::GetWindowDrawList()->AddRect({ from.X, from.Y }, { to.X, to.Y }, Color, rounding, flags, thickness);
 }
 
-void Render::DrawRectFilled(const FVector& from, const FVector& to, ImColor Color, float rounding, ImDrawFlags flags) const {
+void Render::DrawRectFilled(FVector from, FVector to, ImColor Color, float rounding, ImDrawFlags flags) const {
 	if (!bRender) return;
 	if (from.Z < 0.0f) return;
+	const ImVec2 AddPos = ImGui::GetWindowPos();
+	const FVector AddVector = { AddPos.x, AddPos.y, 0.0f };
+	from = from + AddVector;
+	to = to + AddVector;
 	ImGui::GetWindowDrawList()->AddRectFilled({ from.X, from.Y }, { to.X, to.Y }, Color, rounding, flags);
 }
 
-void Render::DrawTriangle(const FVector& p1, const FVector& p2, const FVector& p3, ImColor Color, float thickness) const {
+void Render::DrawTriangle(FVector p1, FVector p2, FVector p3, ImColor Color, float thickness) const {
 	if (!bRender) return;
 	if (p1.Z < 0.0f) return;
+	const ImVec2 AddPos = ImGui::GetWindowPos();
+	const FVector AddVector = { AddPos.x, AddPos.y, 0.0f };
+	p1 = p1 + AddVector;
+	p2 = p2 + AddVector;
+	p3 = p3 + AddVector;
 	ImGui::GetWindowDrawList()->AddTriangle({ p1.X, p1.Y }, { p2.X, p2.Y }, { p3.X, p3.Y }, Color, thickness);
 }
 
-void Render::DrawTriangleFilled(const FVector& p1, const FVector& p2, const FVector& p3, ImColor Color) const {
+void Render::DrawTriangleFilled(FVector p1, FVector p2, FVector p3, ImColor Color) const {
 	if (!bRender) return;
 	if (p1.Z < 0.0f) return;
+	const ImVec2 AddPos = ImGui::GetWindowPos();
+	const FVector AddVector = { AddPos.x, AddPos.y, 0.0f };
+	p1 = p1 + AddVector;
+	p2 = p2 + AddVector;
+	p3 = p3 + AddVector;
 	ImGui::GetWindowDrawList()->AddTriangleFilled({ p1.X, p1.Y }, { p2.X, p2.Y }, { p3.X, p3.Y }, Color);
 }
 
-void Render::DrawRatioBox(const FVector& from, const FVector& to, float Ratio, ImColor ColorRemain, ImColor ColorDamaged, ImColor ColorEdge) const {
+void Render::DrawRatioBox(FVector from, FVector to, float Ratio, ImColor ColorRemain, ImColor ColorDamaged, ImColor ColorEdge) const {
 	if (!bRender) return;
 	if (from.Z < 0.0f) return;
 
@@ -109,25 +128,35 @@ void Render::DrawRatioBox(const FVector& from, const FVector& to, float Ratio, I
 	DrawRectOutlined(from, to, ColorEdge);
 }
 
-void Render::DrawLine(const FVector& from, const FVector& to, ImColor Color, float thickness) const {
+void Render::DrawLine(FVector from, FVector to, ImColor Color, float thickness) const {
 	if (!bRender) return;
 	if (from.Z < 0.0f) return;
+	const ImVec2 AddPos = ImGui::GetWindowPos();
+	const FVector AddVector = { AddPos.x, AddPos.y, 0.0f };
+	from = from + AddVector;
+	to = to + AddVector;
 	ImGui::GetWindowDrawList()->AddLine({ from.X, from.Y }, { to.X, to.Y }, Color, thickness);
 }
 
-void Render::DrawCircle(const FVector& center, float radius, ImColor Color, int num_segments, float thickness) const {
+void Render::DrawCircle(FVector center, float radius, ImColor Color, int num_segments, float thickness) const {
 	if (!bRender) return;
 	if (center.Z < 0.0f) return;
+	const ImVec2 AddPos = ImGui::GetWindowPos();
+	const FVector AddVector = { AddPos.x, AddPos.y, 0.0f };
+	center = center + AddVector;
 	ImGui::GetWindowDrawList()->AddCircle({ center.X, center.Y }, radius, Color, num_segments, thickness);
 }
 
-void Render::DrawCircleFilled(const FVector& center, float radius, ImColor Color, int num_segments) const {
+void Render::DrawCircleFilled(FVector center, float radius, ImColor Color, int num_segments) const {
 	if (!bRender) return;
 	if (center.Z < 0.0f) return;
+	const ImVec2 AddPos = ImGui::GetWindowPos();
+	const FVector AddVector = { AddPos.x, AddPos.y, 0.0f };
+	center = center + AddVector;
 	ImGui::GetWindowDrawList()->AddCircleFilled({ center.X, center.Y }, radius, Color, num_segments);
 }
 
-void Render::DrawX(const FVector& center, float len, ImColor Color, float thickness) const {
+void Render::DrawX(FVector center, float len, ImColor Color, float thickness) const {
 	if (!bRender) return;
 	if (center.Z < 0.0f) return;
 	DrawLine({ center.X - len, center.Y - len, center.Z }, { center.X + len, center.Y + len, center.Z }, Color, thickness);

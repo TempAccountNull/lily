@@ -28,8 +28,21 @@ private:
 	bool bAimbot = true;
 	bool bSilentAim = false;
 	bool bSilentAim_DangerousMode = false;
+	bool bFocusNextEnemy = false;
 	int nRange = 500;
 	float CircleFovInDegrees = 6.0f;
+
+	constexpr static float FiringTime = 0.2f;
+	const ImVec2 RadarFrom = { 0.846f , 0.736f };
+	const ImVec2 RadarTo = { 0.984f , 0.974f };
+	const ImVec2 RadarSize = {
+		RadarTo.x - RadarFrom.x,
+		RadarTo.y - RadarFrom.y
+	};
+	const ImVec2 RadarCenter = {
+		(RadarFrom.x + RadarTo.x) / 2.0f,
+		(RadarFrom.y + RadarTo.y) / 2.0f
+	};
 
 	struct {
 		bool bSkeleton = true;

@@ -43,6 +43,7 @@ void Hack::Loop() {
 		int Team = -1;
 		int SpectatedCount = 0;
 		bool IsWeaponed = false;
+		bool IsFiring = false;
 		bool IsScoping = false;
 		bool IsVisible = false;
 		bool IsAI = false;
@@ -72,15 +73,25 @@ void Hack::Loop() {
 		std::string WeaponName;
 		int Ammo = -1;
 	};
-	struct CharacterPosInfo {
-		struct PosInfo {
-			uint64_t Time = 0;
-			FVector Pos;
-		};
-		std::vector<PosInfo> Info;
+
+	struct tMapInfo {
+		struct {
+			struct PosInfo {
+				uint64_t Time = 0;
+				FVector Pos;
+			};
+			std::vector<PosInfo> Info;
+		}PosInfo;
+
+		struct tAmmoInfo {
+			int Ammo;
+			float RemainTime;
+		}AmmoInfo;
+
+		float FocusTime = 0.0f;
 	};
-	std::map<uint64_t, CharacterPosInfo> PosInfoMap;
-	std::map<uint64_t, float> EnemiesFocusingMeMap;
+
+	std::map<uint64_t, tMapInfo> EnemyInfoMap;
 
 	while (IsWindow(hGameWnd)) {
 		const HWND hForeWnd = GetForegroundWindow();
@@ -204,9 +215,12 @@ void Hack::Loop() {
 				if (TslCharacter.CharacterName.GetValues(*PlayerName, 0x100))
 					Info.PlayerName = ws2s(PlayerName);
 
+				EnemyInfoMap[CharacterPtr].AmmoInfo.RemainTime =
+					std::clamp(EnemyInfoMap[CharacterPtr].AmmoInfo.RemainTime - render.TimeDelta, 0.0f, 1.0f);
+
 				//Velocity
 				[&] {
-					auto& PosInfo = PosInfoMap[CharacterPtr].Info;
+					auto& PosInfo = EnemyInfoMap[CharacterPtr].PosInfo.Info;
 
 					if (Info.IsDead() || !Info.IsVisible) {
 						PosInfo.clear();
@@ -301,6 +315,13 @@ void Hack::Loop() {
 							return -1;
 						return (int)TslWeapon.CurrentAmmoData;
 					}();
+
+					int PrevAmmo = EnemyInfoMap[CharacterPtr].AmmoInfo.Ammo;
+					if (Info.Ammo != -1 && PrevAmmo != -1 && Info.Ammo == PrevAmmo - 1)
+						EnemyInfoMap[CharacterPtr].AmmoInfo.RemainTime = FiringTime;
+
+					Info.IsFiring = (EnemyInfoMap[CharacterPtr].AmmoInfo.RemainTime > 0.0f);
+					EnemyInfoMap[CharacterPtr].AmmoInfo.Ammo = Info.Ammo;
 				}();
 
 				//Weapon
@@ -435,8 +456,7 @@ void Hack::Loop() {
 				CachedMyTslCharacterPtr = (uintptr_t)MyPawnPtr;
 
 			if (!CachedMyTslCharacterPtr) {
-				PosInfoMap.clear();
-				EnemiesFocusingMeMap.clear();
+				EnemyInfoMap.clear();
 				LockTargetPtr = 0;
 			}
 
@@ -447,11 +467,12 @@ void Hack::Loop() {
 			if (!GetCharacterInfo(LockTargetPtr, LockedTargetInfo))
 				LockTargetPtr = 0;
 
-			if (LockedTargetInfo.IsDead())
-				LockTargetPtr = 0;
-
-			if (LockedTargetInfo.Health <= 0.0f && !bPushingCTRL)
-				LockTargetPtr = 0;
+			if (bFocusNextEnemy) {
+				if (LockedTargetInfo.IsDead())
+					LockTargetPtr = 0;
+				if (LockedTargetInfo.Health <= 0.0f && !bPushingCTRL)
+					LockTargetPtr = 0;
+			}
 
 			NativePtr<ATslCharacter> CurrentTargetPtr = 0;
 			bool bFoundTarget = false;
@@ -471,8 +492,8 @@ void Hack::Loop() {
 				bool bFocusingMe = false;
 				//Get bFocusingMe
 				[&] {
-					float AccTime = EnemiesFocusingMeMap[Info.Ptr];
-					EnemiesFocusingMeMap[Info.Ptr] = 0.0f;
+					float AccTime = EnemyInfoMap[Info.Ptr].FocusTime;
+					EnemyInfoMap[Info.Ptr].FocusTime = 0.0f;
 
 					if (MyInfo.Health <= 0.0f)
 						return;
@@ -529,8 +550,8 @@ void Hack::Loop() {
 
 					if (GunRotation.Yaw > CenterYaw - RangeYaw &&
 						GunRotation.Yaw < CenterYaw + RangeYaw) {
-						EnemiesFocusingMeMap[Info.Ptr] = AccTime + render.TimeDelta;
-						if (EnemiesFocusingMeMap[Info.Ptr] >= MinFocusTime)
+						EnemyInfoMap[Info.Ptr].FocusTime = AccTime + render.TimeDelta;
+						if (EnemyInfoMap[Info.Ptr].FocusTime >= MinFocusTime)
 							bFocusingMe = true;
 					}
 				}();
@@ -543,17 +564,12 @@ void Hack::Loop() {
 					if (Info.IsDead())
 						return;
 
-					FVector ALfromME = Info.Location - MyInfo.Location;
-					int RadarX = (int)round(ALfromME.X / 100);
-					int RadarY = (int)round(ALfromME.Y / 100);
-
-					//when ememy in the radar radius.
-					if (RadarX > 200 || RadarX < -200 || RadarY > 200 || RadarY < -200)
-						return;
-
-					FVector v;
-					v.X = (render.Width * (0.9807f + 0.8474f) / 2.0f) + (RadarX / 200.0f * render.Width * (0.9807f - 0.8474f) / 2.0f);
-					v.Y = (render.Height * (0.9722f + 0.7361f) / 2.0f) + (RadarY / 200.0f * render.Height * (0.9722f - 0.7361f) / 2.0f);
+					const FVector RadarPos = (Info.Location - MyInfo.Location) * 0.01f;
+					const FVector RadarScreenPos = {
+						((1.0f + RadarPos.X / 200.0f) * RadarSize.x / 2.0f) * render.Width,
+						((1.0f + RadarPos.Y / 200.0f) * RadarSize.y / 2.0f) * render.Height,
+						0.0f
+					};
 
 					//GetColor
 					ImColor Color = [&]()->ImColor {
@@ -573,9 +589,15 @@ void Hack::Loop() {
 						return Render::COLOR_WHITE;
 					}();
 
+					ImGui::SetNextWindowPos({ RadarFrom.x * render.Width, RadarFrom.y * render.Height });
+					ImGui::SetNextWindowSize({ RadarSize.x * render.Width, RadarSize.y * render.Height });
+					ImGui::PushStyleColor(ImGuiCol_WindowBg, {});
+					ImGui::Begin("Radar"e, 0, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
+					ImGui::PopStyleColor();
+
 					float Size = 4.0f;
 
-					if (Info.GunRotation.Length() != 0.0f) {
+					if (Info.GunRotation.Length() > 0.0f) {
 						FVector GunDir = FRotator(0.0f, Info.GunRotation.Yaw, 0.0f).GetUnitVector();
 
 						float Degree90 = ConvertToRadians(90.0f);
@@ -589,22 +611,27 @@ void Hack::Loop() {
 							GunDir.X * sinf(-Degree90) + GunDir.Y * cosf(-Degree90),
 							0.0f };
 
-						FVector p1 = v + GunDir * (Size + 1.0f) * 2.0f;
-						FVector p2 = v + Dir1 * (Size + 1.0f);
-						FVector p3 = v + Dir2 * (Size + 1.0f);
+						FVector p1 = RadarScreenPos + GunDir * (Size + 1.0f) * 2.0f;
+						FVector p2 = RadarScreenPos + Dir1 * (Size + 1.0f);
+						FVector p3 = RadarScreenPos + Dir2 * (Size + 1.0f);
 						render.DrawTriangle(p1, p2, p3, render.COLOR_BLACK);
-						render.DrawCircle(v, Size + 1.0f, render.COLOR_BLACK);
+						render.DrawCircle(RadarScreenPos, Size + 1.0f, render.COLOR_BLACK);
 
-						p1 = v + GunDir * Size * 2.0f;
-						p2 = v + Dir1 * Size;
-						p3 = v + Dir2 * Size;
+						p1 = RadarScreenPos + GunDir * Size * 2.0f;
+						p2 = RadarScreenPos + Dir1 * Size;
+						p3 = RadarScreenPos + Dir2 * Size;
 						render.DrawTriangleFilled(p1, p2, p3, Color);
-						render.DrawCircleFilled(v, Size, Color);
+						render.DrawCircleFilled(RadarScreenPos, Size, Color);
+
+						if (Info.IsFiring)
+							render.DrawLine(RadarScreenPos, RadarScreenPos + GunDir * 500.0f, Color);
 					}
 					else {
-						render.DrawCircle(v, Size + 1.0f, render.COLOR_BLACK);
-						render.DrawCircleFilled(v, Size, Color);
+						render.DrawCircle(RadarScreenPos, Size + 1.0f, render.COLOR_BLACK);
+						render.DrawCircleFilled(RadarScreenPos, Size, Color);
 					}
+
+					ImGui::End();
 				}();
 
 				bool IsInCircle = false;
@@ -758,6 +785,9 @@ void Hack::Loop() {
 						PlayerInfo += (std::string)"\n"e;
 						Line = {};
 					}
+
+					if (Info.IsFiring)
+						PlayerInfo += (std::string)"Firing";
 
 					DrawString(
 						{ HealthBarScreenPos.X, HealthBarScreenPos.Y - HealthBarScreenLengthY - render.GetTextSize(FONTSIZE, PlayerInfo.c_str()).y / 2.0f, HealthBarScreenPos.Z },
@@ -1151,8 +1181,8 @@ void Hack::Loop() {
 				case 2:
 					NativePtr<ATslCharacter> Ptr;
 
-					for (auto Elem : EnemiesFocusingMeMap) {
-						if (Elem.second > MinFocusTime) {
+					for (auto Elem : EnemyInfoMap) {
+						if (Elem.second.FocusTime > MinFocusTime) {
 							if (Elem.first == EnemyFocusingMePtr)
 								break;
 							if (!Ptr)
@@ -1205,8 +1235,8 @@ void Hack::Loop() {
 				DrawSpectatedCount(MyInfo.SpectatedCount, Render::COLOR_RED);
 
 			std::string Enemies;
-			for (auto Elem : EnemiesFocusingMeMap) {
-				if (Elem.second < MinFocusTime)
+			for (auto Elem : EnemyInfoMap) {
+				if (Elem.second.FocusTime < MinFocusTime)
 					continue;
 
 				CharacterInfo Info;

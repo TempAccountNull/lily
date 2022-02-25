@@ -107,8 +107,12 @@ void Hack::ProcessImGui() {
 			if (ImGui::BeginTabItem("Aimbot"e))
 			{
 				ImGui::Checkbox("Aimbot(F6)"e, &bAimbot);
-				ImGui::Checkbox("Silent Aim(F7)"e, &bSilentAim);
+				if (ImGui::TreeNode("Details"e)) {
+					ImGui::Checkbox("FocusNextEnemy"e, &bFocusNextEnemy);
+					ImGui::TreePop();
+				}
 
+				ImGui::Checkbox("Silent Aim(F7)"e, &bSilentAim);
 				if (ImGui::TreeNode("Details"e)) {
 					ImGui::Checkbox("Dangerous Mode"e, &bSilentAim_DangerousMode);
 					ImGui::TreePop();

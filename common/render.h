@@ -249,14 +249,14 @@ public:
 	}
 
 	static ImVec2 GetTextSize(float FontSize, const char* szText);
-	void DrawString(const FVector& Pos, float Margin, const char* szText, float Size, ImColor Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const;
-	void DrawRatioBox(const FVector& from, const FVector& to, float HealthRatio, ImColor ColorRemain, ImColor ColorDamaged, ImColor ColorEdge) const;
-	void DrawLine(const FVector& from, const FVector& to, ImColor Color, float thickness = 1.0f) const;
-	void DrawCircle(const FVector& center, float radius, ImColor Color, int num_segments = 0, float thickness = 1.0f) const;
-	void DrawCircleFilled(const FVector& center, float radius, ImColor Color, int num_segments = 0) const;
-	void DrawRectOutlined(const FVector& from, const FVector& to, ImColor Color, float rounding = 0, ImDrawFlags flags = 0, float thickness = 1.0f) const;
-	void DrawRectFilled(const FVector& from, const FVector& to, ImColor Color, float rounding = 0, ImDrawFlags flags = 0) const;
-	void DrawX(const FVector& center, float len, ImColor Color, float thickness = 1.0f) const;
-	void DrawTriangle(const FVector& p1, const FVector& p2, const FVector& p3, ImColor Color, float thickness = 1.0f) const;
-	void DrawTriangleFilled(const FVector& p1, const FVector& p2, const FVector& p3, ImColor Color) const;
+	void DrawString(FVector Pos, float Margin, const char* szText, float Size, ImColor Color, bool bCenterPos, bool bCenterAligned, bool bShowAlways) const;
+	void DrawRatioBox(FVector from, FVector to, float HealthRatio, ImColor ColorRemain, ImColor ColorDamaged, ImColor ColorEdge) const;
+	void DrawLine(FVector from, FVector to, ImColor Color, float thickness = 1.0f) const;
+	void DrawCircle(FVector center, float radius, ImColor Color, int num_segments = 0, float thickness = 1.0f) const;
+	void DrawCircleFilled(FVector center, float radius, ImColor Color, int num_segments = 0) const;
+	void DrawRectOutlined(FVector from, FVector to, ImColor Color, float rounding = 0, ImDrawFlags flags = 0, float thickness = 1.0f) const;
+	void DrawRectFilled(FVector from, FVector to, ImColor Color, float rounding = 0, ImDrawFlags flags = 0) const;
+	void DrawX(FVector center, float len, ImColor Color, float thickness = 1.0f) const;
+	void DrawTriangle(FVector p1, FVector p2, FVector p3, ImColor Color, float thickness = 1.0f) const;
+	void DrawTriangleFilled(FVector p1, FVector p2, FVector p3, ImColor Color) const;
 };
