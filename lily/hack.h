@@ -32,7 +32,7 @@ private:
 	int nRange = 500;
 	float CircleFovInDegrees = 6.0f;
 
-	constexpr static float FiringTime = 0.2f;
+	constexpr static float FiringTime = 0.3f;
 	const ImVec2 RadarFrom = { 0.846f , 0.736f };
 	const ImVec2 RadarTo = { 0.984f , 0.974f };
 	const ImVec2 RadarSize = {

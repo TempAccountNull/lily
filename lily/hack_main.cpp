@@ -44,6 +44,7 @@ void Hack::Loop() {
 		int SpectatedCount = 0;
 		bool IsWeaponed = false;
 		bool IsFiring = false;
+		FRotator FiringRotation;
 		bool IsScoping = false;
 		bool IsVisible = false;
 		bool IsAI = false;
@@ -83,10 +84,11 @@ void Hack::Loop() {
 			std::vector<PosInfo> Info;
 		}PosInfo;
 
-		struct tAmmoInfo {
+		struct {
 			int Ammo;
 			float RemainTime;
-		}AmmoInfo;
+			FRotator GunRotation;
+		}FiringInfo;
 
 		float FocusTime = 0.0f;
 	};
@@ -215,8 +217,8 @@ void Hack::Loop() {
 				if (TslCharacter.CharacterName.GetValues(*PlayerName, 0x100))
 					Info.PlayerName = ws2s(PlayerName);
 
-				EnemyInfoMap[CharacterPtr].AmmoInfo.RemainTime =
-					std::clamp(EnemyInfoMap[CharacterPtr].AmmoInfo.RemainTime - render.TimeDelta, 0.0f, 1.0f);
+				EnemyInfoMap[CharacterPtr].FiringInfo.RemainTime =
+					std::clamp(EnemyInfoMap[CharacterPtr].FiringInfo.RemainTime - render.TimeDelta, 0.0f, 1.0f);
 
 				//Velocity
 				[&] {
@@ -315,13 +317,6 @@ void Hack::Loop() {
 							return -1;
 						return (int)TslWeapon.CurrentAmmoData;
 					}();
-
-					int PrevAmmo = EnemyInfoMap[CharacterPtr].AmmoInfo.Ammo;
-					if (Info.Ammo != -1 && PrevAmmo != -1 && Info.Ammo == PrevAmmo - 1)
-						EnemyInfoMap[CharacterPtr].AmmoInfo.RemainTime = FiringTime;
-
-					Info.IsFiring = (EnemyInfoMap[CharacterPtr].AmmoInfo.RemainTime > 0.0f);
-					EnemyInfoMap[CharacterPtr].AmmoInfo.Ammo = Info.Ammo;
 				}();
 
 				//Weapon
@@ -362,6 +357,17 @@ void Hack::Loop() {
 					Recoil_CP.Yaw += (TslAnimInstance.LeanRightAlpha_CP - TslAnimInstance.LeanLeftAlpha_CP) * Recoil_CP.Pitch / 3.0f;
 					Info.AimRotation = TslAnimInstance.ControlRotation_CP + Recoil_CP;
 				}
+
+				int PrevAmmo = EnemyInfoMap[CharacterPtr].FiringInfo.Ammo;
+				if (Info.Ammo != -1 && PrevAmmo != -1 && Info.Ammo == PrevAmmo - 1) {
+					EnemyInfoMap[CharacterPtr].FiringInfo.RemainTime = FiringTime;
+					EnemyInfoMap[CharacterPtr].FiringInfo.GunRotation = Info.GunRotation;
+				}
+
+				Info.IsFiring = (EnemyInfoMap[CharacterPtr].FiringInfo.RemainTime > 0.0f);
+				Info.FiringRotation = EnemyInfoMap[CharacterPtr].FiringInfo.GunRotation;
+
+				EnemyInfoMap[CharacterPtr].FiringInfo.Ammo = Info.Ammo;
 
 				return true;
 			};
@@ -624,7 +630,7 @@ void Hack::Loop() {
 						render.DrawCircleFilled(RadarScreenPos, Size, Color);
 
 						if (Info.IsFiring)
-							render.DrawLine(RadarScreenPos, RadarScreenPos + GunDir * 500.0f, Color);
+							render.DrawLine(RadarScreenPos, RadarScreenPos + Info.FiringRotation.GetUnitVector() * 500.0f, Color);
 					}
 					else {
 						render.DrawCircle(RadarScreenPos, Size + 1.0f, render.COLOR_BLACK);
@@ -785,9 +791,6 @@ void Hack::Loop() {
 						PlayerInfo += (std::string)"\n"e;
 						Line = {};
 					}
-
-					if (Info.IsFiring)
-						PlayerInfo += (std::string)"Firing";
 
 					DrawString(
 						{ HealthBarScreenPos.X, HealthBarScreenPos.Y - HealthBarScreenLengthY - render.GetTextSize(FONTSIZE, PlayerInfo.c_str()).y / 2.0f, HealthBarScreenPos.Z },

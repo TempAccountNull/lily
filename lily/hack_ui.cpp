@@ -109,6 +109,16 @@ void Hack::ProcessImGui() {
 				ImGui::Checkbox("Aimbot(F6)"e, &bAimbot);
 				if (ImGui::TreeNode("Details"e)) {
 					ImGui::Checkbox("FocusNextEnemy"e, &bFocusNextEnemy);
+					ImGui::Text("Fov"e);
+					ImGui::PushItemWidth(-1);
+					ImGui::SliderFloat("Fov"e, &CircleFovInDegrees, 6.0f, 12.0f);
+					ImGui::PopItemWidth();
+
+					ImGui::Text("Aim Speed(Pixels Per Seconds)"e);
+					ImGui::PushItemWidth(-1);
+					ImGui::SliderFloat("SpeedX"e, &AimSpeedX, AimSpeedMin, AimSpeedMax, "X : %.0f"e, ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_NoRoundToFormat);
+					ImGui::SliderFloat("SpeedY"e, &AimSpeedY, AimSpeedMin, AimSpeedMax, "Y : %.0f"e, ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_NoRoundToFormat);
+					ImGui::PopItemWidth();
 					ImGui::TreePop();
 				}
 
@@ -118,19 +128,7 @@ void Hack::ProcessImGui() {
 					ImGui::TreePop();
 				}
 
-				ImGui::Text("Fov"e);
-				ImGui::PushItemWidth(-1);
-				ImGui::SliderFloat("Fov"e, &CircleFovInDegrees, 6.0f, 12.0f);
-				ImGui::PopItemWidth();
-
-				ImGui::Text("Aim Speed(Pixels Per Seconds)"e);
-				ImGui::PushItemWidth(-1);
-				ImGui::SliderFloat("SpeedX"e, &AimSpeedX, AimSpeedMin, AimSpeedMax, "X : %.0f"e, ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_NoRoundToFormat);
-				ImGui::SliderFloat("SpeedY"e, &AimSpeedY, AimSpeedMin, AimSpeedMax, "Y : %.0f"e, ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_NoRoundToFormat);
-				ImGui::PopItemWidth();
-
 				ImGui::Checkbox("TeamKill(F10)"e, &bTeamKill);
-
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Debug"e))
