@@ -313,3 +313,8 @@ static void SetThreadAffinityMaskWrapper(auto f) {
 	f();
 	SetThreadAffinityMask(hCurrentThread, OldAffinityMask);
 }
+
+static float randf(float M = 1.0f) {
+	constexpr float RAND_MAX_2 = RAND_MAX / 2;
+	return (rand() - RAND_MAX_2) / RAND_MAX_2 * M;
+}

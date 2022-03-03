@@ -77,7 +77,7 @@ void Hack::ProcessImGui() {
 				ImGui::Checkbox("ESP(F12)"e, &bESP);
 				ImGui::Checkbox("Player(F1)"e, &bPlayer);
 
-				if (ImGui::TreeNode("Details"e)) {
+				if (ImGui::TreeNode("Details##PlayerESP"e)) {
 					if (ImGui::BeginTable("Split3"e, 3))
 					{
 						ImGui::TableNextColumn(); ImGui::Checkbox("Skeleton"e, &ESP_PlayerSetting.bSkeleton);
@@ -107,7 +107,7 @@ void Hack::ProcessImGui() {
 			if (ImGui::BeginTabItem("Aimbot"e))
 			{
 				ImGui::Checkbox("Aimbot(F6)"e, &bAimbot);
-				if (ImGui::TreeNode("Details"e)) {
+				if (ImGui::TreeNode("Details##Aimbot"e)) {
 					ImGui::Text("Fov"e);
 					ImGui::PushItemWidth(-1);
 					ImGui::SliderFloat("Fov"e, &CircleFovInDegrees, 6.0f, 12.0f);
@@ -122,7 +122,11 @@ void Hack::ProcessImGui() {
 				}
 
 				ImGui::Checkbox("Silent Aim(F7)"e, &bSilentAim);
-				if (ImGui::TreeNode("Details"e)) {
+				if (ImGui::TreeNode("Details##SilentAim"e)) {
+					ImGui::Text("Randomize"e);
+					ImGui::PushItemWidth(-1);
+					ImGui::SliderFloat("Randomize"e, &RandSilentAim, 0.0f, RandSilentAimMax, "%.1f"e, ImGuiSliderFlags_NoRoundToFormat);
+					ImGui::PopItemWidth();
 					ImGui::Checkbox("Dangerous Mode"e, &bSilentAim_DangerousMode);
 					ImGui::TreePop();
 				}

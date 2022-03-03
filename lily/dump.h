@@ -28,7 +28,7 @@ enum class Type {
 };
 
 //e8 ? ? 00 00 48 8b d0 f7 83 ? ? 00 00 00 04 00 00
-inline DWORD UObjectFuncOffset = 0x120;
+inline DWORD UObjectFuncOffset = 0x130;
 
 static auto GetStructMap(Process& process) {
 	std::map<std::wstring, uintptr_t> StructMap;

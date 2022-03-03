@@ -21,5 +21,6 @@ static fixstr::basic_fixed_string<char, 0x100> GetProjName(unsigned Hash) {
 		HASH_CASE("ProjMortar_Trail_C"h, "Mortar"e);
 		HASH_CASE("WeapMortar_C"h, "Mortar"e);
 		HASH_CASE("BP_Drone_C"h, "Drone"e);
+		HASH_CASE("Flare_Projectile_C"h, "Flare"e);
 	}
 }

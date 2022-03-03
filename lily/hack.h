@@ -61,6 +61,9 @@ private:
 	float AimSpeedX = AimSpeedDefault;
 	float AimSpeedY = AimSpeedDefault;
 
+	constexpr static float RandSilentAimMax = 10.0f;
+	float RandSilentAim = 5.0f;
+
 	bool bPushingCTRL = false;
 	bool bPushingShift = false;
 	bool bPushingMouseM = false;

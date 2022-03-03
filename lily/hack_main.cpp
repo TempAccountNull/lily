@@ -28,7 +28,7 @@ void Hack::Loop() {
 	verify(KeyMouseY.ComparisonIndex);
 
 	//41 0f ? ? 73 ? f3 0f 10 ? ? ? ? ? f3 0f 11 ? ? ? ? 00 00
-	constexpr uintptr_t HookBaseAddress = 0x81768A;
+	constexpr uintptr_t HookBaseAddress = 0x3F1BB6;
 	uint8_t OriginalByte = 0;
 	pubg.ReadBase(HookBaseAddress, &OriginalByte);
 	const uintptr_t AimHookAddressVA = pubg.GetBaseAddress() + HookBaseAddress;
@@ -68,6 +68,7 @@ void Hack::Loop() {
 		FVector Location;
 		FVector AimPoint;
 		bool IsLocked = false;
+		FRotator Recoil;
 		FVector GunLocation;
 		FRotator GunRotation;
 		FVector AimLocation;
@@ -103,6 +104,8 @@ void Hack::Loop() {
 			FVector AimPoint;
 			FVector Velocity;
 			CharacterState State = CharacterState::Dead;
+			uint64_t Time = 0;
+			bool IsInVehicle = false;
 		}AimbotInfo;
 
 		float FocusTime = 0.0f;
@@ -227,6 +230,8 @@ void Hack::Loop() {
 				Info.Team = TslCharacter.LastTeamNum;
 				Info.SpectatedCount = TslCharacter.SpectatedCount;
 				Info.IsScoping = TslAnimInstance.bIsScoping_CP;
+				Info.Recoil = TslAnimInstance.RecoilADSRotation_CP;
+				Info.Recoil.Yaw += (TslAnimInstance.LeanRightAlpha_CP - TslAnimInstance.LeanLeftAlpha_CP) * Info.Recoil.Pitch / 3.0f;
 				Info.State =
 					Info.Health > 0.0f ? CharacterState::Alive :
 					Info.GroggyHealth > 0.0f ? CharacterState::Groggy :
@@ -279,41 +284,6 @@ void Hack::Loop() {
 
 					Info.Velocity = SumPosDif * (1.0f / SumTimeDelta);
 				}();
-
-				if (CharacterPtr == LockTargetPtr) {
-					if (EnemyInfoMap[CharacterPtr].AimbotInfo.IsLocked) {
-						Info.AimPoint = EnemyInfoMap[CharacterPtr].AimbotInfo.AimPoint;
-						Info.Velocity = EnemyInfoMap[CharacterPtr].AimbotInfo.Velocity;
-					}
-					else {
-						const bool bLockAimPoint = [&] {
-							CharacterState PrevState = EnemyInfoMap[CharacterPtr].AimbotInfo.State;
-
-							if (PrevState == CharacterState::Alive && Info.State == CharacterState::Groggy)
-								return true;
-							if (PrevState == CharacterState::Alive && Info.State == CharacterState::Dead)
-								return true;
-							if (PrevState == CharacterState::Groggy && Info.State == CharacterState::Dead)
-								return true;
-
-							return false;
-						}();
-
-						if (bLockAimPoint) {
-							EnemyInfoMap[CharacterPtr].AimbotInfo.AimPoint = Info.AimPoint;
-							EnemyInfoMap[CharacterPtr].AimbotInfo.Velocity = Info.Velocity;
-							EnemyInfoMap[CharacterPtr].AimbotInfo.IsLocked = true;
-						}
-					}
-				}
-				else
-					EnemyInfoMap[CharacterPtr].AimbotInfo.IsLocked = false;
-
-				Info.IsLocked = EnemyInfoMap[CharacterPtr].AimbotInfo.IsLocked;
-				EnemyInfoMap[CharacterPtr].AimbotInfo.State = Info.State;
-
-				if (Info.State == CharacterState::Dead)
-					return true;
 
 				//PlayerState
 				[&] {
@@ -402,14 +372,17 @@ void Hack::Loop() {
 					}
 				}();
 
+				//AimLocation, AimRotation
+				//////////////////////////////////
+
 				Info.AimLocation = Info.GunLocation.Length() > 0.0f ? Info.GunLocation : Info.Location;
 				if (Info.IsScoping)
 					Info.AimRotation = Info.GunRotation;
-				else {
-					FRotator Recoil_CP = TslAnimInstance.RecoilADSRotation_CP;
-					Recoil_CP.Yaw += (TslAnimInstance.LeanRightAlpha_CP - TslAnimInstance.LeanLeftAlpha_CP) * Recoil_CP.Pitch / 3.0f;
-					Info.AimRotation = TslAnimInstance.ControlRotation_CP + Recoil_CP;
-				}
+				else
+					Info.AimRotation = TslAnimInstance.ControlRotation_CP + Info.Recoil;
+
+				//FiringInfo
+				//////////////////////////////////
 
 				int PrevAmmo = EnemyInfoMap[CharacterPtr].FiringInfo.Ammo;
 				if (Info.Ammo != -1 && PrevAmmo != -1 && Info.Ammo == PrevAmmo - 1) {
@@ -421,6 +394,49 @@ void Hack::Loop() {
 				Info.FiringRotation = EnemyInfoMap[CharacterPtr].FiringInfo.GunRotation;
 
 				EnemyInfoMap[CharacterPtr].FiringInfo.Ammo = Info.Ammo;
+
+				//AimbotInfo
+				//////////////////////////////////
+
+				auto& AimbotInfo = EnemyInfoMap[CharacterPtr].AimbotInfo;
+
+				if (CharacterPtr == LockTargetPtr) {
+					if (AimbotInfo.IsLocked) {
+						if (AimbotInfo.Time != render.TimeInMicroSeconds && AimbotInfo.IsInVehicle) {
+							AimbotInfo.AimPoint = AimbotInfo.AimPoint + AimbotInfo.Velocity * render.TimeDelta;
+							AimbotInfo.Time = render.TimeInMicroSeconds;
+						}
+						Info.AimPoint = AimbotInfo.AimPoint;
+						Info.Velocity = AimbotInfo.Velocity;
+						Info.IsVisible = true;
+					}
+					else {
+						const bool bLockAimPoint = [&] {
+							if (AimbotInfo.State == CharacterState::Alive && Info.State == CharacterState::Groggy)
+								return true;
+							if (AimbotInfo.State == CharacterState::Alive && Info.State == CharacterState::Dead)
+								return true;
+							if (AimbotInfo.State == CharacterState::Groggy && Info.State == CharacterState::Dead)
+								return true;
+
+							return false;
+						}();
+
+						if (bLockAimPoint) {
+							AimbotInfo.AimPoint = Info.AimPoint;
+							AimbotInfo.IsLocked = true;
+						}
+						else {
+							AimbotInfo.Velocity = Info.Velocity;
+							AimbotInfo.IsInVehicle = Info.IsInVehicle;
+						}
+					}
+				}
+				else
+					AimbotInfo.IsLocked = false;
+
+				Info.IsLocked = AimbotInfo.IsLocked;
+				AimbotInfo.State = Info.State;
 
 				return true;
 			};
@@ -699,15 +715,14 @@ void Hack::Loop() {
 							return;
 					}
 
-					FVector VecEnemy = bPushingShift ? Info.BonesPos[forehead] : (Info.BonesPos[neck_01] + Info.BonesPos[spine_02]) * 0.5f;
-					FVector VecEnemy2D = WorldToScreen(VecEnemy);
-					if (VecEnemy2D.Z < 0.0f)
+					FVector AimPoint2D = WorldToScreen(Info.AimPoint);
+					if (AimPoint2D.Z < 0.0f)
 						return;
 
-					VecEnemy2D.Z = 0.0f;
+					AimPoint2D.Z = 0.0f;
 					FVector Center2D = { render.Width / 2.0f, render.Height / 2.0f, 0 };
 
-					float DistanceFromCenter = Center2D.Distance(VecEnemy2D);
+					float DistanceFromCenter = Center2D.Distance(AimPoint2D);
 
 					if (DistanceFromCenter < AimbotCircleSize)
 						IsInCircle = true;
@@ -1182,10 +1197,15 @@ void Hack::Loop() {
 					AImbot_MouseMove();
 
 				if (bSilentAim && (bSilentAim_DangerousMode || MyInfo.IsScoping)) {
+					FVector RandedTargetPos = TargetPos;
+					RandedTargetPos.X += randf(RandSilentAim);
+					RandedTargetPos.Y += randf(RandSilentAim);
+					RandedTargetPos.Z += randf(RandSilentAim);
+
 					Result = GetBulletDropAndTravelTime(
 						MyInfo.AimLocation,
 						MyInfo.AimRotation,
-						TargetPos,
+						RandedTargetPos,
 						FLT_MIN,
 						MyInfo.BulletDropAdd,
 						MyInfo.InitialSpeed,
@@ -1199,7 +1219,8 @@ void Hack::Loop() {
 
 					BulletDrop = Result.first;
 					TravelTime = Result.second;
-					PredictedPos = FVector(TargetPos.X, TargetPos.Y, TargetPos.Z + BulletDrop) + TargetVelocity * (TravelTime / CustomTimeDilation);
+					PredictedPos = FVector(RandedTargetPos.X, RandedTargetPos.Y, RandedTargetPos.Z + BulletDrop) 
+						+ TargetVelocity * (TravelTime / CustomTimeDilation);
 
 					FVector DirectionInput = PredictedPos - MyInfo.AimLocation;
 					DirectionInput.Normalize();
@@ -1266,10 +1287,7 @@ void Hack::Loop() {
 					float BulletDrop = Result.first;
 					float TravelTime = Result.second;
 
-					FVector PredictedPos = bPushingShift ? Info.BonesPos[forehead] : (Info.BonesPos[neck_01] + Info.BonesPos[spine_02]) * 0.5f;
-					PredictedPos.Z += BulletDrop;
-					PredictedPos = PredictedPos + Info.Velocity * (TravelTime / CustomTimeDilation);
-
+					FVector PredictedPos = FVector(Info.AimPoint.X, Info.AimPoint.Y, Info.AimPoint.Z + BulletDrop) + Info.Velocity * (TravelTime / CustomTimeDilation);
 					FRotator RotationInput = (PredictedPos - CameraLocation).GetDirectionRotator() - MyInfo.AimRotation;
 					RotationInput.Clamp();
 					MoveMouse(hGameWnd, GetMouseXY(RotationInput));

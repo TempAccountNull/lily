@@ -12,7 +12,7 @@ static PackageInfo GetPackageInfo(unsigned Hash) {
 
 		HASH_CASE("DeathDropItemPackage_C"h, { "Box"e, false });
 		HASH_CASE("Carapackage_RedBox_C"h, { "Supply"e, false });
-		HASH_CASE("Carapackage_FlareGun_C"h, { "Supply"e, false });
+		HASH_CASE("Carapackage_FlareGun_C"h, { "Flare"e, false });
 		HASH_CASE("BP_Loot_AmmoBox_C"h, { "Ammo"e, true });
 		HASH_CASE("BP_Loot_MilitaryCrate_C"h, { "Crate"e, true });
 		HASH_CASE("BP_Loot_TruckHaul_C"h, { "LootTruck"e, false });
