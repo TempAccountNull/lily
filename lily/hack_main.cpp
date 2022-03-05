@@ -17,6 +17,9 @@ enum class CharacterState {
 };
 
 void Hack::Loop() {
+	UpdateRankInfo();
+	LoadBlackList();
+
 	const HWND hGameWnd = pubg.hGameWnd;
 	const CR3 mapCR3 = kernel.GetMapCR3();
 	//FUObjectArray ObjectArr;
@@ -43,11 +46,14 @@ void Hack::Loop() {
 	NativePtr<ATslCharacter> LockTargetPtr = 0;
 	NativePtr<ATslCharacter> EnemyFocusingMePtr = 0;
 	bool bPushedCapsLock = false;
+	bool IsFPPOnly = true;
 
 	struct CharacterInfo {
 		NativePtr<ATslCharacter> Ptr;
 		int Team = -1;
 		int SpectatedCount = 0;
+		bool IsBlackListed = false;
+		bool IsFPP = false;
 		bool IsWeaponed = false;
 		bool IsFiring = false;
 		FRotator FiringRotation;
@@ -232,6 +238,7 @@ void Hack::Loop() {
 				Info.IsScoping = TslAnimInstance.bIsScoping_CP;
 				Info.Recoil = TslAnimInstance.RecoilADSRotation_CP;
 				Info.Recoil.Yaw += (TslAnimInstance.LeanRightAlpha_CP - TslAnimInstance.LeanLeftAlpha_CP) * Info.Recoil.Pitch / 3.0f;
+				Info.IsFPP = TslAnimInstance.bLocalFPP_CP;
 				Info.State =
 					Info.Health > 0.0f ? CharacterState::Alive :
 					Info.GroggyHealth > 0.0f ? CharacterState::Groggy :
@@ -242,6 +249,8 @@ void Hack::Loop() {
 				wchar_t PlayerName[0x100];
 				if (TslCharacter.CharacterName.GetValues(*PlayerName, 0x100))
 					Info.PlayerName = ws2s(PlayerName);
+
+				Info.IsBlackListed = IsUserBlackListed(Info.PlayerName.c_str());
 
 				EnemyInfoMap[CharacterPtr].FiringInfo.RemainTime =
 					std::clamp(EnemyInfoMap[CharacterPtr].FiringInfo.RemainTime - render.TimeDelta, 0.0f, 1.0f);
@@ -522,17 +531,20 @@ void Hack::Loop() {
 					LONG(-RotationInput.Pitch / MouseYSensitivity * 0.4f * FOVRatio) };
 			};
 
-			const float CircleFov = ConvertToRadians(CircleFovInDegrees);
-			const float AimbotCircleSize = tanf(CircleFov) * render.Height * powf(1.6f, log2f(FOVRatio));
-
-			float AimbotDistant = AimbotCircleSize;
+			const float AimbotCircleSize = tanf(ConvertToRadians(AimbotFOV)) * render.Height * powf(1.5f, log2f(FOVRatio));
+			const float SilentCircleSize = tanf(ConvertToRadians(SilentFOV)) * render.Height * powf(1.5f, log2f(FOVRatio));
+			float AimbotDistant = bAimbot ? AimbotCircleSize : SilentCircleSize;
 
 			if (GetCharacterInfo((uintptr_t)MyPawnPtr, MyInfo))
 				CachedMyTslCharacterPtr = (uintptr_t)MyPawnPtr;
 
+			if (!MyInfo.IsFPP)
+				IsFPPOnly = false;
+
 			if (!CachedMyTslCharacterPtr) {
 				EnemyInfoMap.clear();
 				LockTargetPtr = 0;
+				IsFPPOnly = true;
 			}
 
 			if (!bPushingMouseM)
@@ -648,6 +660,8 @@ void Hack::Loop() {
 							return Render::COLOR_TEAL;
 						if (Info.IsInVehicle)
 							return Render::COLOR_BLUE;
+						if (Info.IsBlackListed)
+							return Render::COLOR_BLACK;
 						if (Info.Team < 51)
 							return TeamColors[Info.Team];
 
@@ -723,7 +737,6 @@ void Hack::Loop() {
 					FVector Center2D = { render.Width / 2.0f, render.Height / 2.0f, 0 };
 
 					float DistanceFromCenter = Center2D.Distance(AimPoint2D);
-
 					if (DistanceFromCenter < AimbotCircleSize)
 						IsInCircle = true;
 
@@ -758,6 +771,8 @@ void Hack::Loop() {
 							return Render::COLOR_YELLOW;
 						if (Info.IsInVehicle)
 							return Render::COLOR_BLUE;
+						if (Info.IsBlackListed)
+							return Render::COLOR_BLACK;
 						if (Info.Team < 51)
 							return TeamColors[Info.Team];
 
@@ -793,6 +808,34 @@ void Hack::Loop() {
 
 					if (ESP_PlayerSetting.bNickName)
 						Line += Info.PlayerName;
+
+					const unsigned NameHash = CompileTime::StrHash(Info.PlayerName.c_str());
+
+					if (ESP_PlayerSetting.bRanksPoint && !Info.IsAI) {
+						std::map<unsigned, RankInfo>& RankMap = *[&] {
+							const bool bSolo = !(Info.Team < 200);
+
+							if (ESP_PlayerSetting.bKakao && !bSolo && !IsFPPOnly)
+								return &RankInfoKakaoSquad;
+
+							if (IsFPPOnly && !bSolo)
+								return &RankInfoSteamSquadFPP;
+
+							if (!IsFPPOnly && bSolo)
+								return &RankInfoSteamSolo;
+
+							if (!IsFPPOnly && !bSolo)
+								return &RankInfoSteamSquad;
+
+							return &RankInfoEmpty;
+						}();
+
+						if (RankMap.find(NameHash) != RankMap.end()) {
+							Line += (std::string)"("e;
+							Line += std::to_string(RankMap[NameHash].rankPoint);
+							Line += (std::string)")"e;
+						}
+					}
 
 					if (ESP_PlayerSetting.bTeam) {
 						if (Info.Team < 200 && Info.Team != MyInfo.Team) {
@@ -914,11 +957,12 @@ void Hack::Loop() {
 
 				//DrawProj
 				[&] {
-					if (DistanceToActor > 300.0f)
+					auto ProjInfo = GetProjInfo(ActorNameHash);
+					auto& ProjName = ProjInfo.Name;
+					if (!ProjName[0])
 						return;
 
-					auto ProjName = GetProjName(ActorNameHash);
-					if (!ProjName[0])
+					if (!ProjInfo.IsLong && DistanceToActor > 300.0f)
 						return;
 
 					sprintf(szBuf, "%s\n%.0fM"e, ProjName.data(), DistanceToActor);
@@ -1197,6 +1241,17 @@ void Hack::Loop() {
 					AImbot_MouseMove();
 
 				if (bSilentAim && (bSilentAim_DangerousMode || MyInfo.IsScoping)) {
+					FVector AimPoint2D = WorldToScreen(TargetPos);
+					if (AimPoint2D.Z < 0.0f)
+						return;
+
+					AimPoint2D.Z = 0.0f;
+					FVector Center2D = { render.Width / 2.0f, render.Height / 2.0f, 0 };
+
+					float DistanceFromCenter = Center2D.Distance(AimPoint2D);
+					if (DistanceFromCenter > SilentCircleSize)
+						return;
+
 					FVector RandedTargetPos = TargetPos;
 					RandedTargetPos.X += randf(RandSilentAim);
 					RandedTargetPos.Y += randf(RandSilentAim);
@@ -1316,9 +1371,12 @@ void Hack::Loop() {
 			}
 			DrawEnemiesFocusingMe(Enemies.c_str(), Render::COLOR_RED);
 
-			if (MyInfo.IsWeaponed)
-				render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f, 0.0f },
-					AimbotCircleSize, bSilentAim ? Render::COLOR_YELLOW : Render::COLOR_WHITE);
+			if (MyInfo.IsWeaponed) {
+				if (bAimbot)
+					render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f, 0.0f }, AimbotCircleSize, IM_COL32(255, 255, 255, 100));
+				if (bSilentAim)
+					render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f, 0.0f }, SilentCircleSize, IM_COL32(255, 255, 0, 100));
+			}
 		};
 
 		render.RenderArea(hGameWnd, Render::COLOR_CLEAR, [&] {

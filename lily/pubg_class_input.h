@@ -164,6 +164,7 @@ FRotator RecoilADSRotation_CP
 float LeanLeftAlpha_CP
 float LeanRightAlpha_CP
 uint8_t bIsScoping_CP
+uint8_t bLocalFPP_CP
 
 class UWeaponTrajectoryData
 FWeaponTrajectoryConfig TrajectoryConfig

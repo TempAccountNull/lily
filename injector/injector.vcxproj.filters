@@ -114,6 +114,12 @@
     <ClInclude Include="..\common\render_ddraw.h">
       <Filter>common</Filter>
     </ClInclude>
+    <ClInclude Include="..\common\json.hpp">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\wininet.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\imgui\imgui.cpp">

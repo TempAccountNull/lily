@@ -121,6 +121,7 @@
     <ClInclude Include="..\common\hash_switch.h" />
     <ClInclude Include="..\common\ida_defs.h" />
     <ClInclude Include="..\common\initializer.h" />
+    <ClInclude Include="..\common\json.hpp" />
     <ClInclude Include="..\common\kernel.h" />
     <ClInclude Include="..\common\lambda.h" />
     <ClInclude Include="..\common\msrnames.h" />
@@ -136,6 +137,7 @@
     <ClInclude Include="..\common\render_ddraw.h" />
     <ClInclude Include="..\common\shellcode.h" />
     <ClInclude Include="..\common\util.h" />
+    <ClInclude Include="..\common\wininet.h" />
     <ClInclude Include="..\imgui\imconfig.h" />
     <ClInclude Include="..\imgui\imgui.h" />
     <ClInclude Include="..\imgui\imgui_impl_dx11.h" />

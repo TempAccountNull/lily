@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <sstream>
 #include <utility>
+#include <shlobj_core.h>
 
 #ifdef _WINDLL
 //#define DPRINT
@@ -317,4 +318,8 @@ static void SetThreadAffinityMaskWrapper(auto f) {
 static float randf(float M = 1.0f) {
 	constexpr float RAND_MAX_2 = RAND_MAX / 2;
 	return (rand() - RAND_MAX_2) / RAND_MAX_2 * M;
+}
+
+static void GetDesktopDir(char* szPath) {
+	SHGetSpecialFolderPathA(0, szPath, CSIDL_DESKTOP, 0);
 }

@@ -130,6 +130,7 @@
     <ClInclude Include="..\common\harderror.h" />
     <ClInclude Include="..\common\ida_defs.h" />
     <ClInclude Include="..\common\initializer.h" />
+    <ClInclude Include="..\common\json.hpp" />
     <ClInclude Include="..\common\kernel.h" />
     <ClInclude Include="..\common\render.h" />
     <ClInclude Include="..\common\render_dcomp.h" />
@@ -143,6 +144,7 @@
     <ClInclude Include="..\common\process.h" />
     <ClInclude Include="..\common\remoteprocess.h" />
     <ClInclude Include="..\common\shellcode.h" />
+    <ClInclude Include="..\common\wininet.h" />
     <ClInclude Include="..\imgui\imconfig.h" />
     <ClInclude Include="..\imgui\imgui.h" />
     <ClInclude Include="..\imgui\imgui_impl_dx11.h" />
@@ -199,6 +201,7 @@
     </ClCompile>
     <ClCompile Include="GNames.cpp" />
     <ClCompile Include="hack_main.cpp" />
+    <ClCompile Include="hack_rankinfo.cpp" />
     <ClCompile Include="hack_ui.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pubg_class_pubg.cpp" />

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <string>
+#include <map>
 
 #include "common/render.h"
 #include "kernel_lily.h"
@@ -9,6 +10,12 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_dx11.h"
 #include "imgui/imgui_impl_win32.h"
+
+#define BlackListFile "blacklist.txt"e
+
+struct RankInfo {
+	unsigned rankPoint;
+};
 
 class Hack {
 private:
@@ -29,7 +36,13 @@ private:
 	bool bSilentAim = false;
 	bool bSilentAim_DangerousMode = false;
 	int nRange = 500;
-	float CircleFovInDegrees = 6.0f;
+
+	constexpr static float AimbotFOVMin = 6.0f;
+	constexpr static float AimbotFOVMax = 12.0f;
+	constexpr static float SilentFOVMin = 1.0f;
+	constexpr static float SilentFOVMax = 2.0f;
+	float AimbotFOV = 6.0f;
+	float SilentFOV = 2.0f;
 
 	constexpr static float FiringTime = 0.3f;
 	const ImVec2 RadarFrom = { 0.846f , 0.736f };
@@ -47,6 +60,8 @@ private:
 		bool bSkeleton = true;
 		bool bHealth = true;
 		bool bNickName = true;
+		bool bRanksPoint = true;
+		bool bKakao = false;
 		bool bTeam = true;
 		bool bWeapon = true;
 		bool bDistance = true;
@@ -57,7 +72,7 @@ private:
 	constexpr static float AimSpeedMaxFactor = 1.0f / 3.0f;
 	constexpr static float AimSpeedMax = 1000000.0f;
 	constexpr static float AimSpeedMin = 0.0f;
-	constexpr static float AimSpeedDefault = 1000.0f;
+	constexpr static float AimSpeedDefault = 1500.0f;
 	float AimSpeedX = AimSpeedDefault;
 	float AimSpeedY = AimSpeedDefault;
 
@@ -87,6 +102,53 @@ private:
 	bool bNeedToScroll = false;
 
 	constexpr static float MinFocusTime = 0.1f;
+
+
+	std::vector<unsigned> BlackList;
+
+	static void GetBlackListFilePath(char* szPath) {
+		GetDesktopDir(szPath);
+		strcat(szPath, "\\"e);
+		strcat(szPath, BlackListFile);
+	}
+
+	void LoadBlackList() {
+		GetBlackListFilePath(szBuf);
+		FILE* in = fopen(szBuf, "a+"e);
+		if (!in)
+			error(BlackListFile);
+
+		BlackList.clear();
+
+		while (fgets(szBuf, sizeof(szBuf), in)) {
+			char* pNewLine = strchr(szBuf, '\n');
+			if (pNewLine)
+				*pNewLine = 0;
+			BlackList.push_back(CompileTime::StrHash(szBuf));
+		}
+
+		fclose(in);
+	}
+
+	void OpenBlackListFile() {
+		GetBlackListFilePath(szBuf);
+		ShellExecuteA(0, "open"e, szBuf, 0, 0, SW_NORMAL);
+	}
+
+	bool IsUserBlackListed(const char* szUserName) {
+		const unsigned NameHash = CompileTime::StrHash(szUserName);
+		for (const auto& Elem : BlackList)
+			if (Elem == NameHash)
+				return true;
+		return false;
+	}
+
+	std::map<unsigned, RankInfo> RankInfoSteamSolo;
+	std::map<unsigned, RankInfo> RankInfoSteamSquad;
+	std::map<unsigned, RankInfo> RankInfoSteamSquadFPP;
+	std::map<unsigned, RankInfo> RankInfoKakaoSquad;
+	std::map<unsigned, RankInfo> RankInfoEmpty;
+	void UpdateRankInfo();
 
 public:
 	constexpr static unsigned MARGIN = 10;

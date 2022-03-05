@@ -164,6 +164,7 @@ MemberAtOffset(FRotator, RecoilADSRotation_CP, 0x9d4)
 MemberAtOffset(float, LeanLeftAlpha_CP, 0xde4)
 MemberAtOffset(float, LeanRightAlpha_CP, 0xde8)
 MemberAtOffset(uint8_t, bIsScoping_CP, 0xcfe)
+MemberAtOffset(uint8_t, bLocalFPP_CP, 0xf28)
 
 class UWeaponTrajectoryData
 MemberAtOffset(FWeaponTrajectoryConfig, TrajectoryConfig, 0x118)

@@ -420,6 +420,7 @@ DefClass(UTslAnimInstance, UAnimInstance,
 	MemberAtOffset(float, LeanLeftAlpha_CP, 0xde4)
 	MemberAtOffset(float, LeanRightAlpha_CP, 0xde8)
 	MemberAtOffset(uint8_t, bIsScoping_CP, 0xcfe)
+	MemberAtOffset(uint8_t, bLocalFPP_CP, 0xf28)
 )
 
 //TslGame.WeaponTrajectoryData.TrajectoryConfig 

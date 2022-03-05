@@ -198,6 +198,12 @@
     <ClInclude Include="info_character.h">
       <Filter>hack\pubg\info</Filter>
     </ClInclude>
+    <ClInclude Include="..\common\json.hpp">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\wininet.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hack_main.cpp">
@@ -262,6 +268,9 @@
     </ClCompile>
     <ClCompile Include="pubg_struct.cpp">
       <Filter>hack\pubg</Filter>
+    </ClCompile>
+    <ClCompile Include="hack_rankinfo.cpp">
+      <Filter>hack</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

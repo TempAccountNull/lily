@@ -68,6 +68,14 @@ void Hack::ProcessImGui() {
 		ImGui::RadioButton("CapsLock Mode : TurnBack"e, &nCapsLockMode, 1);
 		ImGui::RadioButton("CapsLock Mode : AimToEnemyFocusingMe"e, &nCapsLockMode, 2);
 
+		if (ImGui::Button("UpdateRankInfo"e))
+			UpdateRankInfo();
+		if (ImGui::Button("LoadBlackList"e))
+			LoadBlackList();
+		ImGui::SameLine();
+		if (ImGui::Button("OpenBlackListFile"e))
+			OpenBlackListFile();
+
 		ImGui::NewLine();
 
 		if (ImGui::BeginTabBar("MyTabBar"e))
@@ -83,6 +91,8 @@ void Hack::ProcessImGui() {
 						ImGui::TableNextColumn(); ImGui::Checkbox("Skeleton"e, &ESP_PlayerSetting.bSkeleton);
 						ImGui::TableNextColumn(); ImGui::Checkbox("Health"e, &ESP_PlayerSetting.bHealth);
 						ImGui::TableNextColumn(); ImGui::Checkbox("NickName"e, &ESP_PlayerSetting.bNickName);
+						ImGui::TableNextColumn(); ImGui::Checkbox("RanksPoint"e, &ESP_PlayerSetting.bRanksPoint);
+						ImGui::TableNextColumn(); ImGui::Checkbox("IsKakao?"e, &ESP_PlayerSetting.bKakao);
 						ImGui::TableNextColumn(); ImGui::Checkbox("Team"e, &ESP_PlayerSetting.bTeam);
 						ImGui::TableNextColumn(); ImGui::Checkbox("Weapon"e, &ESP_PlayerSetting.bWeapon);
 						ImGui::TableNextColumn(); ImGui::Checkbox("Distance"e, &ESP_PlayerSetting.bDistance);
@@ -110,7 +120,7 @@ void Hack::ProcessImGui() {
 				if (ImGui::TreeNode("Details##Aimbot"e)) {
 					ImGui::Text("Fov"e);
 					ImGui::PushItemWidth(-1);
-					ImGui::SliderFloat("Fov"e, &CircleFovInDegrees, 6.0f, 12.0f);
+					ImGui::SliderFloat("Fov"e, &AimbotFOV, AimbotFOVMin, AimbotFOVMax);
 					ImGui::PopItemWidth();
 
 					ImGui::Text("Aim Speed(Pixels Per Seconds)"e);
@@ -123,6 +133,10 @@ void Hack::ProcessImGui() {
 
 				ImGui::Checkbox("Silent Aim(F7)"e, &bSilentAim);
 				if (ImGui::TreeNode("Details##SilentAim"e)) {
+					ImGui::Text("Fov"e);
+					ImGui::PushItemWidth(-1);
+					ImGui::SliderFloat("Fov"e, &SilentFOV, SilentFOVMin, SilentFOVMax);
+					ImGui::PopItemWidth();
 					ImGui::Text("Randomize"e);
 					ImGui::PushItemWidth(-1);
 					ImGui::SliderFloat("Randomize"e, &RandSilentAim, 0.0f, RandSilentAimMax, "%.1f"e, ImGuiSliderFlags_NoRoundToFormat);
