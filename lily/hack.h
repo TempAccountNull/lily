@@ -31,11 +31,11 @@ private:
 	bool bRadar = true;
 	bool bBox = true;
 	bool bTeamKill = false;
-	int nItem = 1;
+	int nItem = 2;
 	bool bAimbot = true;
-	bool bSilentAim = false;
-	bool bSilentAim_DangerousMode = false;
-	int nRange = 500;
+	bool bSilentAim = true;
+	bool bSilentAim_DangerousMode = true;
+	int nRange = 1000;
 
 	constexpr static float AimbotFOVMin = 6.0f;
 	constexpr static float AimbotFOVMax = 12.0f;

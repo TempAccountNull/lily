@@ -36,7 +36,11 @@ static VehicleInfo GetVehicleInfo(unsigned Hash) {
 		HASH_CASE("BP_BRDM_C"h, { "BRDM"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
 		HASH_CASE("BP_Mirado_Open_05_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
 		HASH_CASE("BP_Motorglider_C"h, { "Glider"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
+		HASH_CASE("BP_Motorglider_Blue_C"h, { "Glider"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
 		HASH_CASE("BP_Motorglider_Green_C"h, { "Glider"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
+		HASH_CASE("BP_Motorglider_Orange_C"h, { "Glider"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
+		HASH_CASE("BP_Motorglider_Red_C"h, { "Glider"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
+		HASH_CASE("BP_Motorglider_Teal_C"h, { "Glider"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
 		HASH_CASE("BP_LootTruck_C"h, { "LootTruck"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
 
 		HASH_CASE("AquaRail_A_01_C"h, { "Aquarail"e, VehicleType1::Floating, VehicleType2::Destructible, VehicleType3::Normal });

@@ -1253,9 +1253,12 @@ void Hack::Loop() {
 						return;
 
 					FVector RandedTargetPos = TargetPos;
-					RandedTargetPos.X += randf(RandSilentAim);
-					RandedTargetPos.Y += randf(RandSilentAim);
-					RandedTargetPos.Z += randf(RandSilentAim);
+					float angle1 = randf(0.0f, PI);
+					float angle2 = randf(0.0f, PI * 2.0f);
+					float radious = randf(0.0f, RandSilentAim);
+					RandedTargetPos.X += radious * sinf(angle1) * cosf(angle2);
+					RandedTargetPos.Y += radious * sinf(angle1) * sinf(angle2);
+					RandedTargetPos.Z += radious * cosf(angle1);
 
 					Result = GetBulletDropAndTravelTime(
 						MyInfo.AimLocation,

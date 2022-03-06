@@ -315,9 +315,8 @@ static void SetThreadAffinityMaskWrapper(auto f) {
 	SetThreadAffinityMask(hCurrentThread, OldAffinityMask);
 }
 
-static float randf(float M = 1.0f) {
-	constexpr float RAND_MAX_2 = RAND_MAX / 2;
-	return (rand() - RAND_MAX_2) / RAND_MAX_2 * M;
+static float randf(float min = 0.0f, float max = 1.0f) {
+	return min + (max - min) * (float)rand() / (float)RAND_MAX;
 }
 
 static void GetDesktopDir(char* szPath) {

@@ -181,7 +181,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Weapon_Sawnoff_C"h, { "Sawnoff"e, 1 });
 
 		//SMG
-		HASH_CASE("Item_Weapon_Vector_C"h, { "Vec"e, 3 });
+		HASH_CASE("Item_Weapon_Vector_C"h, { "Vec"e, 4 });
 		HASH_CASE("Item_Weapon_Thompson_C"h, { "Tom"e, 2 });
 		HASH_CASE("Item_Weapon_UMP_C"h, { "UMP"e, 2 });
 		HASH_CASE("Item_Weapon_UZI_C"h, { "UZI"e, 2 });
