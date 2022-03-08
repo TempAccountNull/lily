@@ -13,7 +13,7 @@ class PubgProcess : public Process {
 private:
 	class Xenuine {
 	private:
-		static constexpr uintptr_t XenuineEncryptFuncAddress = 0x73A2F20;
+		static constexpr uintptr_t XenuineEncryptFuncAddress = 0x7632420;
 		static constexpr uintptr_t XenuineDecryptFuncAddress = XenuineEncryptFuncAddress + 0x8;
 
 		const Process& process;

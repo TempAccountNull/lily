@@ -25,13 +25,15 @@ public:
 		int v1;
 		int v2;
 		int v3;
+		__int64 v5;
 		__int64 v73;
 
-		v1 = *(_DWORD*)(a1 + 0x14) ^ 0x270D36D3;
-		v2 = *(_DWORD*)(a1 + 0x10) ^ 0x43589D49 ^ ((*(_DWORD*)(a1 + 0x10) ^ 0x43589D49) << 0x10) ^ 0x11DE36D3;
+		v1 = *(_DWORD*)(a1 + 0x3C) ^ 0xBE01DD59;
+		LODWORD(v5) = __ROL4__(*(_DWORD*)(a1 + 0x38) ^ 0x260C7E6F, 0xF);
+		v2 = int(v5 ^ ((_DWORD)v5 << 0x10) ^ 0x6358DD59);
 		LODWORD(v73) = v2;
-		v3 = __ROR4__(v1, 8);
-		HIDWORD(v73) = v3 ^ (v3 << 0x10) ^ 0xDE119D49;
+		v3 = __ROR4__(v1, 9);
+		HIDWORD(v73) = v3 ^ (v3 << 0x10) ^ 0x58637E6F;
 
 		FName name;
 		name.ComparisonIndex = LODWORD(v73);
