@@ -420,22 +420,14 @@ void Hack::Loop() {
 						Info.IsVisible = true;
 					}
 					else {
-						const bool bLockAimPoint = [&] {
-							if (AimbotInfo.State == CharacterState::Alive && Info.State == CharacterState::Groggy)
-								return true;
-							if (AimbotInfo.State == CharacterState::Alive && Info.State == CharacterState::Dead)
-								return true;
-							if (AimbotInfo.State == CharacterState::Groggy && Info.State == CharacterState::Dead)
-								return true;
-
-							return false;
-						}();
-
-						if (bLockAimPoint) {
-							AimbotInfo.AimPoint = Info.AimPoint;
+						if (AimbotInfo.State == CharacterState::Alive && Info.State == CharacterState::Groggy)
 							AimbotInfo.IsLocked = true;
-						}
+						else if (AimbotInfo.State == CharacterState::Alive && Info.State == CharacterState::Dead)
+							AimbotInfo.IsLocked = true;
+						else if (AimbotInfo.State == CharacterState::Groggy && Info.State == CharacterState::Dead)
+							AimbotInfo.IsLocked = true;
 						else {
+							AimbotInfo.AimPoint = Info.AimPoint;
 							AimbotInfo.Velocity = Info.Velocity;
 							AimbotInfo.IsInVehicle = Info.IsInVehicle;
 						}
@@ -1255,7 +1247,7 @@ void Hack::Loop() {
 					FVector RandedTargetPos = TargetPos;
 					float angle1 = randf(0.0f, PI);
 					float angle2 = randf(0.0f, PI * 2.0f);
-					float radious = randf(0.0f, RandSilentAim);
+					float radious = randf(0.0f, bPushingShift ? RandSilentAimHead : RandSilentAimBody);
 					RandedTargetPos.X += radious * sinf(angle1) * cosf(angle2);
 					RandedTargetPos.Y += radious * sinf(angle1) * sinf(angle2);
 					RandedTargetPos.Z += radious * cosf(angle1);

@@ -210,11 +210,12 @@ public:
 	}
 
 	const uintptr_t KernelSpace = [&] {
-		HMODULE hKernel = GetKernelModuleAddressVerified("ntoskrnl.exe"e);
+		HMODULE hKernel = LoadLibraryA("ntoskrnl.exe"e);
 		ShellCode_CC<sizeof(ShellCode_IntHandler)> shellcode;
-		uintptr_t Result = PatternScan::Module((uintptr_t)hKernel, 0, 0, (uint8_t*)&shellcode, sizeof(shellcode), ReadProcessMemoryDBVM);
+		uintptr_t Result = PatternScan::Module((uintptr_t)hKernel, 0, 0, (uint8_t*)&shellcode, sizeof(shellcode), ReadProcessMemoryWinAPI);
+		FreeLibrary(hKernel);
 		verify(Result);
-		return Result;
+		return Result - (uintptr_t)hKernel + (uintptr_t)GetKernelModuleAddressVerified("ntoskrnl.exe"e);
 	}();
 
 	template<>

@@ -139,7 +139,8 @@ void Hack::ProcessImGui() {
 					ImGui::PopItemWidth();
 					ImGui::Text("Randomize"e);
 					ImGui::PushItemWidth(-1);
-					ImGui::SliderFloat("Randomize"e, &RandSilentAim, 0.0f, RandSilentAimMax, "%.1f"e, ImGuiSliderFlags_NoRoundToFormat);
+					ImGui::SliderFloat("Head"e, &RandSilentAimHead, 0.0f, RandSilentAimMax, "%.1f"e, ImGuiSliderFlags_NoRoundToFormat);
+					ImGui::SliderFloat("Body"e, &RandSilentAimBody, 0.0f, RandSilentAimMax, "%.1f"e, ImGuiSliderFlags_NoRoundToFormat);
 					ImGui::PopItemWidth();
 					ImGui::Checkbox("Dangerous Mode"e, &bSilentAim_DangerousMode);
 					ImGui::TreePop();

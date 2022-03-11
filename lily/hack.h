@@ -76,8 +76,9 @@ private:
 	float AimSpeedX = AimSpeedDefault;
 	float AimSpeedY = AimSpeedDefault;
 
-	constexpr static float RandSilentAimMax = 10.0f;
-	float RandSilentAim = 5.0f;
+	constexpr static float RandSilentAimMax = 40.0f;
+	float RandSilentAimHead = 3.0f;
+	float RandSilentAimBody = 30.0f;
 
 	bool bPushingCTRL = false;
 	bool bPushingShift = false;
@@ -136,10 +137,14 @@ private:
 	}
 
 	bool IsUserBlackListed(const char* szUserName) {
+		if (!szUserName || !*szUserName)
+			return false;
+
 		const unsigned NameHash = CompileTime::StrHash(szUserName);
 		for (const auto& Elem : BlackList)
 			if (Elem == NameHash)
 				return true;
+
 		return false;
 	}
 
