@@ -28,6 +28,7 @@ void Hack::DrawHotkey() const {
 
 	AddOnOff("Aimbot(F6)"e, bAimbot);
 	AddOnOff("Silent Aimbot(F7)"e, bSilentAim);
+	AddOnOff("Penetrate(F8)"e, bPenetrate);
 	AddOnOff("TeamKill(F10)"e, bTeamKill);
 	AddOnOff("Total ESP(F12)"e, bESP);
 
@@ -146,6 +147,7 @@ void Hack::ProcessImGui() {
 					ImGui::TreePop();
 				}
 
+				ImGui::Checkbox("Penetrate(F8)"e, &bPenetrate);
 				ImGui::Checkbox("TeamKill(F10)"e, &bTeamKill);
 				ImGui::EndTabItem();
 			}
@@ -207,6 +209,10 @@ void Hack::ProcessHotkey() {
 		}
 		if (IsKeyPushed(VK_F7)) {
 			bSilentAim = !bSilentAim;
+			NoticeTimeRemain = NOTICE_TIME;
+		}
+		if (IsKeyPushed(VK_F8)) {
+			bPenetrate = !bPenetrate;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (IsKeyPushed(VK_F10)) {

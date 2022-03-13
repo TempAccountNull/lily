@@ -32,11 +32,27 @@ void Hack::Loop() {
 
 	//41 0f ? ? 73 ? f3 0f 10 ? ? ? ? ? f3 0f 11 ? ? ? ? 00 00
 	constexpr uintptr_t HookBaseAddress = 0xb36547;
-	uint8_t OriginalByte = 0;
-	pubg.ReadBase(HookBaseAddress, &OriginalByte);
 	const uintptr_t AimHookAddressVA = pubg.GetBaseAddress() + HookBaseAddress;
 	const PhysicalAddress AimHookAddressPA = dbvm.GetPhysicalAddress(AimHookAddressVA, mapCR3);
-	verify(AimHookAddressPA && OriginalByte);
+	verify(AimHookAddressPA);
+
+	//e8 ? ? ? ? f2 0f 10 00 f2 0f ? ? ? ? ? 00 00 8b 40 08 89 ? ? ? ? 00 00 48
+	constexpr uintptr_t GunLocScopeHookBaseAddress = 0xb3574e;
+	const uintptr_t GunLocScopeHookAddressVA = pubg.GetBaseAddress() + GunLocScopeHookBaseAddress;
+	const PhysicalAddress GunLocScopeHookAddressPA = dbvm.GetPhysicalAddress(GunLocScopeHookAddressVA, mapCR3);
+	verify(GunLocScopeHookAddressPA);
+
+	//74 ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? eb ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? f2 0f 10 00 f2 0f
+	constexpr uintptr_t GunLocNoScopeHookBaseAddress = 0xb352f7;
+	const uintptr_t GunLocNoScopeHookAddressVA = pubg.GetBaseAddress() + GunLocNoScopeHookBaseAddress;
+	const PhysicalAddress GunLocNoScopeHookAddressPA = dbvm.GetPhysicalAddress(GunLocNoScopeHookAddressVA, mapCR3);
+	verify(GunLocNoScopeHookAddressPA);
+
+	//e8 ? ? ? ? f6 84 ? ? ? ? ? 01 74 ? f3 0f
+	constexpr uintptr_t GunLocNearWallHookBaseAddress = 0xb371a3;
+	const uintptr_t GunLocNearWallHookAddressVA = pubg.GetBaseAddress() + GunLocNearWallHookBaseAddress;
+	const PhysicalAddress GunLocNearWallHookAddressPA = dbvm.GetPhysicalAddress(GunLocNearWallHookAddressVA, mapCR3);
+	verify(GunLocNearWallHookAddressPA);
 
 	float TimeDeltaAcc = 0.0f;
 	float LastAimUpdateTime = 0.0f;
@@ -75,6 +91,7 @@ void Hack::Loop() {
 		FVector AimPoint;
 		bool IsLocked = false;
 		FRotator Recoil;
+		FRotator ControlRotation;
 		FVector GunLocation;
 		FRotator GunRotation;
 		FVector AimLocation;
@@ -134,6 +151,7 @@ void Hack::Loop() {
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			float TimeSeconds = 0.0f;
 			bool IsNeedToHookAim = false;
+			bool IsNeedToHookGunLoc = false;
 			TArray<NativePtr<AActor>> Actors;
 			FVector CameraLocation;
 			FRotator CameraRotation;
@@ -227,7 +245,7 @@ void Hack::Loop() {
 
 				Info.Location = Mesh.ComponentToWorld.Translation;
 				Info.Velocity = Mesh.ComponentVelocity;
-				Info.IsVisible = Mesh.IsVisible();
+				Info.IsVisible = Mesh.IsVisible() || bPenetrate;
 
 				Info.Ptr = CharacterPtr;
 				Info.IsAI = IsAICharacter(NameHash);
@@ -238,6 +256,7 @@ void Hack::Loop() {
 				Info.IsScoping = TslAnimInstance.bIsScoping_CP;
 				Info.Recoil = TslAnimInstance.RecoilADSRotation_CP;
 				Info.Recoil.Yaw += (TslAnimInstance.LeanRightAlpha_CP - TslAnimInstance.LeanLeftAlpha_CP) * Info.Recoil.Pitch / 3.0f;
+				Info.ControlRotation = TslAnimInstance.ControlRotation_CP + Info.Recoil;
 				Info.IsFPP = TslAnimInstance.bLocalFPP_CP;
 				Info.State =
 					Info.Health > 0.0f ? CharacterState::Alive :
@@ -388,7 +407,7 @@ void Hack::Loop() {
 				if (Info.IsScoping)
 					Info.AimRotation = Info.GunRotation;
 				else
-					Info.AimRotation = TslAnimInstance.ControlRotation_CP + Info.Recoil;
+					Info.AimRotation = Info.ControlRotation;
 
 				//FiringInfo
 				//////////////////////////////////
@@ -557,6 +576,8 @@ void Hack::Loop() {
 					return;
 
 				float Distance = MyInfo.Location.Distance(Info.Location) / 100.0f;
+				if (Distance > 1500.0f)
+					return;
 
 				bool bFocusingMe = false;
 				//Get bFocusingMe
@@ -1131,6 +1152,32 @@ void Hack::Loop() {
 
 			float CustomTimeDilation = 1.0f;
 
+			if (bPenetrate && !MyInfo.IsInVehicle) {
+				FVector Direction = CameraRotation.GetUnitVector();
+				FVector DirectionXY = { Direction.X, Direction.Y, 0.0f };
+				DirectionXY.Normalize();
+
+				MyInfo.AimLocation = MyInfo.AimLocation + DirectionXY * 85.0f;
+
+				ChangeRegOnBPInfo Info{};
+				Info.changeXMM0_0 = true;
+				Info.changeXMM0_1 = true;
+				Info.XMM0.Float_0 = MyInfo.AimLocation.X;
+				Info.XMM0.Float_1 = MyInfo.AimLocation.Y;
+				dbvm.ChangeRegisterOnBP(GunLocScopeHookAddressPA, Info);
+				dbvm.ChangeRegisterOnBP(GunLocNoScopeHookAddressPA, Info);
+
+				Info = {};
+				Info.changeXMM0_0 = true;
+				Info.changeXMM1_0 = true;
+				Info.changeXMM2_0 = true;
+				Info.XMM0.Float_0 = MyInfo.AimLocation.X;
+				Info.XMM1.Float_0 = MyInfo.AimLocation.Y;
+				Info.XMM2.Float_0 = MyInfo.AimLocation.Z;
+				dbvm.ChangeRegisterOnBP(GunLocNearWallHookAddressPA, Info);
+				IsNeedToHookGunLoc = true;
+			}
+
 			//TargetCharacter
 			[&] {
 				if (!MyInfo.IsWeaponed)
@@ -1347,6 +1394,11 @@ void Hack::Loop() {
 
 			if (!IsNeedToHookAim)
 				dbvm.RemoveChangeRegisterOnBP(AimHookAddressPA);
+			if (!IsNeedToHookGunLoc) {
+				dbvm.RemoveChangeRegisterOnBP(GunLocScopeHookAddressPA);
+				dbvm.RemoveChangeRegisterOnBP(GunLocNoScopeHookAddressPA);
+				dbvm.RemoveChangeRegisterOnBP(GunLocNearWallHookAddressPA);
+			}
 
 			if (MyInfo.SpectatedCount > 0)
 				DrawSpectatedCount(MyInfo.SpectatedCount, Render::COLOR_RED);
@@ -1368,7 +1420,8 @@ void Hack::Loop() {
 
 			if (MyInfo.IsWeaponed) {
 				if (bAimbot)
-					render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f, 0.0f }, AimbotCircleSize, IM_COL32(255, 255, 255, 100));
+					render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f, 0.0f }, AimbotCircleSize, 
+						bPenetrate ? IM_COL32(255, 0, 0, 100) : IM_COL32(255, 255, 255, 100));
 				if (bSilentAim)
 					render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f, 0.0f }, SilentCircleSize, IM_COL32(255, 255, 0, 100));
 			}

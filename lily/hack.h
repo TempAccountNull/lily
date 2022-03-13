@@ -35,6 +35,7 @@ private:
 	bool bAimbot = true;
 	bool bSilentAim = true;
 	bool bSilentAim_DangerousMode = true;
+	bool bPenetrate = false;
 	int nRange = 1000;
 
 	constexpr static float AimbotFOVMin = 6.0f;
