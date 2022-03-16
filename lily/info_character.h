@@ -18,5 +18,6 @@ static bool IsAICharacter(unsigned Hash) {
 		HASH_CASE("AIPawn_Base_Male_C"h, true);
 		HASH_CASE("UltAIPawn_Base_Female_C"h, true);
 		HASH_CASE("UltAIPawn_Base_Male_C"h, true);
+		HASH_CASE("AIPawn_Base_Male_Pillar_C"h, true);
 	}
 }

@@ -216,5 +216,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Mountainbike_C"h, { "BikeM"e, 4 });
 		HASH_CASE("Item_Weapon_Drone_C"h, { "Drone"e, 4 });
 		HASH_CASE("Item_Weapon_TraumaBag_C"h, { "TraumaBag"e, 4 });
+		HASH_CASE("Item_Weapon_Spotter_Scope"h, { "Spotter"e, 4 });
+		HASH_CASE("Item_Weapon_TacPack_C"h, { "TacPack"e, 4 });
 	}
 }

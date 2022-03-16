@@ -90,5 +90,7 @@ static fixstr::basic_fixed_string<char, 0x100> GetWeaponName(unsigned Hash) {
 		HASH_CASE("WeapJerryCan_C"h, "Fuel"e);
 		HASH_CASE("WeapDrone_C"h, "Drone"e);
 		HASH_CASE("WeapTraumaBag_C"h, "TraumaBag"e);
+		HASH_CASE("WeapSpotterScope_C"h, "Spotter"e);
+		HASH_CASE("WeapTacPack_C"h, "TacPack"e);
 	}
 }

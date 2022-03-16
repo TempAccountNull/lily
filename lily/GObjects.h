@@ -26,18 +26,18 @@ public:
 		int v2;
 		int v3;
 		__int64 v5;
-		__int64 v73;
+		__int64 v75;
 
-		v1 = *(_DWORD*)(a1 + 0x3C) ^ 0xBE01DD59;
-		LODWORD(v5) = __ROL4__(*(_DWORD*)(a1 + 0x38) ^ 0x260C7E6F, 0xF);
-		v2 = int(v5 ^ ((_DWORD)v5 << 0x10) ^ 0x6358DD59);
-		LODWORD(v73) = v2;
-		v3 = __ROR4__(v1, 9);
-		HIDWORD(v73) = v3 ^ (v3 << 0x10) ^ 0x58637E6F;
+		v1 = *(_DWORD*)(a1 + 0x34) ^ 0x1A31B5BC;
+		LODWORD(v5) = __ROL4__(*(_DWORD*)(a1 + 0x30) ^ 0x894853B, 2);
+		v2 = int(v5 ^ ((_DWORD)v5 << 0x10) ^ 0xAF8DB5BC);
+		LODWORD(v75) = v2;
+		v3 = __ROR4__(v1, 6);
+		HIDWORD(v75) = v3 ^ (v3 << 0x10) ^ 0x8DAF853B;
 
 		FName name;
-		name.ComparisonIndex = LODWORD(v73);
-		name.Number = HIDWORD(v73);
+		name.ComparisonIndex = LODWORD(v75);
+		name.Number = HIDWORD(v75);
 
 		return name;
 	}
