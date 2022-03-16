@@ -18,7 +18,8 @@ enum class CharacterState {
 
 void Hack::Loop() {
 	UpdateRankInfo();
-	LoadBlackList();
+	LoadList(BlackList, BlackListFile);
+	LoadList(WhiteList, WhiteListFile);
 
 	const HWND hGameWnd = pubg.hGameWnd;
 	const CR3 mapCR3 = kernel.GetMapCR3();
@@ -39,14 +40,18 @@ void Hack::Loop() {
 	//e8 ? ? ? ? f2 0f 10 00 f2 0f ? ? ? ? ? 00 00 8b 40 08 89 ? ? ? ? 00 00 48
 	constexpr uintptr_t GunLocScopeHookBaseAddress = 0xb3574e;
 	const uintptr_t GunLocScopeHookAddressVA = pubg.GetBaseAddress() + GunLocScopeHookBaseAddress;
-	const PhysicalAddress GunLocScopeHookAddressPA = dbvm.GetPhysicalAddress(GunLocScopeHookAddressVA, mapCR3);
-	verify(GunLocScopeHookAddressPA);
+	const PhysicalAddress GunLocScopeHookAddressPA1 = dbvm.GetPhysicalAddress(GunLocScopeHookAddressVA, mapCR3);
+	const PhysicalAddress GunLocScopeHookAddressPA2 = dbvm.GetPhysicalAddress(GunLocScopeHookAddressVA + 0xC, mapCR3);
+	verify(GunLocScopeHookAddressPA1);
+	verify(GunLocScopeHookAddressPA2);
 
 	//74 ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? eb ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? f2 0f 10 00 f2 0f
 	constexpr uintptr_t GunLocNoScopeHookBaseAddress = 0xb352f7;
 	const uintptr_t GunLocNoScopeHookAddressVA = pubg.GetBaseAddress() + GunLocNoScopeHookBaseAddress;
-	const PhysicalAddress GunLocNoScopeHookAddressPA = dbvm.GetPhysicalAddress(GunLocNoScopeHookAddressVA, mapCR3);
-	verify(GunLocNoScopeHookAddressPA);
+	const PhysicalAddress GunLocNoScopeHookAddressPA1 = dbvm.GetPhysicalAddress(GunLocNoScopeHookAddressVA, mapCR3);
+	const PhysicalAddress GunLocNoScopeHookAddressPA2 = dbvm.GetPhysicalAddress(GunLocNoScopeHookAddressVA + 0xC, mapCR3);
+	verify(GunLocNoScopeHookAddressPA1);
+	verify(GunLocNoScopeHookAddressPA2);
 
 	//e8 ? ? ? ? f6 84 ? ? ? ? ? 01 74 ? f3 0f
 	constexpr uintptr_t GunLocNearWallHookBaseAddress = 0xb371a3;
@@ -69,6 +74,7 @@ void Hack::Loop() {
 		int Team = -1;
 		int SpectatedCount = 0;
 		bool IsBlackListed = false;
+		bool IsWhiteListed = false;
 		bool IsFPP = false;
 		bool IsWeaponed = false;
 		bool IsFiring = false;
@@ -245,7 +251,7 @@ void Hack::Loop() {
 
 				Info.Location = Mesh.ComponentToWorld.Translation;
 				Info.Velocity = Mesh.ComponentVelocity;
-				Info.IsVisible = Mesh.IsVisible() || bPenetrate;
+				Info.IsVisible = Mesh.IsVisible() || (bPenetrate && bPushingCTRL);
 
 				Info.Ptr = CharacterPtr;
 				Info.IsAI = IsAICharacter(NameHash);
@@ -269,7 +275,8 @@ void Hack::Loop() {
 				if (TslCharacter.CharacterName.GetValues(*PlayerName, 0x100))
 					Info.PlayerName = ws2s(PlayerName);
 
-				Info.IsBlackListed = IsUserBlackListed(Info.PlayerName.c_str());
+				Info.IsBlackListed = IsUserInList(BlackList, Info.PlayerName.c_str());
+				Info.IsWhiteListed = IsUserInList(WhiteList, Info.PlayerName.c_str());
 
 				EnemyInfoMap[CharacterPtr].FiringInfo.RemainTime =
 					std::clamp(EnemyInfoMap[CharacterPtr].FiringInfo.RemainTime - render.TimeDelta, 0.0f, 1.0f);
@@ -593,7 +600,7 @@ void Hack::Loop() {
 						return;
 					if (Info.GunRotation.Length() == 0.0f)
 						return;
-					if (!bTeamKill && Info.Team == MyInfo.Team)
+					if (!bTeamKill && (Info.Team == MyInfo.Team || Info.IsWhiteListed))
 						return;
 
 					auto Result = GetBulletDropAndTravelTime(
@@ -663,7 +670,7 @@ void Hack::Loop() {
 
 					//GetColor
 					ImColor Color = [&]()->ImColor {
-						if (Info.Team == MyInfo.Team)
+						if (Info.Team == MyInfo.Team || Info.IsWhiteListed)
 							return Render::COLOR_GREEN;
 						if (Info.Health <= 0.0f)
 							return Render::COLOR_GRAY;
@@ -733,7 +740,7 @@ void Hack::Loop() {
 						return;
 					if (!Info.IsVisible)
 						return;
-					if (!bTeamKill && Info.Team == MyInfo.Team)
+					if (!bTeamKill && (Info.Team == MyInfo.Team || Info.IsWhiteListed))
 						return;
 					if (!Info.IsLocked) {
 						if (Info.State == CharacterState::Dead)
@@ -772,7 +779,7 @@ void Hack::Loop() {
 					ImColor Color = [&]()->ImColor {
 						if (ActorPtr == LockTargetPtr)
 							return Render::COLOR_PURPLE;
-						if (Info.Team == MyInfo.Team)
+						if (Info.Team == MyInfo.Team || Info.IsWhiteListed)
 							return Render::COLOR_GREEN;
 						if (Info.Health <= 0.0f)
 							return Render::COLOR_GRAY;
@@ -1154,18 +1161,21 @@ void Hack::Loop() {
 
 			if (bPenetrate && !MyInfo.IsInVehicle) {
 				FVector Direction = CameraRotation.GetUnitVector();
-				FVector DirectionXY = { Direction.X, Direction.Y, 0.0f };
-				DirectionXY.Normalize();
-
-				MyInfo.AimLocation = MyInfo.AimLocation + DirectionXY * 85.0f;
+				MyInfo.AimLocation = MyInfo.BonesPos[forehead] + Direction * 90.0f;
 
 				ChangeRegOnBPInfo Info{};
 				Info.changeXMM0_0 = true;
 				Info.changeXMM0_1 = true;
 				Info.XMM0.Float_0 = MyInfo.AimLocation.X;
 				Info.XMM0.Float_1 = MyInfo.AimLocation.Y;
-				dbvm.ChangeRegisterOnBP(GunLocScopeHookAddressPA, Info);
-				dbvm.ChangeRegisterOnBP(GunLocNoScopeHookAddressPA, Info);
+				dbvm.ChangeRegisterOnBP(GunLocScopeHookAddressPA1, Info);
+				dbvm.ChangeRegisterOnBP(GunLocNoScopeHookAddressPA1, Info);
+
+				Info = {};
+				Info.changeRAX = true;
+				Info.newRAX = *(int*)&MyInfo.AimLocation.Z;
+				dbvm.ChangeRegisterOnBP(GunLocScopeHookAddressPA2, Info);
+				dbvm.ChangeRegisterOnBP(GunLocNoScopeHookAddressPA2, Info);
 
 				Info = {};
 				Info.changeXMM0_0 = true;
@@ -1395,8 +1405,10 @@ void Hack::Loop() {
 			if (!IsNeedToHookAim)
 				dbvm.RemoveChangeRegisterOnBP(AimHookAddressPA);
 			if (!IsNeedToHookGunLoc) {
-				dbvm.RemoveChangeRegisterOnBP(GunLocScopeHookAddressPA);
-				dbvm.RemoveChangeRegisterOnBP(GunLocNoScopeHookAddressPA);
+				dbvm.RemoveChangeRegisterOnBP(GunLocScopeHookAddressPA1);
+				dbvm.RemoveChangeRegisterOnBP(GunLocScopeHookAddressPA2);
+				dbvm.RemoveChangeRegisterOnBP(GunLocNoScopeHookAddressPA1);
+				dbvm.RemoveChangeRegisterOnBP(GunLocNoScopeHookAddressPA2);
 				dbvm.RemoveChangeRegisterOnBP(GunLocNearWallHookAddressPA);
 			}
 

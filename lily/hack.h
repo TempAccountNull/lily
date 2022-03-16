@@ -12,6 +12,7 @@
 #include "imgui/imgui_impl_win32.h"
 
 #define BlackListFile "blacklist.txt"e
+#define WhiteListFile "whitelist.txt"e
 
 struct RankInfo {
 	unsigned rankPoint;
@@ -105,44 +106,33 @@ private:
 
 	constexpr static float MinFocusTime = 0.1f;
 
-
 	std::vector<unsigned> BlackList;
+	std::vector<unsigned> WhiteList;
 
-	static void GetBlackListFilePath(char* szPath) {
-		GetDesktopDir(szPath);
-		strcat(szPath, "\\"e);
-		strcat(szPath, BlackListFile);
-	}
-
-	void LoadBlackList() {
-		GetBlackListFilePath(szBuf);
+	void LoadList(std::vector<unsigned>& List, const char* szFileName) {
+		GetDesktopPath(szBuf, szFileName);
 		FILE* in = fopen(szBuf, "a+"e);
 		if (!in)
-			error(BlackListFile);
+			error(szFileName);
 
-		BlackList.clear();
+		List.clear();
 
 		while (fgets(szBuf, sizeof(szBuf), in)) {
 			char* pNewLine = strchr(szBuf, '\n');
 			if (pNewLine)
 				*pNewLine = 0;
-			BlackList.push_back(CompileTime::StrHash(szBuf));
+			List.push_back(CompileTime::StrHash(szBuf));
 		}
 
 		fclose(in);
 	}
 
-	void OpenBlackListFile() {
-		GetBlackListFilePath(szBuf);
-		ShellExecuteA(0, "open"e, szBuf, 0, 0, SW_NORMAL);
-	}
-
-	bool IsUserBlackListed(const char* szUserName) {
+	bool IsUserInList(const std::vector<unsigned>& List, const char* szUserName) {
 		if (!szUserName || !*szUserName)
 			return false;
 
 		const unsigned NameHash = CompileTime::StrHash(szUserName);
-		for (const auto& Elem : BlackList)
+		for (const auto& Elem : List)
 			if (Elem == NameHash)
 				return true;
 

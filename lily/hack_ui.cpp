@@ -71,11 +71,12 @@ void Hack::ProcessImGui() {
 
 		if (ImGui::Button("UpdateRankInfo"e))
 			UpdateRankInfo();
+
 		if (ImGui::Button("LoadBlackList"e))
-			LoadBlackList();
+			LoadList(BlackList, BlackListFile);
 		ImGui::SameLine();
-		if (ImGui::Button("OpenBlackListFile"e))
-			OpenBlackListFile();
+		if (ImGui::Button("LoadWhiteList"e))
+			LoadList(WhiteList, WhiteListFile);
 
 		ImGui::NewLine();
 

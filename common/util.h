@@ -319,6 +319,10 @@ static float randf(float min = 0.0f, float max = 1.0f) {
 	return min + (max - min) * (float)rand() / (float)RAND_MAX;
 }
 
-static void GetDesktopDir(char* szPath) {
+static void GetDesktopPath(char* szPath, const char* szFileName = 0) {
 	SHGetSpecialFolderPathA(0, szPath, CSIDL_DESKTOP, 0);
+	if (szFileName) {
+		strcat(szPath, "\\"e);
+		strcat(szPath, szFileName);
+	}
 }
