@@ -59,12 +59,6 @@ void Hack::Loop() {
 	const PhysicalAddress GunLocNearWallHookAddressPA = dbvm.GetPhysicalAddress(GunLocNearWallHookAddressVA, mapCR3);
 	verify(GunLocNearWallHookAddressPA);
 
-	//ff 90 ? ? ? ? ff c8 a9 fd ff ff ff 0f 84 ? ? 00 00 8a
-	constexpr uintptr_t PassWallHookBaseAddress = 0x2B3F37;
-	const uintptr_t PassWallHookAddressVA = pubg.GetBaseAddress() + PassWallHookBaseAddress;
-	const PhysicalAddress PassWallHookAddressPA = dbvm.GetPhysicalAddress(PassWallHookAddressVA, mapCR3);
-	verify(PassWallHookAddressPA);
-
 	float TimeDeltaAcc = 0.0f;
 	float LastAimUpdateTime = 0.0f;
 	float RemainMouseX = 0.0f;
@@ -1349,17 +1343,6 @@ void Hack::Loop() {
 					IsNeedToHookAim = true;
 				}
 			}();
-
-			if (nCapsLockMode == 3) {
-				if (bCapsLockOn) {
-					ChangeRegOnBPInfo Info{};
-					Info.changeZF = true;
-					Info.newZF = false;
-					dbvm.ChangeRegisterOnBP(PassWallHookAddressPA, Info);
-				}
-				else
-					dbvm.RemoveChangeRegisterOnBP(PassWallHookAddressPA);
-			}
 
 			if (!bPushingCapsLock) {
 				EnemyFocusingMePtr = 0;

@@ -88,7 +88,6 @@ private:
 	bool bPushingMouseL = false;
 	bool bPushingMouseR = false;
 	bool bPushingCapsLock = false;
-	bool bCapsLockOn = false;
 
 	bool bShowMenu = true;
 	bool bDebug = false;
