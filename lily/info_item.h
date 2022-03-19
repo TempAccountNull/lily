@@ -21,7 +21,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Ammo_40mm_C"h, { "40"e, 3 });
 		HASH_CASE("Item_Ammo_9mm_C"h, { "9"e, 2 });
 		HASH_CASE("Item_Ammo_12Guage_C"h, { "12"e, 2 });
-		HASH_CASE("Item_Ammo_45ACP_C"h, { "45"e, 1 });
+		HASH_CASE("Item_Ammo_45ACP_C"h, { "45"e, 2 });
 
 		//Attach
 		HASH_CASE("Item_Attach_Weapon_Lower_Foregrip_C"h, { "L_Fore"e, 3 });
@@ -171,13 +171,13 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 
 		//Pistol
 		HASH_CASE("Item_Weapon_M79_C"h, { "M79"e, 3 });
-		HASH_CASE("Item_Weapon_G18_C"h, { "P18C"e, 3 });
-		HASH_CASE("Item_Weapon_vz61Skorpion_C"h, { "Skorpion"e, 3 });
-		HASH_CASE("Item_Weapon_M1911_C"h, { "P1911"e, 1 });
-		HASH_CASE("Item_Weapon_M9_C"h, { "P92"e, 1 });
-		HASH_CASE("Item_Weapon_NagantM1895_C"h, { "R1895"e, 1 });
-		HASH_CASE("Item_Weapon_DesertEagle_C"h, { "Deagle"e, 1 });
-		HASH_CASE("Item_Weapon_Rhino_C"h, { "R45"e, 1 });
+		HASH_CASE("Item_Weapon_G18_C"h, { "P18C"e, 4 });
+		HASH_CASE("Item_Weapon_vz61Skorpion_C"h, { "Skorpion"e, 4 });
+		HASH_CASE("Item_Weapon_M1911_C"h, { "P1911"e, 2 });
+		HASH_CASE("Item_Weapon_M9_C"h, { "P92"e, 2 });
+		HASH_CASE("Item_Weapon_NagantM1895_C"h, { "R1895"e, 4 });
+		HASH_CASE("Item_Weapon_DesertEagle_C"h, { "Deagle"e, 4 });
+		HASH_CASE("Item_Weapon_Rhino_C"h, { "R45"e, 4 });
 		HASH_CASE("Item_Weapon_Sawnoff_C"h, { "Sawnoff"e, 1 });
 
 		//SMG
@@ -213,7 +213,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_EmergencyPickup_C"h, { "Pickup"e, 4 });
 		HASH_CASE("InstantRevivalKit_C"h, { "RevivalKit"e, 4 });
 		HASH_CASE("Item_Tiger_SelfRevive_C"h, { "AED"e, 4 });
-		HASH_CASE("Item_Mountainbike_C"h, { "BikeM"e, 4 });
+		HASH_CASE("Item_Mountainbike_C"h, { "Bike"e, 4 });
 		HASH_CASE("Item_Weapon_Drone_C"h, { "Drone"e, 4 });
 		HASH_CASE("Item_Weapon_TraumaBag_C"h, { "TraumaBag"e, 4 });
 		HASH_CASE("Item_Weapon_Spotter_Scope"h, { "Spotter"e, 4 });

@@ -42,9 +42,9 @@ private:
 	constexpr static float AimbotFOVMin = 6.0f;
 	constexpr static float AimbotFOVMax = 12.0f;
 	constexpr static float SilentFOVMin = 1.0f;
-	constexpr static float SilentFOVMax = 2.0f;
+	constexpr static float SilentFOVMax = 2.5f;
 	float AimbotFOV = 6.0f;
-	float SilentFOV = 2.0f;
+	float SilentFOV = 2.5f;
 
 	constexpr static float FiringTime = 0.3f;
 	const ImVec2 RadarFrom = { 0.846f , 0.736f };
