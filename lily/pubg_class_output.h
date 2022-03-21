@@ -33,6 +33,7 @@ MemberAtOffset(EncryptedPtr<APlayerState>, PlayerState, 0x438)
 
 class ACharacter
 MemberAtOffset(NativePtr<USkeletalMeshComponent>, Mesh, 0x490)
+MemberAtOffset(FVector, BaseTranslationOffset, 0x4fc)
 
 class ATslCharacter
 MemberAtOffset(float, Health, 0x10b0)

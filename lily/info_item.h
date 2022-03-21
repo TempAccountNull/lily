@@ -42,7 +42,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Attach_Weapon_Magazine_QuickDraw_SniperRifle_C"h, { "Q_SR"e, 2 });
 
 		HASH_CASE("Item_Attach_Weapon_Magazine_ExtendedQuickDraw_Medium_C"h, { "EQ_SMG"e, 3 });
-		HASH_CASE("Item_Attach_Weapon_Magazine_Extended_Medium_C"h, { "E_SMG"e, 2 });
+		HASH_CASE("Item_Attach_Weapon_Magazine_Extended_Medium_C"h, { "E_SMG"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Magazine_QuickDraw_Medium_C"h, { "Q_SMG"e, 1 });
 
 		HASH_CASE("Item_Attach_Weapon_Magazine_ExtendedQuickDraw_Small_C"h, { "EQ_P"e, 3 });

@@ -33,6 +33,7 @@ EncryptedPtr<APlayerState> PlayerState
 
 class ACharacter
 NativePtr<USkeletalMeshComponent> Mesh
+FVector BaseTranslationOffset
 
 class ATslCharacter
 float Health

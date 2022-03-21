@@ -68,6 +68,7 @@ void Hack::ProcessImGui() {
 		ImGui::RadioButton("CapsLock Mode : OFF"e, &nCapsLockMode, 0);
 		ImGui::RadioButton("CapsLock Mode : TurnBack"e, &nCapsLockMode, 1);
 		ImGui::RadioButton("CapsLock Mode : AimToEnemyFocusingMe"e, &nCapsLockMode, 2);
+		ImGui::RadioButton("CapsLock Mode : MoveEnemy"e, &nCapsLockMode, 3);
 
 		if (ImGui::Button("UpdateRankInfo"e))
 			UpdateRankInfo();
@@ -249,4 +250,5 @@ void Hack::ProcessHotkey() {
 	bPushingCTRL = IsKeyPushing(VK_LCONTROL);
 	bPushingMouseR = IsKeyPushing(VK_RBUTTON);
 	bPushingCapsLock = IsKeyPushing(VK_CAPITAL);
+	bCapsLockOn = IsToggleKeyOn(VK_CAPITAL);
 }

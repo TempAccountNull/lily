@@ -93,6 +93,7 @@ void Hack::Loop() {
 		float SimulationSubstepTime = 0.016f;
 		float InitialSpeed = 800.0f;
 		float BulletDropAdd = 7.0f;
+		FVector RootLocation;
 		FVector Location;
 		FVector AimPoint;
 		bool IsLocked = false;
@@ -228,6 +229,12 @@ void Hack::Loop() {
 				if (!CharacterPtr.ReadOtherType(TslCharacter))
 					return false;
 
+				USceneComponent RootComponent;
+				if (!TslCharacter.RootComponent.Read(RootComponent))
+					return false;
+
+				Info.RootLocation = RootComponent.ComponentToWorld.Translation;
+
 				USkeletalMeshComponent Mesh;
 				if (!TslCharacter.Mesh.Read(Mesh))
 					return false;
@@ -235,6 +242,24 @@ void Hack::Loop() {
 				UTslAnimInstance TslAnimInstance;
 				if (!Mesh.AnimScriptInstance.ReadOtherType(TslAnimInstance))
 					return false;
+
+				//MoveEnemy
+				if (&Info != &MyInfo && nCapsLockMode == 3 && bCapsLockOn) {
+					FVector Dir = bPushingCTRL ? FVector(0.0f, 0.0f, 1.0f) : MyInfo.RootLocation - Info.RootLocation;
+					Dir.Normalize();
+
+					Mesh.ComponentToWorld.Translation =
+						Info.RootLocation + TslCharacter.BaseTranslationOffset + Dir * MoveEnemyDistance;
+
+					pubg.Write(TslCharacter.Mesh +
+						offsetof(USceneComponent, ComponentToWorld) +
+						offsetof(FTransform, Translation),
+						&Mesh.ComponentToWorld.Translation);
+				}
+
+				Info.Location = Mesh.ComponentToWorld.Translation;
+				Info.Velocity = Mesh.ComponentVelocity;
+				Info.IsVisible = Mesh.IsVisible() || (bPenetrate && bPushingCTRL);
 
 				//Bones
 				auto BoneSpaceTransforms = Mesh.BoneSpaceTransforms.GetVector();
@@ -248,10 +273,6 @@ void Hack::Loop() {
 					Info.BonesPos[BoneIndex] = Pos;
 					Info.BonesScreenPos[BoneIndex] = WorldToScreen(Pos);
 				}
-
-				Info.Location = Mesh.ComponentToWorld.Translation;
-				Info.Velocity = Mesh.ComponentVelocity;
-				Info.IsVisible = Mesh.IsVisible() || (bPenetrate && bPushingCTRL);
 
 				Info.Ptr = CharacterPtr;
 				Info.IsAI = IsAICharacter(NameHash);

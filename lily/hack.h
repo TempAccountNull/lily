@@ -39,6 +39,8 @@ private:
 	bool bPenetrate = true;
 	int nRange = 1000;
 
+	constexpr static float MoveEnemyDistance = 250.0f;
+
 	constexpr static float AimbotFOVMin = 6.0f;
 	constexpr static float AimbotFOVMax = 12.0f;
 	constexpr static float SilentFOVMin = 1.0f;
@@ -88,6 +90,7 @@ private:
 	bool bPushingMouseL = false;
 	bool bPushingMouseR = false;
 	bool bPushingCapsLock = false;
+	bool bCapsLockOn = false;
 
 	bool bShowMenu = true;
 	bool bDebug = false;

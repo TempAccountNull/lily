@@ -26,6 +26,7 @@ class UTslVehicleCommonComponent;
 class UActorComponent;
 class USceneComponent;
 class UPrimitiveComponent;
+class UCapsuleComponent;
 class UMeshComponent;
 class USkinnedMeshComponent;
 class USkeletalMeshComponent;
@@ -139,6 +140,7 @@ DefClass(APawn, AActor,
 //Engine.Character.Mesh 
 DefClass(ACharacter, APawn,
 	MemberAtOffset(NativePtr<USkeletalMeshComponent>, Mesh, 0x490)
+	MemberAtOffset(FVector, BaseTranslationOffset, 0x4fc)
 )
 
 //TslGame.TslCharacter.Health 
@@ -214,6 +216,8 @@ DefClass(UPrimitiveComponent, USceneComponent,
 	bool IsVisible() const { return LastRenderTimeOnScreen + 0.05f >= LastSubmitTime; }
 )
 
+DefClass(UShapeComponent, UPrimitiveComponent, )
+DefClass(UCapsuleComponent, UShapeComponent, )
 DefClass(UMeshComponent, UPrimitiveComponent, )
 
 //Engine.SkinnedMeshComponent.SkeletalMesh 
