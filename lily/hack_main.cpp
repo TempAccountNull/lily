@@ -245,7 +245,16 @@ void Hack::Loop() {
 
 				//MoveEnemy
 				if (&Info != &MyInfo && nCapsLockMode == 3 && bCapsLockOn) {
-					FVector Dir = bPushingCTRL ? FVector(0.0f, 0.0f, 1.0f) : MyInfo.RootLocation - Info.RootLocation;
+					FVector Dir = [&]()->FVector {
+						FVector Base = Info.RootLocation - MyInfo.RootLocation;
+						switch (nEnemyMoveDir) {
+						case Direction::Up:		return { 0.0f, 0.0f, 1.0f };
+						case Direction::Down:	return { 0.0f, 0.0f, -1.0f };
+						case Direction::Left:	return { Base.Y, -Base.X, 0.0f };
+						case Direction::Right:	return { -Base.Y, Base.X, 0.0f };
+						default:				return -Base;
+						}
+					}();
 					Dir.Normalize();
 
 					Mesh.ComponentToWorld.Translation =

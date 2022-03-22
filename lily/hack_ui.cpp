@@ -250,5 +250,14 @@ void Hack::ProcessHotkey() {
 	bPushingCTRL = IsKeyPushing(VK_LCONTROL);
 	bPushingMouseR = IsKeyPushing(VK_RBUTTON);
 	bPushingCapsLock = IsKeyPushing(VK_CAPITAL);
-	bCapsLockOn = IsToggleKeyOn(VK_CAPITAL);
+	bool bNewCapsLockOn = IsToggleKeyOn(VK_CAPITAL);
+	if (!bCapsLockOn && bNewCapsLockOn)
+		nEnemyMoveDir = Direction::None;
+	bCapsLockOn = bNewCapsLockOn;
+	if (bCapsLockOn) {
+		if (IsKeyPushed(VK_UP))		nEnemyMoveDir = Direction::Up;
+		if (IsKeyPushed(VK_LEFT))	nEnemyMoveDir = Direction::Left;
+		if (IsKeyPushed(VK_DOWN))	nEnemyMoveDir = Direction::Down;
+		if (IsKeyPushed(VK_RIGHT))	nEnemyMoveDir = Direction::Right;
+	}
 }

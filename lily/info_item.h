@@ -33,12 +33,12 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Attach_Weapon_Lower_ThumbGrip_C"h, { "L_Thumb"e, 2 });
 		HASH_CASE("Item_Attach_Weapon_Lower_LaserPointer_C"h, { "L_Laser"e, 1 });
 
-		HASH_CASE("Item_Attach_Weapon_Magazine_ExtendedQuickDraw_Large_C"h, { "EQ_AR"e, 4 });
+		HASH_CASE("Item_Attach_Weapon_Magazine_ExtendedQuickDraw_Large_C"h, { "EQ_AR"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Magazine_Extended_Large_C"h, { "E_AR"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Magazine_QuickDraw_Large_C"h, { "Q_AR"e, 2 });
 
-		HASH_CASE("Item_Attach_Weapon_Magazine_ExtendedQuickDraw_SniperRifle_C"h, { "EQ_SR"e, 4 });
-		HASH_CASE("Item_Attach_Weapon_Magazine_Extended_SniperRifle_C"h, { "E_SR"e, 4 });
+		HASH_CASE("Item_Attach_Weapon_Magazine_ExtendedQuickDraw_SniperRifle_C"h, { "EQ_SR"e, 3 });
+		HASH_CASE("Item_Attach_Weapon_Magazine_Extended_SniperRifle_C"h, { "E_SR"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Magazine_QuickDraw_SniperRifle_C"h, { "Q_SR"e, 2 });
 
 		HASH_CASE("Item_Attach_Weapon_Magazine_ExtendedQuickDraw_Medium_C"h, { "EQ_SMG"e, 3 });
@@ -51,13 +51,13 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		
 		HASH_CASE("Item_Attach_Weapon_Muzzle_Compensator_Large_C"h, { "C_AR"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Muzzle_Compensator_Medium_C"h, { "C_SMG"e, 2 });
-		HASH_CASE("Item_Attach_Weapon_Muzzle_Compensator_SniperRifle_C"h, { "C_SR"e, 2 });
+		HASH_CASE("Item_Attach_Weapon_Muzzle_Compensator_SniperRifle_C"h, { "C_SR"e, 1 });
 
 		HASH_CASE("Item_Attach_Weapon_Muzzle_FlashHider_Large_C"h, { "F_AR"e, 1 });
 		HASH_CASE("Item_Attach_Weapon_Muzzle_FlashHider_Medium_C"h, { "F_SMG"e, 1 });
 		HASH_CASE("Item_Attach_Weapon_Muzzle_FlashHider_SniperRifle_C"h, { "F_SR"e, 1 });
 
-		HASH_CASE("Item_Attach_Weapon_Muzzle_Suppressor_Large_C"h, { "S_AR"e, 4 });
+		HASH_CASE("Item_Attach_Weapon_Muzzle_Suppressor_Large_C"h, { "S_AR"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Muzzle_Suppressor_SniperRifle_C"h, { "S_SR"e, 4 });
 		HASH_CASE("Item_Attach_Weapon_Muzzle_Suppressor_Medium_C"h, { "S_SMG"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Muzzle_Suppressor_Small_C"h, { "S_P"e, 3 });
@@ -92,8 +92,8 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Back_C_02_Lv3_C"h, { "Back3"e, 4 });
 		HASH_CASE("Item_Back_F_01_Lv2_C"h, { "Back2"e, 3 });
 		HASH_CASE("Item_Back_F_02_Lv2_C"h, { "Back2"e, 3 });
-		HASH_CASE("Item_Back_E_01_Lv1_C"h, { "Back1"e, 1 });
-		HASH_CASE("Item_Back_E_02_Lv1_C"h, { "Back1"e, 1 });
+		HASH_CASE("Item_Back_E_01_Lv1_C"h, { "Back1"e, 2 });
+		HASH_CASE("Item_Back_E_02_Lv1_C"h, { "Back1"e, 2 });
 		HASH_CASE("Item_Back_BlueBlocker"h, { "JammerPack"e, 4 });
 		HASH_CASE("Item_Ghillie_01_C"h, { "Ghillie"e, 4 });
 		HASH_CASE("Item_Ghillie_02_C"h, { "Ghillie"e, 4 });
@@ -101,8 +101,8 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Ghillie_04_C"h, { "Ghillie"e, 4 });
 		HASH_CASE("Item_Ghillie_05_C"h, { "Ghillie"e, 4 });
 		HASH_CASE("Item_Ghillie_06_C"h, { "Ghillie"e, 4 });
-		HASH_CASE("Item_Head_E_01_Lv1_C"h, { "Head1"e, 1 });
-		HASH_CASE("Item_Head_E_02_Lv1_C"h, { "Head1"e, 1 });
+		HASH_CASE("Item_Head_E_01_Lv1_C"h, { "Head1"e, 2 });
+		HASH_CASE("Item_Head_E_02_Lv1_C"h, { "Head1"e, 2 });
 		HASH_CASE("Item_Head_F_01_Lv2_C"h, { "Head2"e, 3 });
 		HASH_CASE("Item_Head_F_02_Lv2_C"h, { "Head2"e, 3 });
 		HASH_CASE("Item_Head_G_01_Lv3_C"h, { "Head3"e, 4 });

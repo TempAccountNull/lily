@@ -39,6 +39,13 @@ private:
 	bool bPenetrate = true;
 	int nRange = 1000;
 
+	enum class Direction {
+		None,
+		Up,
+		Left,
+		Down,
+		Right
+	}nEnemyMoveDir = Direction::None;
 	constexpr static float MoveEnemyDistance = 250.0f;
 
 	constexpr static float AimbotFOVMin = 6.0f;
