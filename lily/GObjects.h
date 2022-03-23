@@ -22,22 +22,22 @@ public:
 
 	FName GetFName() const {
 		__int64 a1 = (__int64)this;
-		int v1;
+		unsigned int v1;
 		int v2;
 		int v3;
-		__int64 v5;
-		__int64 v75;
+		int v4;
+		__int64 v73;
 
-		v1 = *(_DWORD*)(a1 + 0x34) ^ 0x1A31B5BC;
-		LODWORD(v5) = __ROL4__(*(_DWORD*)(a1 + 0x30) ^ 0x894853B, 2);
-		v2 = int(v5 ^ ((_DWORD)v5 << 0x10) ^ 0xAF8DB5BC);
-		LODWORD(v75) = v2;
-		v3 = __ROR4__(v1, 6);
-		HIDWORD(v75) = v3 ^ (v3 << 0x10) ^ 0x8DAF853B;
+		v1 = *(_DWORD*)(a1 + 0x18) ^ 0x94CBC1C7;
+		v2 = __ROL4__(*(_DWORD*)(a1 + 0x14) ^ 0x7B00BE5, 5);
+		v3 = v2 ^ (v2 << 0x10) ^ 0x550CC1C7;
+		LODWORD(v73) = v3;
+		v4 = __ROR4__(v1, 3);
+		HIDWORD(v73) = v4 ^ (v4 << 0x10) ^ 0xC550BE5;
 
 		FName name;
-		name.ComparisonIndex = LODWORD(v75);
-		name.Number = HIDWORD(v75);
+		name.ComparisonIndex = LODWORD(v73);
+		name.Number = HIDWORD(v73);
 
 		return name;
 	}

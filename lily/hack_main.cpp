@@ -32,13 +32,13 @@ void Hack::Loop() {
 	verify(KeyMouseY.ComparisonIndex);
 
 	//41 0f ? ? 73 ? f3 0f 10 ? ? ? ? ? f3 0f 11 ? ? ? ? 00 00
-	constexpr uintptr_t HookBaseAddress = 0x6E3221;
+	constexpr uintptr_t HookBaseAddress = 0x94D3CD;
 	const uintptr_t AimHookAddressVA = pubg.GetBaseAddress() + HookBaseAddress;
 	const PhysicalAddress AimHookAddressPA = dbvm.GetPhysicalAddress(AimHookAddressVA, mapCR3);
 	verify(AimHookAddressPA);
 
 	//e8 ? ? ? ? f2 0f 10 00 f2 0f ? ? ? ? ? 00 00 8b 40 08 89 ? ? ? ? 00 00 48
-	constexpr uintptr_t GunLocScopeHookBaseAddress = 0x6E23FC;
+	constexpr uintptr_t GunLocScopeHookBaseAddress = 0x94C535;
 	const uintptr_t GunLocScopeHookAddressVA = pubg.GetBaseAddress() + GunLocScopeHookBaseAddress;
 	const PhysicalAddress GunLocScopeHookAddressPA1 = dbvm.GetPhysicalAddress(GunLocScopeHookAddressVA, mapCR3);
 	const PhysicalAddress GunLocScopeHookAddressPA2 = dbvm.GetPhysicalAddress(GunLocScopeHookAddressVA + 0xC, mapCR3);
@@ -46,7 +46,7 @@ void Hack::Loop() {
 	verify(GunLocScopeHookAddressPA2);
 
 	//74 ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? eb ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? f2 0f 10 00 f2 0f
-	constexpr uintptr_t GunLocNoScopeHookBaseAddress = 0x6E1FBC;
+	constexpr uintptr_t GunLocNoScopeHookBaseAddress = 0x94C0BE;
 	const uintptr_t GunLocNoScopeHookAddressVA = pubg.GetBaseAddress() + GunLocNoScopeHookBaseAddress;
 	const PhysicalAddress GunLocNoScopeHookAddressPA1 = dbvm.GetPhysicalAddress(GunLocNoScopeHookAddressVA, mapCR3);
 	const PhysicalAddress GunLocNoScopeHookAddressPA2 = dbvm.GetPhysicalAddress(GunLocNoScopeHookAddressVA + 0xC, mapCR3);
@@ -54,7 +54,7 @@ void Hack::Loop() {
 	verify(GunLocNoScopeHookAddressPA2);
 
 	//e8 ? ? ? ? f6 84 ? ? ? ? ? 01 74 ? f3 0f
-	constexpr uintptr_t GunLocNearWallHookBaseAddress = 0x6E3D3F;
+	constexpr uintptr_t GunLocNearWallHookBaseAddress = 0x94E0AA;
 	const uintptr_t GunLocNearWallHookAddressVA = pubg.GetBaseAddress() + GunLocNearWallHookBaseAddress;
 	const PhysicalAddress GunLocNearWallHookAddressPA = dbvm.GetPhysicalAddress(GunLocNearWallHookAddressVA, mapCR3);
 	verify(GunLocNearWallHookAddressPA);
