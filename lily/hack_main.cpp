@@ -73,12 +73,14 @@ void Hack::Loop() {
 		NativePtr<ATslCharacter> Ptr;
 		int Team = -1;
 		int SpectatedCount = 0;
+		bool IsDisconnected = false;
 		bool IsBlackListed = false;
 		bool IsWhiteListed = false;
 		bool IsFPP = false;
 		bool IsWeaponed = false;
 		bool IsFiring = false;
-		FRotator FiringRotation;
+		FRotator AimOffsets;
+		FRotator LastFiringRot;
 		bool IsScoping = false;
 		bool IsVisible = false;
 		bool IsAI = false;
@@ -115,6 +117,8 @@ void Hack::Loop() {
 	};
 
 	struct tMapInfo {
+		uint64_t TimeStamp = 0;
+
 		struct {
 			struct PosInfo {
 				uint64_t Time = 0;
@@ -126,7 +130,7 @@ void Hack::Loop() {
 		struct {
 			int Ammo = -1;
 			float RemainTime = 0.0f;
-			FRotator GunRotation;
+			FRotator AimOffsets;
 		}FiringInfo;
 
 		struct {
@@ -134,10 +138,10 @@ void Hack::Loop() {
 			FVector AimPoint;
 			FVector Velocity;
 			CharacterState State = CharacterState::Dead;
-			uint64_t Time = 0;
 			bool IsInVehicle = false;
 		}AimbotInfo;
 
+		float DisconnectedTime = 0.0f;
 		float FocusTime = 0.0f;
 	};
 
@@ -285,6 +289,7 @@ void Hack::Loop() {
 
 				Info.Ptr = CharacterPtr;
 				Info.IsAI = IsAICharacter(NameHash);
+				Info.AimOffsets = TslCharacter.AimOffsets;
 				Info.Health = TslCharacter.Health / TslCharacter.HealthMax;
 				Info.GroggyHealth = TslCharacter.GroggyHealth / TslCharacter.GroggyHealthMax;
 				Info.Team = TslCharacter.LastTeamNum;
@@ -307,9 +312,6 @@ void Hack::Loop() {
 
 				Info.IsBlackListed = IsUserInList(BlackList, Info.PlayerName.c_str());
 				Info.IsWhiteListed = IsUserInList(WhiteList, Info.PlayerName.c_str());
-
-				EnemyInfoMap[CharacterPtr].FiringInfo.RemainTime =
-					std::clamp(EnemyInfoMap[CharacterPtr].FiringInfo.RemainTime - render.TimeDelta, 0.0f, 1.0f);
 
 				//Velocity
 				[&] {
@@ -437,40 +439,50 @@ void Hack::Loop() {
 					}
 				}();
 
-				//AimLocation, AimRotation
-				//////////////////////////////////
-
 				Info.AimLocation = Info.GunLocation.Length() > 0.0f ? Info.GunLocation : Info.Location;
-				if (Info.IsScoping)
-					Info.AimRotation = Info.GunRotation;
-				else
-					Info.AimRotation = Info.ControlRotation;
+				Info.AimRotation = Info.IsScoping ? Info.GunRotation : Info.ControlRotation;
+
+				bool IsTimeChanged = (EnemyInfoMap[CharacterPtr].TimeStamp != render.TimeInMicroSeconds);
+				EnemyInfoMap[CharacterPtr].TimeStamp = render.TimeInMicroSeconds;
+
+				//DisconnectedInfo
+				bool IsDisconnected = [&] {
+					if (Info.IsAI)
+						return false;
+					if (Info.PlayerName.empty())
+						return true;
+					if (Info.AimOffsets.Length() == 0.0f)
+						return true;
+					return false;
+				}();
+
+				float& DisconnectedTime = EnemyInfoMap[CharacterPtr].DisconnectedTime;
+				DisconnectedTime = IsDisconnected ? DisconnectedTime + render.TimeDelta : 0.0f;
+				if (DisconnectedTime > 2.0f)
+					Info.IsDisconnected = true;
 
 				//FiringInfo
-				//////////////////////////////////
+				auto& FiringInfo = EnemyInfoMap[CharacterPtr].FiringInfo;
 
-				int PrevAmmo = EnemyInfoMap[CharacterPtr].FiringInfo.Ammo;
+				int PrevAmmo = FiringInfo.Ammo;
 				if (Info.Ammo != -1 && PrevAmmo != -1 && Info.Ammo == PrevAmmo - 1) {
-					EnemyInfoMap[CharacterPtr].FiringInfo.RemainTime = FiringTime;
-					EnemyInfoMap[CharacterPtr].FiringInfo.GunRotation = Info.GunRotation;
+					FiringInfo.RemainTime = FiringTime;
+					FiringInfo.AimOffsets = Info.AimOffsets;
 				}
+				else
+					FiringInfo.RemainTime = std::clamp(FiringInfo.RemainTime - render.TimeDelta, 0.0f, 1.0f);
 
-				Info.IsFiring = (EnemyInfoMap[CharacterPtr].FiringInfo.RemainTime > 0.0f);
-				Info.FiringRotation = EnemyInfoMap[CharacterPtr].FiringInfo.GunRotation;
-
-				EnemyInfoMap[CharacterPtr].FiringInfo.Ammo = Info.Ammo;
+				Info.IsFiring = FiringInfo.RemainTime > 0.0f;
+				Info.LastFiringRot = FiringInfo.AimOffsets;
+				FiringInfo.Ammo = Info.Ammo;
 
 				//AimbotInfo
-				//////////////////////////////////
-
 				auto& AimbotInfo = EnemyInfoMap[CharacterPtr].AimbotInfo;
 
 				if (CharacterPtr == LockTargetPtr) {
 					if (AimbotInfo.IsLocked) {
-						if (AimbotInfo.Time != render.TimeInMicroSeconds && AimbotInfo.IsInVehicle) {
+						if (IsTimeChanged && AimbotInfo.IsInVehicle)
 							AimbotInfo.AimPoint = AimbotInfo.AimPoint + AimbotInfo.Velocity * render.TimeDelta;
-							AimbotInfo.Time = render.TimeInMicroSeconds;
-						}
 						Info.AimPoint = AimbotInfo.AimPoint;
 						Info.Velocity = AimbotInfo.Velocity;
 						Info.IsVisible = true;
@@ -628,14 +640,14 @@ void Hack::Loop() {
 						return;
 					if (!Info.IsWeaponed)
 						return;
-					if (Info.GunRotation.Length() == 0.0f)
+					if (Info.AimOffsets.Length() == 0.0f)
 						return;
 					if (!bTeamKill && (Info.Team == MyInfo.Team || Info.IsWhiteListed))
 						return;
 
 					auto Result = GetBulletDropAndTravelTime(
 						Info.GunLocation,
-						Info.GunRotation,
+						Info.AimOffsets,
 						MyInfo.Location,
 						Info.ZeroingDistance,
 						Info.BulletDropAdd,
@@ -670,17 +682,29 @@ void Hack::Loop() {
 
 					float CenterYaw = (MinYaw + MaxYaw) / 2.0f;
 					float RangeYaw = (MaxYaw - MinYaw) / 2.0f;
-					RangeYaw += std::clamp(RangeYaw * 0.5f, 0.5f, FLT_MAX);
+					float RangeYawAdd = RangeYaw + std::clamp(RangeYaw * 1.5f, 1.0f, FLT_MAX);
+					float RangeYawMinus = RangeYawAdd;
 
-					FRotator GunRotation = Info.GunRotation;
-					GunRotation.Clamp();
+					float CenterPitch = (MinPitch + MaxPitch) / 2.0f;
+					float RangePitch = (MaxPitch - MinPitch) / 2.0f;
+					float RangePitchAdd = RangePitch + std::clamp(RangePitch * 2.0f, 5.0f, FLT_MAX);
+					float RangePitchMinus = RangePitch + std::clamp(RangePitch * 1.5f, 1.0f, FLT_MAX);
 
-					if (GunRotation.Yaw > CenterYaw - RangeYaw &&
-						GunRotation.Yaw < CenterYaw + RangeYaw) {
-						EnemyInfoMap[Info.Ptr].FocusTime = AccTime + render.TimeDelta;
-						if (EnemyInfoMap[Info.Ptr].FocusTime >= MinFocusTime)
-							bFocusingMe = true;
-					}
+					FRotator AimOffsets = Info.AimOffsets;
+					AimOffsets.Clamp();
+
+					if (AimOffsets.Yaw < CenterYaw - RangeYawMinus)
+						return;
+					if (AimOffsets.Yaw > CenterYaw + RangeYawAdd)
+						return;
+					if (AimOffsets.Pitch < CenterPitch - RangePitchMinus)
+						return;
+					if (AimOffsets.Pitch > CenterPitch + RangePitchAdd)
+						return;
+
+					EnemyInfoMap[Info.Ptr].FocusTime = AccTime + render.TimeDelta;
+					if (EnemyInfoMap[Info.Ptr].FocusTime > MinFocusTime)
+						bFocusingMe = true;
 				}();
 
 				//DrawRadar
@@ -706,7 +730,7 @@ void Hack::Loop() {
 							return Render::COLOR_GRAY;
 						if (bFocusingMe)
 							return Render::COLOR_RED;
-						if (Info.IsAI)
+						if (Info.IsAI || Info.IsDisconnected)
 							return Render::COLOR_TEAL;
 						if (Info.IsInVehicle)
 							return Render::COLOR_BLUE;
@@ -726,8 +750,8 @@ void Hack::Loop() {
 
 					float Size = 4.0f;
 
-					if (Info.GunRotation.Length() > 0.0f) {
-						FVector GunDir = FRotator(0.0f, Info.GunRotation.Yaw, 0.0f).GetUnitVector();
+					if (Info.IsWeaponed && Info.AimOffsets.Length() > 0.0f) {
+						FVector GunDir = FRotator(0.0f, Info.AimOffsets.Yaw, 0.0f).GetUnitVector();
 
 						float Degree90 = ConvertToRadians(90.0f);
 						FVector Dir1 = {
@@ -753,7 +777,7 @@ void Hack::Loop() {
 						render.DrawCircleFilled(RadarScreenPos, Size, Color);
 
 						if (Info.IsFiring)
-							render.DrawLine(RadarScreenPos, RadarScreenPos + Info.FiringRotation.GetUnitVector() * 500.0f, Color);
+							render.DrawLine(RadarScreenPos, RadarScreenPos + Info.LastFiringRot.GetUnitVector() * 500.0f, Color);
 					}
 					else {
 						render.DrawCircle(RadarScreenPos, Size + 1.0f, render.COLOR_BLACK);
@@ -815,7 +839,7 @@ void Hack::Loop() {
 							return Render::COLOR_GRAY;
 						if (bFocusingMe)
 							return Render::COLOR_RED;
-						if (Info.IsAI)
+						if (Info.IsAI || Info.IsDisconnected)
 							return Render::COLOR_TEAL;
 						if (IsInCircle)
 							return Render::COLOR_YELLOW;
@@ -857,9 +881,7 @@ void Hack::Loop() {
 					std::string Line;
 
 					if (ESP_PlayerSetting.bNickName)
-						Line += Info.PlayerName;
-
-					const unsigned NameHash = CompileTime::StrHash(Info.PlayerName.c_str());
+						Line += (Info.IsAI && !bPushingMouseM) ? "Bot"e : Info.PlayerName;
 
 					if (ESP_PlayerSetting.bRanksPoint && !Info.IsAI) {
 						std::map<unsigned, RankInfo>& RankMap = *[&] {
@@ -880,6 +902,7 @@ void Hack::Loop() {
 							return &RankInfoEmpty;
 						}();
 
+						const unsigned NameHash = CompileTime::StrHash(Info.PlayerName.c_str());
 						if (RankMap.find(NameHash) != RankMap.end()) {
 							Line += (std::string)"("e;
 							Line += std::to_string(RankMap[NameHash].rankPoint);

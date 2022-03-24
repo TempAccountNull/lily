@@ -45,6 +45,7 @@ MemberAtOffset(int, LastTeamNum, 0x10e0)
 MemberAtOffset(NativePtr<UVehicleRiderComponent>, VehicleRiderComponent, 0x1cc0)
 MemberAtOffset(NativePtr<UWeaponProcessorComponent>, WeaponProcessor, 0x1198)
 MemberAtOffset(int, SpectatedCount, 0x27e0)
+MemberAtOffset(FRotator, AimOffsets, 0x1710)
 
 class ATslWheeledVehicle
 MemberAtOffset(NativePtr<UTslVehicleCommonComponent>, VehicleCommonComponent, 0xae8)

@@ -45,6 +45,7 @@ int LastTeamNum
 NativePtr<UVehicleRiderComponent> VehicleRiderComponent
 NativePtr<UWeaponProcessorComponent> WeaponProcessor
 int SpectatedCount
+FRotator AimOffsets
 
 class ATslWheeledVehicle
 NativePtr<UTslVehicleCommonComponent> VehicleCommonComponent

@@ -209,7 +209,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Chimera_Key_C"h, { "Key"e, 4 });
 		HASH_CASE("Item_Tiger_Key_C"h, { "Key"e, 4 });
 
-		HASH_CASE("Item_JerryCan_C"h, { "Fuel"e, 3 });
+		HASH_CASE("Item_JerryCan_C"h, { "Fuel"e, 4 });
 		HASH_CASE("Item_EmergencyPickup_C"h, { "Pickup"e, 4 });
 		HASH_CASE("InstantRevivalKit_C"h, { "RevivalKit"e, 4 });
 		HASH_CASE("Item_Tiger_SelfRevive_C"h, { "AED"e, 4 });
