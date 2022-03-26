@@ -715,10 +715,21 @@ void Hack::Loop() {
 					if (Info.State == CharacterState::Dead)
 						return;
 
+					const float RadarDistance = [&] {
+						float SpeedPerHour = FVector(MyInfo.Velocity.X, MyInfo.Velocity.Y, 0.0f).Length() / 100.0f * 3.6f;
+						if (SpeedPerHour < 30.0f)
+							return 200.0f;
+						if (SpeedPerHour < 70.0f)
+							return 250.0f;
+						if (SpeedPerHour < 100.0f)
+							return 300.0f;
+						return 400.0f;
+					}();
+
 					const FVector RadarPos = (Info.Location - MyInfo.Location) * 0.01f;
 					const FVector RadarScreenPos = {
-						((1.0f + RadarPos.X / 200.0f) * RadarSize.x / 2.0f) * render.Width,
-						((1.0f + RadarPos.Y / 200.0f) * RadarSize.y / 2.0f) * render.Height,
+						((1.0f + RadarPos.X / RadarDistance) * RadarSize.x / 2.0f) * render.Width,
+						((1.0f + RadarPos.Y / RadarDistance) * RadarSize.y / 2.0f) * render.Height,
 						0.0f
 					};
 
