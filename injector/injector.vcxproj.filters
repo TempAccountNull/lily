@@ -81,9 +81,6 @@
     <ClInclude Include="..\common\process.h">
       <Filter>common</Filter>
     </ClInclude>
-    <ClInclude Include="..\common\process.hpp">
-      <Filter>common</Filter>
-    </ClInclude>
     <ClInclude Include="..\common\remoteprocess.h">
       <Filter>common</Filter>
     </ClInclude>

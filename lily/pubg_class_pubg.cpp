@@ -12,7 +12,7 @@ void SimulateWeaponTrajectory(FVector Direction, float Distance, float Trajector
 	Direction.Normalize();
 	Direction = Direction * 100.0f;
 
-	while (1) {
+	for (auto i = 0; i < 500; i++) {
 		float BulletSpeed = FloatCurve.Eval(TravelDistance * BDS * BallisticDragScale, 0.0f);
 		FVector Velocity = Direction * BulletSpeed;
 		Velocity.Z += CurrentDrop;

@@ -130,7 +130,6 @@
     <ClInclude Include="..\common\peb.h" />
     <ClInclude Include="..\common\physicalmemory.h" />
     <ClInclude Include="..\common\process.h" />
-    <ClInclude Include="..\common\process.hpp" />
     <ClInclude Include="..\common\remoteprocess.h" />
     <ClInclude Include="..\common\render.h" />
     <ClInclude Include="..\common\render_dcomp.h" />
