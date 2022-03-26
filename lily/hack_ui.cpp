@@ -94,6 +94,7 @@ void Hack::ProcessImGui() {
 						ImGui::TableNextColumn(); ImGui::Checkbox("Skeleton"e, &ESP_PlayerSetting.bSkeleton);
 						ImGui::TableNextColumn(); ImGui::Checkbox("Health"e, &ESP_PlayerSetting.bHealth);
 						ImGui::TableNextColumn(); ImGui::Checkbox("NickName"e, &ESP_PlayerSetting.bNickName);
+						ImGui::TableNextColumn(); ImGui::Checkbox("ShortNick"e, &ESP_PlayerSetting.bShortNick);
 						ImGui::TableNextColumn(); ImGui::Checkbox("RanksPoint"e, &ESP_PlayerSetting.bRanksPoint);
 						ImGui::TableNextColumn(); ImGui::Checkbox("IsKakao?"e, &ESP_PlayerSetting.bKakao);
 						ImGui::TableNextColumn(); ImGui::Checkbox("Team"e, &ESP_PlayerSetting.bTeam);
@@ -176,56 +177,61 @@ void Hack::ProcessImGui() {
 }
 
 void Hack::ProcessHotkey() {
-	if (IsKeyPushing(VK_MENU) || IsKeyPushing(VK_MBUTTON)) {
-		if (IsKeyPushed(VK_HOME)) {
+	for (auto i = 0; i < 0x100; i++) {
+		bPushedKey[i] = IsKeyPushed(i);
+		bPushingKey[i] = IsKeyPushing(i);
+	}
+
+	if (bPushingKey[VK_MENU] || bPushingKey[VK_MBUTTON]) {
+		if (bPushedKey[VK_HOME]) {
 			bShowMenu = !bShowMenu;
 			bIgnoreMouseInput = false;
 		}
-		if (IsKeyPushed(VK_OEM_3)) {
+		if (bPushedKey[VK_OEM_3]) {
 			bFighterMode = !bFighterMode;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (IsKeyPushed(VK_F1)) {
+		if (bPushedKey[VK_F1]) {
 			bPlayer = !bPlayer;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (IsKeyPushed(VK_F2)) {
+		if (bPushedKey[VK_F2]) {
 			bRadar = !bRadar;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (IsKeyPushed(VK_F3)) {
+		if (bPushedKey[VK_F3]) {
 			bVehicle = !bVehicle;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (IsKeyPushed(VK_F4)) {
+		if (bPushedKey[VK_F4]) {
 			bBox = !bBox;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (IsKeyPushed(VK_F5)) {
+		if (bPushedKey[VK_F5]) {
 			nItem = (nItem + 1) % 5;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (IsKeyPushed(VK_F6)) {
+		if (bPushedKey[VK_F6]) {
 			bAimbot = !bAimbot;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (IsKeyPushed(VK_F7)) {
+		if (bPushedKey[VK_F7]) {
 			bSilentAim = !bSilentAim;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (IsKeyPushed(VK_F8)) {
+		if (bPushedKey[VK_F8]) {
 			bPenetrate = !bPenetrate;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (IsKeyPushed(VK_F10)) {
+		if (bPushedKey[VK_F10]) {
 			bTeamKill = !bTeamKill;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (IsKeyPushed(VK_F12)) {
+		if (bPushedKey[VK_F12]) {
 			bESP = !bESP;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (IsKeyPushed(VK_ADD)) {
+		if (bPushedKey[VK_ADD]) {
 			nRange += 100;
 			nRange -= nRange % 100;
 			if (nRange > 1000)
@@ -233,7 +239,7 @@ void Hack::ProcessHotkey() {
 
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (IsKeyPushed(VK_SUBTRACT)) {
+		if (bPushedKey[VK_SUBTRACT]) {
 			if (nRange % 100 == 0)
 				nRange -= 100;
 			nRange -= nRange % 100;
@@ -244,20 +250,14 @@ void Hack::ProcessHotkey() {
 		}
 	}
 
-	bPushingMouseM = IsKeyPushing(VK_MBUTTON);
-	bPushingMouseL = IsKeyPushing(VK_LBUTTON);
-	bPushingShift = IsKeyPushing(VK_LSHIFT);
-	bPushingCTRL = IsKeyPushing(VK_LCONTROL);
-	bPushingMouseR = IsKeyPushing(VK_RBUTTON);
-	bPushingCapsLock = IsKeyPushing(VK_CAPITAL);
 	bool bNewCapsLockOn = IsToggleKeyOn(VK_CAPITAL);
 	if (!bCapsLockOn && bNewCapsLockOn)
 		nEnemyMoveDir = Direction::None;
 	bCapsLockOn = bNewCapsLockOn;
 	if (bCapsLockOn) {
-		if (IsKeyPushed(VK_UP))		nEnemyMoveDir = Direction::Up;
-		if (IsKeyPushed(VK_LEFT))	nEnemyMoveDir = Direction::Left;
-		if (IsKeyPushed(VK_DOWN))	nEnemyMoveDir = Direction::Down;
-		if (IsKeyPushed(VK_RIGHT))	nEnemyMoveDir = Direction::Right;
+		if (bPushedKey[VK_UP])		nEnemyMoveDir = Direction::Up;
+		if (bPushedKey[VK_LEFT])	nEnemyMoveDir = Direction::Left;
+		if (bPushedKey[VK_DOWN])	nEnemyMoveDir = Direction::Down;
+		if (bPushedKey[VK_RIGHT])	nEnemyMoveDir = Direction::Right;
 	}
 }

@@ -68,6 +68,8 @@ void Hack::Loop() {
 	NativePtr<ATslCharacter> EnemyFocusingMePtr = 0;
 	bool bPushedCapsLock = false;
 	bool IsFPPOnly = true;
+	float LastMyVelocityXYUpdateTime = 0.0f;
+	FVector LastMyVelocityXY;
 
 	struct CharacterInfo {
 		NativePtr<ATslCharacter> Ptr;
@@ -238,6 +240,7 @@ void Hack::Loop() {
 					return false;
 
 				Info.RootLocation = RootComponent.ComponentToWorld.Translation;
+				Info.Velocity = RootComponent.ComponentVelocity;
 
 				USkeletalMeshComponent Mesh;
 				if (!TslCharacter.Mesh.Read(Mesh))
@@ -271,8 +274,7 @@ void Hack::Loop() {
 				}
 
 				Info.Location = Mesh.ComponentToWorld.Translation;
-				Info.Velocity = Mesh.ComponentVelocity;
-				Info.IsVisible = Mesh.IsVisible() || (bPenetrate && bPushingCTRL);
+				Info.IsVisible = Mesh.IsVisible() || (bPenetrate && bPushingKey[VK_CONTROL]);
 
 				//Bones
 				auto BoneSpaceTransforms = Mesh.BoneSpaceTransforms.GetVector();
@@ -304,7 +306,7 @@ void Hack::Loop() {
 					Info.GroggyHealth > 0.0f ? CharacterState::Groggy :
 					CharacterState::Dead;
 
-				Info.AimPoint = bPushingShift ? Info.BonesPos[forehead] : (Info.BonesPos[neck_01] + Info.BonesPos[spine_02]) * 0.5f;
+				Info.AimPoint = bPushingKey[VK_SHIFT] ? Info.BonesPos[forehead] : (Info.BonesPos[neck_01] + Info.BonesPos[spine_02]) * 0.5f;
 
 				wchar_t PlayerName[0x100];
 				if (TslCharacter.CharacterName.GetValues(*PlayerName, 0x100))
@@ -312,45 +314,6 @@ void Hack::Loop() {
 
 				Info.IsBlackListed = IsUserInList(BlackList, Info.PlayerName.c_str());
 				Info.IsWhiteListed = IsUserInList(WhiteList, Info.PlayerName.c_str());
-
-				//Velocity
-				[&] {
-					auto& PosInfo = EnemyInfoMap[CharacterPtr].PosInfo.Info;
-
-					if (Info.State == CharacterState::Dead || !Info.IsVisible) {
-						PosInfo.clear();
-						return;
-					}
-
-					PosInfo.push_back({ render.TimeInMicroSeconds, Info.Location });
-
-					float SumTimeDelta = 0.0f;
-					FVector SumPosDif;
-					for (size_t i = 1; i < PosInfo.size(); i++) {
-						const float DeltaTime = (PosInfo[i].Time - PosInfo[i - 1].Time) / 1000000.0f;
-						if (DeltaTime > 0.5f) {
-							PosInfo.clear();
-							return;
-						}
-
-						const FVector DeltaPos = PosInfo[i].Pos - PosInfo[i - 1].Pos;
-						if (DeltaPos.Length() / 100.0f > 1.0f) {
-							PosInfo.clear();
-							return;
-						}
-
-						SumTimeDelta = SumTimeDelta + DeltaTime;
-						SumPosDif = SumPosDif + DeltaPos;
-					}
-
-					if (SumTimeDelta < 0.1f)
-						return;
-
-					if (SumTimeDelta > 0.15f)
-						PosInfo.erase(PosInfo.begin());
-
-					Info.Velocity = SumPosDif * (1.0f / SumTimeDelta);
-				}();
 
 				//PlayerState
 				[&] {
@@ -444,6 +407,45 @@ void Hack::Loop() {
 
 				bool IsTimeChanged = (EnemyInfoMap[CharacterPtr].TimeStamp != render.TimeInMicroSeconds);
 				EnemyInfoMap[CharacterPtr].TimeStamp = render.TimeInMicroSeconds;
+
+				//PosInfo
+				[&] {
+					auto& PosInfo = EnemyInfoMap[CharacterPtr].PosInfo.Info;
+
+					if (Info.State == CharacterState::Dead || !Info.IsVisible) {
+						PosInfo.clear();
+						return;
+					}
+
+					PosInfo.push_back({ render.TimeInMicroSeconds, Info.Location });
+
+					float SumTimeDelta = 0.0f;
+					FVector SumPosDif;
+					for (size_t i = 1; i < PosInfo.size(); i++) {
+						const float DeltaTime = (PosInfo[i].Time - PosInfo[i - 1].Time) / 1000000.0f;
+						if (DeltaTime > 0.5f) {
+							PosInfo.clear();
+							return;
+						}
+
+						const FVector DeltaPos = PosInfo[i].Pos - PosInfo[i - 1].Pos;
+						if (DeltaPos.Length() / 100.0f > 1.0f) {
+							PosInfo.clear();
+							return;
+						}
+
+						SumTimeDelta = SumTimeDelta + DeltaTime;
+						SumPosDif = SumPosDif + DeltaPos;
+					}
+
+					if (SumTimeDelta < 0.1f)
+						return;
+
+					if (SumTimeDelta > 0.15f)
+						PosInfo.erase(PosInfo.begin());
+
+					Info.Velocity = SumPosDif * (1.0f / SumTimeDelta);
+				}();
 
 				//DisconnectedInfo
 				bool IsDisconnected = [&] {
@@ -607,7 +609,7 @@ void Hack::Loop() {
 				IsFPPOnly = true;
 			}
 
-			if (!bPushingMouseM)
+			if (!bPushingKey[VK_MBUTTON])
 				LockTargetPtr = 0;
 
 			CharacterInfo LockedTargetInfo;
@@ -716,7 +718,12 @@ void Hack::Loop() {
 						return;
 
 					const float RadarDistance = [&] {
-						float SpeedPerHour = FVector(MyInfo.Velocity.X, MyInfo.Velocity.Y, 0.0f).Length() / 100.0f * 3.6f;
+						if (TimeSeconds > LastMyVelocityXYUpdateTime + 0.2f) {
+							LastMyVelocityXYUpdateTime = TimeSeconds;
+							LastMyVelocityXY = { MyInfo.Velocity.X, MyInfo.Velocity.Y, 0.0f };
+						}
+
+						float SpeedPerHour = LastMyVelocityXY.Length() / 100.0f * 3.6f;
 						if (SpeedPerHour < 30.0f)
 							return 200.0f;
 						if (SpeedPerHour < 70.0f)
@@ -810,7 +817,7 @@ void Hack::Loop() {
 					if (!Info.IsLocked) {
 						if (Info.State == CharacterState::Dead)
 							return;
-						if (Info.State == CharacterState::Groggy && !bPushingCTRL)
+						if (Info.State == CharacterState::Groggy && !bPushingKey[VK_CONTROL])
 							return;
 					}
 
@@ -891,8 +898,16 @@ void Hack::Loop() {
 					std::string PlayerInfo;
 					std::string Line;
 
-					if (ESP_PlayerSetting.bNickName)
-						Line += (Info.IsAI && !bPushingMouseM) ? "Bot"e : Info.PlayerName;
+					if (ESP_PlayerSetting.bNickName) {
+						if (!ESP_PlayerSetting.bShortNick || bPushingKey[VK_MBUTTON])
+							Line += Info.PlayerName;
+						else if (Info.IsAI)
+							Line += (std::string)"Bot"e;
+						else if (Info.PlayerName.size() > 8)
+							Line += Info.PlayerName.substr(0, 8) + (std::string)"..."e;
+						else
+							Line += Info.PlayerName;
+					}
 
 					if (ESP_PlayerSetting.bRanksPoint && !Info.IsAI) {
 						std::map<unsigned, RankInfo>& RankMap = *[&] {
@@ -1164,7 +1179,7 @@ void Hack::Loop() {
 
 					//DrawBoxContents
 					[&] {
-						if (!bPushingMouseM || nItem == 0)
+						if (!bPushingKey[VK_MBUTTON] || nItem == 0)
 							return;
 
 						AItemPackage ItemPackage;
@@ -1344,8 +1359,14 @@ void Hack::Loop() {
 					MoveMouse(hGameWnd, { (int)MouseX, (int)MouseY });
 				};
 
-				if (!bPushingMouseM)
+				if (!bPushingKey[VK_MBUTTON])
 					return;
+
+				if (bPushedKey[VK_LWIN]) {
+					std::string url = "https://pubg.op.gg/user/"e;
+					url += TargetInfo.PlayerName;
+					ShellExecuteA(0, "open"e, url.c_str(), 0, 0, SW_SHOWNORMAL);
+				}
 
 				if (hGameWnd != hForeWnd)
 					return;
@@ -1368,7 +1389,7 @@ void Hack::Loop() {
 					FVector RandedTargetPos = TargetPos;
 					float angle1 = randf(0.0f, PI);
 					float angle2 = randf(0.0f, PI * 2.0f);
-					float radious = randf(0.0f, bPushingShift ? RandSilentAimHead : RandSilentAimBody);
+					float radious = randf(0.0f, bPushingKey[VK_SHIFT] ? RandSilentAimHead : RandSilentAimBody);
 					RandedTargetPos.X += radious * sinf(angle1) * cosf(angle2);
 					RandedTargetPos.Y += radious * sinf(angle1) * sinf(angle2);
 					RandedTargetPos.Z += radious * cosf(angle1);
@@ -1408,7 +1429,7 @@ void Hack::Loop() {
 				}
 			}();
 
-			if (!bPushingCapsLock) {
+			if (!bPushingKey[VK_CAPITAL]) {
 				EnemyFocusingMePtr = 0;
 				bPushedCapsLock = false;
 			}

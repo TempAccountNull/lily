@@ -27,5 +27,8 @@ static ProjInfo GetProjInfo(unsigned Hash) {
 		HASH_CASE("WeapMortar_C"h, { "Mortar"e, false });
 		HASH_CASE("BP_Drone_C"h, { "Drone"e, false });
 		HASH_CASE("Flare_Projectile_C"h, { "Flare"e, true });
+
+		HASH_CASE("BP_KillTruck_C"h, { "KillTruck"e, true });
+		HASH_CASE("BP_Helicopter_C"h, { "Helicopter"e, true });
 	}
 }

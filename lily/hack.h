@@ -71,6 +71,7 @@ private:
 		bool bSkeleton = true;
 		bool bHealth = true;
 		bool bNickName = true;
+		bool bShortNick = true;
 		bool bRanksPoint = true;
 		bool bKakao = false;
 		bool bTeam = true;
@@ -91,12 +92,8 @@ private:
 	float RandSilentAimHead = 3.0f;
 	float RandSilentAimBody = 30.0f;
 
-	bool bPushingCTRL = false;
-	bool bPushingShift = false;
-	bool bPushingMouseM = false;
-	bool bPushingMouseL = false;
-	bool bPushingMouseR = false;
-	bool bPushingCapsLock = false;
+	bool bPushingKey[0x100] = {};
+	bool bPushedKey[0x100] = {};
 	bool bCapsLockOn = false;
 
 	bool bShowMenu = true;

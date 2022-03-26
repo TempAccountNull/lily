@@ -28,14 +28,13 @@ static VehicleInfo GetVehicleInfo(unsigned Hash) {
 	switch (Hash) {
 		HASH_DEFAULT({ ""e, VehicleType1::None, VehicleType2::Destructible, VehicleType3::Normal });
 
-		HASH_CASE("BP_KillTruck_C"h, { "KillTruck"e, VehicleType1::None, VehicleType2::Invincible, VehicleType3::Special });
 		HASH_CASE("BP_EmergencyPickupVehicle_C"h, { "Pickup"e, VehicleType1::None, VehicleType2::Invincible, VehicleType3::Special });
-		HASH_CASE("TransportAircraft_Chimera_C"h, { "Helicopter"e, VehicleType1::None, VehicleType2::Invincible, VehicleType3::Special });
-		HASH_CASE("BP_Helicopter_C"h, { "Helicopter"e, VehicleType1::None, VehicleType2::Invincible, VehicleType3::Special });
+		HASH_CASE("TransportAircraft_Chimera_C"h, { "Aircraft"e, VehicleType1::None, VehicleType2::Invincible, VehicleType3::Special });
 		HASH_CASE("BP_Bicycle_C"h, { "Bike"e, VehicleType1::None, VehicleType2::Invincible, VehicleType3::Normal });
 
 		HASH_CASE("BP_BRDM_C"h, { "BRDM"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
-		HASH_CASE("BP_Mirado_Open_05_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
+		HASH_CASE("Uaz_Armored_C"h, { "UAZ"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
+		HASH_CASE("BP_Mirado_Open_05_C"h, { "MiradoO"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
 		HASH_CASE("BP_Motorglider_C"h, { "Glider"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
 		HASH_CASE("BP_Motorglider_Blue_C"h, { "Glider"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
 		HASH_CASE("BP_Motorglider_Green_C"h, { "Glider"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
@@ -59,11 +58,11 @@ static VehicleInfo GetVehicleInfo(unsigned Hash) {
 		HASH_CASE("BP_Mirado_A_03_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_Mirado_A_03_Esports_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_Mirado_A_04_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("BP_Mirado_Open_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("BP_Mirado_Open_01_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("BP_Mirado_Open_02_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("BP_Mirado_Open_03_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("BP_Mirado_Open_04_C"h, { "Mirado"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Mirado_Open_C"h, { "MiradoO"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Mirado_Open_01_C"h, { "MiradoO"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Mirado_Open_02_C"h, { "MiradoO"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Mirado_Open_03_C"h, { "MiradoO"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Mirado_Open_04_C"h, { "MiradoO"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_Motorbike_04_C"h, { "Motor"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_Motorbike_04_Desert_C"h, { "Motor"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_Motorbike_Solitario_C"h, { "Motor"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
@@ -83,11 +82,11 @@ static VehicleInfo GetVehicleInfo(unsigned Hash) {
 		HASH_CASE("BP_PickupTruck_A_04_C"h, { "Truck"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_PickupTruck_A_05_C"h, { "Truck"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_PickupTruck_A_esports_C"h, { "Truck"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("BP_PickupTruck_B_01_C"h, { "Truck"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("BP_PickupTruck_B_02_C"h, { "Truck"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("BP_PickupTruck_B_03_C"h, { "Truck"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("BP_PickupTruck_B_04_C"h, { "Truck"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("BP_PickupTruck_B_05_C"h, { "Truck"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_PickupTruck_B_01_C"h, { "TruckO"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_PickupTruck_B_02_C"h, { "TruckO"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_PickupTruck_B_03_C"h, { "TruckO"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_PickupTruck_B_04_C"h, { "TruckO"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_PickupTruck_B_05_C"h, { "TruckO"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_TukTukTuk_A_01_C"h, { "Tukshai"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_TukTukTuk_A_02_C"h, { "Tukshai"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_TukTukTuk_A_03_C"h, { "Tukshai"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
@@ -115,8 +114,7 @@ static VehicleInfo GetVehicleInfo(unsigned Hash) {
 		HASH_CASE("Dacia_A_03_v2_C"h, { "Dacia"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("Dacia_A_03_v2_Esports_C"h, { "Dacia"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("Dacia_A_04_v2_C"h, { "Dacia"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("Uaz_A_01_C"h, { "UAZ"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("Uaz_Armored_C"h, { "UAZ"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("Uaz_A_01_C"h, { "UAZO"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("Uaz_B_01_C"h, { "UAZ"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("Uaz_B_01_esports_C"h, { "UAZ"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("Uaz_C_01_C"h, { "UAZ"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
