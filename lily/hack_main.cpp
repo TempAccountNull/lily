@@ -721,7 +721,7 @@ void Hack::Loop() {
 							return 200.0f;
 						if (SpeedPerHour < 70.0f)
 							return 250.0f;
-						if (SpeedPerHour < 100.0f)
+						if (SpeedPerHour < 95.0f)
 							return 300.0f;
 						return 400.0f;
 					}();
