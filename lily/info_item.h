@@ -120,9 +120,9 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Weapon_DecoyGrenade_C"h, { "Decoy"e, 1 });
 
 		//Melee
+		HASH_CASE("Item_Weapon_Pan_C"h, { "Pan"e, 3 });
 		HASH_CASE("Item_Weapon_Cowbar_C"h, { "Crawbar"e, 1 });
 		HASH_CASE("Item_Weapon_Machete_C"h, { "Machete"e, 1 });
-		HASH_CASE("Item_Weapon_Pan_C"h, { "Pan"e, 3 });
 		HASH_CASE("Item_Weapon_Sickle_C"h, { "Sickle"e, 1 });
 
 		//AR
@@ -156,28 +156,27 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		//DMR
 		HASH_CASE("Item_Weapon_Mk14_C"h, { "Mk14"e, 4 });
 		HASH_CASE("Item_Weapon_FNFal_C"h, { "SLR"e, 4 });
+		HASH_CASE("Item_Weapon_Mk12_C"h, { "Mk12"e, 4 });
 		HASH_CASE("Item_Weapon_SKS_C"h, { "SKS"e, 3 });
 		HASH_CASE("Item_Weapon_Mads_QBU88_C"h, { "QBU"e, 3 });
 		HASH_CASE("Item_Weapon_QBU88_C"h, { "QBU"e, 3 });
 		HASH_CASE("Item_Weapon_Mini14_C"h, { "Mini"e, 3 });
-		HASH_CASE("Item_Weapon_Mk12_C"h, { "Mk12"e, 3 });
 		HASH_CASE("Item_Weapon_VSS_C"h, { "VSS"e, 3 });
 		
-		//Shotgun
+		//SG
 		HASH_CASE("Item_Weapon_DP12_C"h, { "DBS"e, 2 });
 		HASH_CASE("Item_Weapon_Berreta686_C"h, { "S686"e, 2 });
 		HASH_CASE("Item_Weapon_Saiga12_C"h, { "S12K"e, 2 });
 		HASH_CASE("Item_Weapon_Winchester_C"h, { "S1897"e, 2 });
 
 		//Pistol
-		HASH_CASE("Item_Weapon_M79_C"h, { "M79"e, 3 });
 		HASH_CASE("Item_Weapon_G18_C"h, { "P18C"e, 4 });
-		HASH_CASE("Item_Weapon_vz61Skorpion_C"h, { "Skorpion"e, 4 });
+		HASH_CASE("Item_Weapon_DesertEagle_C"h, { "Deagle"e, 4 });
+		HASH_CASE("Item_Weapon_Rhino_C"h, { "R45"e, 3 });
+		HASH_CASE("Item_Weapon_NagantM1895_C"h, { "R1895"e, 3 });
+		HASH_CASE("Item_Weapon_vz61Skorpion_C"h, { "Skorpion"e, 3 });
 		HASH_CASE("Item_Weapon_M1911_C"h, { "P1911"e, 2 });
 		HASH_CASE("Item_Weapon_M9_C"h, { "P92"e, 2 });
-		HASH_CASE("Item_Weapon_NagantM1895_C"h, { "R1895"e, 4 });
-		HASH_CASE("Item_Weapon_DesertEagle_C"h, { "Deagle"e, 4 });
-		HASH_CASE("Item_Weapon_Rhino_C"h, { "R45"e, 4 });
 		HASH_CASE("Item_Weapon_Sawnoff_C"h, { "Sawnoff"e, 1 });
 
 		//SMG
@@ -192,10 +191,11 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Weapon_Mortar_C"h, { "Mortar"e, 4 });
 		HASH_CASE("Item_Weapon_Crossbow_C"h, { "CBow"e, 4 });
 		HASH_CASE("Item_Weapon_FlareGun_C"h, { "FlareGun"e, 4 });
+		HASH_CASE("Item_Weapon_M79_C"h, { "M79"e, 4 });
 		HASH_CASE("Item_Weapon_PanzerFaust100M_C"h, { "Rocket"e, 4 });
 
 		//Boost
-		HASH_CASE("Item_Boost_AdrenalineSyringe_C"h, { "Adrenaline"e, 4 });
+		HASH_CASE("Item_Boost_AdrenalineSyringe_C"h, { "Syringe"e, 3 });
 		HASH_CASE("Item_Boost_EnergyDrink_C"h, { "Drink"e, 3 });
 		HASH_CASE("Item_Boost_PainKiller_C"h, { "PainKiller"e, 3 });
 
@@ -211,7 +211,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 
 		HASH_CASE("Item_JerryCan_C"h, { "Fuel"e, 4 });
 		HASH_CASE("Item_EmergencyPickup_C"h, { "Pickup"e, 4 });
-		HASH_CASE("InstantRevivalKit_C"h, { "RevivalKit"e, 4 });
+		HASH_CASE("InstantRevivalKit_C"h, { "Revival"e, 4 });
 		HASH_CASE("Item_Tiger_SelfRevive_C"h, { "AED"e, 4 });
 		HASH_CASE("Item_Mountainbike_C"h, { "Bike"e, 4 });
 		HASH_CASE("Item_Weapon_Drone_C"h, { "Drone"e, 4 });
