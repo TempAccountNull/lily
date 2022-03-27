@@ -83,13 +83,13 @@ private:
 		io.MousePos.y = (float)CursorPos.y - PosY;
 	}
 
-	uint64_t _TimeInMicroSeconds = GetTickCountInMicroSeconds();
-	float _TimeDelta = 0;
+	float _TimeSeconds = GetTickCountInMicroSeconds() / 1000000.0f;
+	float _TimeDelta = 0.0f;
 
 	void UpdateTimeDelta() {
-		const uint64_t CurrTime = GetTickCountInMicroSeconds();
-		_TimeDelta = (CurrTime - _TimeInMicroSeconds) / 1000000.0f;
-		_TimeInMicroSeconds = CurrTime;
+		float CurrTime = GetTickCountInMicroSeconds() / 1000000.0f;
+		_TimeDelta = CurrTime - _TimeSeconds;
+		_TimeSeconds = CurrTime;
 		UpdateFPS();
 	}
 
@@ -209,7 +209,7 @@ public:
 	MAKE_GETTER(_Width, Width);
 	MAKE_GETTER(_Height, Height);
 	MAKE_GETTER(_TimeDelta, TimeDelta);
-	MAKE_GETTER(_TimeInMicroSeconds, TimeInMicroSeconds);
+	MAKE_GETTER(_TimeSeconds, TimeSeconds);
 	MAKE_GETTER(_FPS, FPS);
 
 	void RenderArea(HWND hWnd, ImColor BgColor, auto func) {

@@ -68,8 +68,10 @@ void Hack::Loop() {
 	NativePtr<ATslCharacter> EnemyFocusingMePtr = 0;
 	bool bPushedCapsLock = false;
 	bool IsFPPOnly = true;
-	float LastMyVelocityXYUpdateTime = 0.0f;
-	FVector LastMyVelocityXY;
+
+	float LastRadarDistanceUpdateTime = 0.0f;
+	float LastRadarDistance = 200.0f;
+	float SavedRadarDistance = 200.0f;
 
 	struct CharacterInfo {
 		NativePtr<ATslCharacter> Ptr;
@@ -119,11 +121,11 @@ void Hack::Loop() {
 	};
 
 	struct tMapInfo {
-		uint64_t TimeStamp = 0;
+		float TimeStamp = 0;
 
 		struct {
 			struct PosInfo {
-				uint64_t Time = 0;
+				float Time = 0;
 				FVector Pos;
 			};
 			std::vector<PosInfo> Info;
@@ -147,7 +149,7 @@ void Hack::Loop() {
 		float FocusTime = 0.0f;
 	};
 
-	std::map<uint64_t, tMapInfo> EnemyInfoMap;
+	std::map<uintptr_t, tMapInfo> EnemyInfoMap;
 
 	while (IsWindow(hGameWnd)) {
 		const HWND hForeWnd = GetForegroundWindow();
@@ -162,7 +164,7 @@ void Hack::Loop() {
 			DrawFPS(render.FPS, Render::COLOR_TEAL);
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
-			float TimeSeconds = 0.0f;
+			float WorldTimeSeconds = 0.0f;
 			bool IsNeedToHookAim = false;
 			bool IsNeedToHookGunLoc = false;
 			TArray<NativePtr<AActor>> Actors;
@@ -405,8 +407,8 @@ void Hack::Loop() {
 				Info.AimLocation = Info.GunLocation.Length() > 0.0f ? Info.GunLocation : Info.Location;
 				Info.AimRotation = Info.IsScoping ? Info.GunRotation : Info.ControlRotation;
 
-				bool IsTimeChanged = (EnemyInfoMap[CharacterPtr].TimeStamp != render.TimeInMicroSeconds);
-				EnemyInfoMap[CharacterPtr].TimeStamp = render.TimeInMicroSeconds;
+				bool IsTimeChanged = (EnemyInfoMap[CharacterPtr].TimeStamp != render.TimeSeconds);
+				EnemyInfoMap[CharacterPtr].TimeStamp = render.TimeSeconds;
 
 				//PosInfo
 				[&] {
@@ -417,12 +419,12 @@ void Hack::Loop() {
 						return;
 					}
 
-					PosInfo.push_back({ render.TimeInMicroSeconds, Info.Location });
+					PosInfo.push_back({ render.TimeSeconds, Info.Location });
 
 					float SumTimeDelta = 0.0f;
 					FVector SumPosDif;
 					for (size_t i = 1; i < PosInfo.size(); i++) {
-						const float DeltaTime = (PosInfo[i].Time - PosInfo[i - 1].Time) / 1000000.0f;
+						const float DeltaTime = PosInfo[i].Time - PosInfo[i - 1].Time;
 						if (DeltaTime > 0.5f) {
 							PosInfo.clear();
 							return;
@@ -522,7 +524,7 @@ void Hack::Loop() {
 				if (!UWorld::GetUWorld(World))
 					return;
 
-				TimeSeconds = World.TimeSeconds;
+				WorldTimeSeconds = World.TimeSeconds;
 
 				ULevel Level;
 				if (!World.CurrentLevel.Read(Level))
@@ -717,26 +719,25 @@ void Hack::Loop() {
 					if (Info.State == CharacterState::Dead)
 						return;
 
-					const float RadarDistance = [&] {
-						if (TimeSeconds > LastMyVelocityXYUpdateTime + 0.2f) {
-							LastMyVelocityXYUpdateTime = TimeSeconds;
-							LastMyVelocityXY = { MyInfo.Velocity.X, MyInfo.Velocity.Y, 0.0f };
-						}
+					float SpeedPerHour = FVector(MyInfo.Velocity.X, MyInfo.Velocity.Y, 0.0f).Length() / 100.0f * 3.6f;
+					float RadarDistance =
+						SpeedPerHour < 30.0f ? 200.0f :
+						SpeedPerHour < 70.0f ? 250.0f :
+						SpeedPerHour < 95.0f ? 300.0f :
+						400.0f;
 
-						float SpeedPerHour = LastMyVelocityXY.Length() / 100.0f * 3.6f;
-						if (SpeedPerHour < 30.0f)
-							return 200.0f;
-						if (SpeedPerHour < 70.0f)
-							return 250.0f;
-						if (SpeedPerHour < 95.0f)
-							return 300.0f;
-						return 400.0f;
-					}();
+					if (RadarDistance != SavedRadarDistance) {
+						LastRadarDistanceUpdateTime = render.TimeSeconds;
+						SavedRadarDistance = RadarDistance;
+					}
+
+					if (render.TimeSeconds > LastRadarDistanceUpdateTime + 0.2f)
+						LastRadarDistance = SavedRadarDistance;
 
 					const FVector RadarPos = (Info.Location - MyInfo.Location) * 0.01f;
 					const FVector RadarScreenPos = {
-						((1.0f + RadarPos.X / RadarDistance) * RadarSize.x / 2.0f) * render.Width,
-						((1.0f + RadarPos.Y / RadarDistance) * RadarSize.y / 2.0f) * render.Height,
+						((1.0f + RadarPos.X / LastRadarDistance) * RadarSize.x / 2.0f) * render.Width,
+						((1.0f + RadarPos.Y / LastRadarDistance) * RadarSize.y / 2.0f) * render.Height,
 						0.0f
 					};
 
@@ -1313,10 +1314,10 @@ void Hack::Loop() {
 
 				auto AImbot_MouseMove_Old = [&] {
 					TimeDeltaAcc += render.TimeDelta;
-					if (TimeSeconds == LastAimUpdateTime)
+					if (WorldTimeSeconds == LastAimUpdateTime)
 						return;
 
-					LastAimUpdateTime = TimeSeconds;
+					LastAimUpdateTime = WorldTimeSeconds;
 					const float TimeDelta = TimeDeltaAcc;
 					TimeDeltaAcc = 0.0f;
 
@@ -1334,10 +1335,10 @@ void Hack::Loop() {
 
 				auto AImbot_MouseMove = [&] {
 					TimeDeltaAcc += render.TimeDelta;
-					if (TimeSeconds == LastAimUpdateTime)
+					if (WorldTimeSeconds == LastAimUpdateTime)
 						return;
 
-					LastAimUpdateTime = TimeSeconds;
+					LastAimUpdateTime = WorldTimeSeconds;
 					const float TimeDelta = TimeDeltaAcc;
 					TimeDeltaAcc = 0.0f;
 
