@@ -22,9 +22,8 @@ static ProjInfo GetProjInfo(unsigned Hash) {
 		HASH_CASE("ProjDecoyGrenade_C"h, { "Decoy"e, false });
 		HASH_CASE("BP_Projectile_40mm_Smoke_C"h, { "Smoke"e, false });
 		HASH_CASE("ProjBluezoneBomb_C"h, { "BlueBomb"e, false });
-		HASH_CASE("ProjMortar_Explosion_C"h, { "Mortar"e, true });
-		HASH_CASE("ProjMortar_Trail_C"h, { "Mortar"e, true });
 		HASH_CASE("WeapMortar_C"h, { "Mortar"e, false });
+		HASH_CASE("Mortar_Projectile_C"h, { "Shell"e, true });
 		HASH_CASE("BP_Drone_C"h, { "Drone"e, false });
 		HASH_CASE("Flare_Projectile_C"h, { "Flare"e, true });
 

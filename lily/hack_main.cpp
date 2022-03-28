@@ -1241,7 +1241,7 @@ void Hack::Loop() {
 
 			if (bPenetrate && !MyInfo.IsInVehicle) {
 				FVector Direction = CameraRotation.GetUnitVector();
-				MyInfo.AimLocation = MyInfo.BonesPos[forehead] + Direction * 90.0f;
+				MyInfo.AimLocation = MyInfo.BonesPos[forehead] + Direction * 80.0f;
 
 				ChangeRegOnBPInfo Info{};
 				Info.changeXMM0_0 = true;
