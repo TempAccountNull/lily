@@ -31,6 +31,10 @@ private:
 	float _Width = (float)ScreenWidth;
 	float _Height = (float)ScreenHeight;
 
+	bool _bKeyPushing[0x100] = {};
+	bool _bKeyPushed[0x100] = {};
+	BYTE _KeyStates[0x100] = {};
+
 	virtual void Present(HWND hWnd);
 	virtual bool IsScreenPosNeeded() const;
 	virtual ImColor ClearColor() const;
@@ -43,10 +47,19 @@ private:
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 	}
 
+	void UpdateKeyStates() {
+		for (auto i = 0; i < 0x100; i++) {
+			SHORT KeyState = GetKeyState(i);
+			_KeyStates[i] = (KeyState & 0x8000 ? 0x80 : 0) | (KeyState & 1 ? 1 : 0);
+			_bKeyPushed[i] = IsKeyPushed(i);
+			_bKeyPushing[i] = IsKeyPushing(i);
+		}
+	}
+
 	void ProcessExitHotkey() {
-		if (!IsKeyPushing(VK_MENU) && !IsKeyPushing(VK_MBUTTON))
+		if (!bKeyPushing[VK_MENU] && !bKeyPushing[VK_MBUTTON])
 			return;
-		if (!IsKeyPushed(VK_END))
+		if (!bKeyPushed[VK_END])
 			return;
 		Clear();
 
@@ -65,22 +78,42 @@ private:
 		_Height = (float)ClientRect.bottom;
 	}
 
-	void InsertMouseInfo() const {
+	void InsertKeyInfo() const {
 		if (!bRender) return;
-		if (bIgnoreMouseInput) return;
+		if (bIgnoreInput) return;
 
 		ImGuiIO& io = ImGui::GetIO();
-		if (io.BackendPlatformUserData)
-			return;
 
-		io.MouseDown[0] = IsKeyPushing(VK_LBUTTON);
-		io.MouseDown[1] = IsKeyPushing(VK_RBUTTON);
-		io.MouseDown[2] = IsKeyPushing(VK_MBUTTON);
+		//Mouse
+		io.MouseDown[0] = bKeyPushing[VK_LBUTTON];
+		io.MouseDown[1] = bKeyPushing[VK_RBUTTON];
+		io.MouseDown[2] = bKeyPushing[VK_MBUTTON];
+		io.MouseDown[3] = bKeyPushing[VK_XBUTTON1];
+		io.MouseDown[4] = bKeyPushing[VK_XBUTTON2];
 
 		POINT CursorPos;
 		GetCursorPos(&CursorPos);
 		io.MousePos.x = (float)CursorPos.x - PosX;
 		io.MousePos.y = (float)CursorPos.y - PosY;
+
+		//Keyboard
+		memcpy(io.KeysDown, bKeyPushed, sizeof(bKeyPushed));
+		io.KeyCtrl = bKeyPushing[VK_CONTROL];
+		io.KeyShift = bKeyPushing[VK_SHIFT];
+		io.KeyAlt = bKeyPushing[VK_MENU];
+		io.KeySuper = bKeyPushing[VK_LWIN] || bKeyPushing[VK_RWIN];
+
+		for (auto i = 0; i < _countof(bKeyPushed); i++) {
+			if (!bKeyPushed[i])
+				continue;
+
+			wchar_t Keys[10] = {};
+			HKL KeyboardLayout = GetKeyboardLayout(0);
+			UINT ScanCode = MapVirtualKeyA(i, MAPVK_VK_TO_VSC);
+			const int NumKeys = ToUnicodeEx(i, ScanCode, KeyStates, Keys, _countof(Keys), 2, KeyboardLayout);
+			for (auto j = 0; j < NumKeys; j++)
+				io.AddInputCharacterUTF16(Keys[j]);
+		}
 	}
 
 	float _TimeSeconds = GetTickCountInMicroSeconds() / 1000000.0f;
@@ -180,6 +213,29 @@ protected:
 		io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf"e, DefaultFontSize);
 		io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf"e, 60.0f);
 		io.IniFilename = 0;
+
+		io.KeyMap[ImGuiKey_Tab] = VK_TAB;
+		io.KeyMap[ImGuiKey_LeftArrow] = VK_LEFT;
+		io.KeyMap[ImGuiKey_RightArrow] = VK_RIGHT;
+		io.KeyMap[ImGuiKey_UpArrow] = VK_UP;
+		io.KeyMap[ImGuiKey_DownArrow] = VK_DOWN;
+		io.KeyMap[ImGuiKey_PageUp] = VK_PRIOR;
+		io.KeyMap[ImGuiKey_PageDown] = VK_NEXT;
+		io.KeyMap[ImGuiKey_Home] = VK_HOME;
+		io.KeyMap[ImGuiKey_End] = VK_END;
+		io.KeyMap[ImGuiKey_Insert] = VK_INSERT;
+		io.KeyMap[ImGuiKey_Delete] = VK_DELETE;
+		io.KeyMap[ImGuiKey_Backspace] = VK_BACK;
+		io.KeyMap[ImGuiKey_Space] = VK_SPACE;
+		io.KeyMap[ImGuiKey_Enter] = VK_RETURN;
+		io.KeyMap[ImGuiKey_Escape] = VK_ESCAPE;
+		io.KeyMap[ImGuiKey_KeyPadEnter] = VK_RETURN;
+		io.KeyMap[ImGuiKey_A] = 'A';
+		io.KeyMap[ImGuiKey_C] = 'C';
+		io.KeyMap[ImGuiKey_V] = 'V';
+		io.KeyMap[ImGuiKey_X] = 'X';
+		io.KeyMap[ImGuiKey_Y] = 'Y';
+		io.KeyMap[ImGuiKey_Z] = 'Z';
 	}
 
 	virtual ~Render() {
@@ -204,24 +260,29 @@ public:
 	constexpr static ImU32 COLOR_GRAY = IM_COL32(192, 192, 192, 255);
 
 	bool bRender = true;
-	bool bIgnoreMouseInput = false;
+	bool bIgnoreInput = false;
 
 	MAKE_GETTER(_Width, Width);
 	MAKE_GETTER(_Height, Height);
 	MAKE_GETTER(_TimeDelta, TimeDelta);
 	MAKE_GETTER(_TimeSeconds, TimeSeconds);
 	MAKE_GETTER(_FPS, FPS);
+	MAKE_GETTER(_bKeyPushing, bKeyPushing);
+	MAKE_GETTER(_bKeyPushed, bKeyPushed);
+	MAKE_GETTER(_KeyStates, KeyStates);
 
 	void RenderArea(HWND hWnd, ImColor BgColor, auto func) {
-		ProcessExitHotkey();
+		UpdateKeyStates();
 		UpdateTimeDelta();
 		UpdateRenderArea(hWnd);
-		if (hWnd == GetForegroundWindow())
-			InsertMouseInfo();
+
+		ProcessExitHotkey();
 
 		ImGuiIO& io = ImGui::GetIO();
 		if (io.BackendPlatformUserData)
 			ImGui_ImplWin32_NewFrame();
+		else if (hWnd == GetForegroundWindow())
+			InsertKeyInfo();
 
 		ImGui_ImplDX11_NewFrame();
 		ImGui::NewFrame();

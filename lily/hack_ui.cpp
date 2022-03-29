@@ -156,7 +156,7 @@ void Hack::ProcessImGui() {
 			}
 			if (ImGui::BeginTabItem("Debug"e))
 			{
-				ImGui::Checkbox("IgnoreMouseInput"e, &bIgnoreMouseInput);
+				ImGui::Checkbox("IgnoreInput"e, &bIgnoreInput);
 				ImGui::Checkbox("Debug mode"e, &bDebug);
 
 				ImGui::Checkbox("Capture Log"e, &bCaptureLog);
@@ -177,61 +177,56 @@ void Hack::ProcessImGui() {
 }
 
 void Hack::ProcessHotkey() {
-	for (auto i = 0; i < 0x100; i++) {
-		bPushedKey[i] = IsKeyPushed(i);
-		bPushingKey[i] = IsKeyPushing(i);
-	}
-
-	if (bPushingKey[VK_MENU] || bPushingKey[VK_MBUTTON]) {
-		if (bPushedKey[VK_HOME]) {
+	if (render.bKeyPushing[VK_MENU] || render.bKeyPushing[VK_MBUTTON]) {
+		if (render.bKeyPushed[VK_HOME]) {
 			bShowMenu = !bShowMenu;
-			bIgnoreMouseInput = false;
+			bIgnoreInput = false;
 		}
-		if (bPushedKey[VK_OEM_3]) {
+		if (render.bKeyPushed[VK_OEM_3]) {
 			bFighterMode = !bFighterMode;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (bPushedKey[VK_F1]) {
+		if (render.bKeyPushed[VK_F1]) {
 			bPlayer = !bPlayer;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (bPushedKey[VK_F2]) {
+		if (render.bKeyPushed[VK_F2]) {
 			bRadar = !bRadar;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (bPushedKey[VK_F3]) {
+		if (render.bKeyPushed[VK_F3]) {
 			bVehicle = !bVehicle;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (bPushedKey[VK_F4]) {
+		if (render.bKeyPushed[VK_F4]) {
 			bBox = !bBox;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (bPushedKey[VK_F5]) {
+		if (render.bKeyPushed[VK_F5]) {
 			nItem = (nItem + 1) % 5;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (bPushedKey[VK_F6]) {
+		if (render.bKeyPushed[VK_F6]) {
 			bAimbot = !bAimbot;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (bPushedKey[VK_F7]) {
+		if (render.bKeyPushed[VK_F7]) {
 			bSilentAim = !bSilentAim;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (bPushedKey[VK_F8]) {
+		if (render.bKeyPushed[VK_F8]) {
 			bPenetrate = !bPenetrate;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (bPushedKey[VK_F10]) {
+		if (render.bKeyPushed[VK_F10]) {
 			bTeamKill = !bTeamKill;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (bPushedKey[VK_F12]) {
+		if (render.bKeyPushed[VK_F12]) {
 			bESP = !bESP;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (bPushedKey[VK_ADD]) {
+		if (render.bKeyPushed[VK_ADD]) {
 			nRange += 100;
 			nRange -= nRange % 100;
 			if (nRange > 1000)
@@ -239,7 +234,7 @@ void Hack::ProcessHotkey() {
 
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-		if (bPushedKey[VK_SUBTRACT]) {
+		if (render.bKeyPushed[VK_SUBTRACT]) {
 			if (nRange % 100 == 0)
 				nRange -= 100;
 			nRange -= nRange % 100;
@@ -250,14 +245,14 @@ void Hack::ProcessHotkey() {
 		}
 	}
 
-	bool bNewCapsLockOn = IsToggleKeyOn(VK_CAPITAL);
+	bool bNewCapsLockOn = render.KeyStates[VK_CAPITAL] & 1;
 	if (!bCapsLockOn && bNewCapsLockOn)
 		nEnemyMoveDir = Direction::None;
 	bCapsLockOn = bNewCapsLockOn;
 	if (bCapsLockOn) {
-		if (bPushedKey[VK_UP])		nEnemyMoveDir = Direction::Up;
-		if (bPushedKey[VK_LEFT])	nEnemyMoveDir = Direction::Left;
-		if (bPushedKey[VK_DOWN])	nEnemyMoveDir = Direction::Down;
-		if (bPushedKey[VK_RIGHT])	nEnemyMoveDir = Direction::Right;
+		if (render.bKeyPushed[VK_UP])		nEnemyMoveDir = Direction::Up;
+		if (render.bKeyPushed[VK_LEFT])		nEnemyMoveDir = Direction::Left;
+		if (render.bKeyPushed[VK_DOWN])		nEnemyMoveDir = Direction::Down;
+		if (render.bKeyPushed[VK_RIGHT])	nEnemyMoveDir = Direction::Right;
 	}
 }

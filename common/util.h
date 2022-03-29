@@ -66,7 +66,6 @@ static int CreateProcessCMD(const char* szPath) {
 	return system(szCommand);
 }
 
-static bool IsToggleKeyOn(int vKey) { return (GetKeyState(vKey) & 0x1) != 0; }
 static bool IsKeyPushing(int vKey) { return (GetAsyncKeyState(vKey) & 0x8000) != 0; }
 static bool IsKeyPushed(int vKey) {
 	static bool bSaveState[0x100] = { 0 };

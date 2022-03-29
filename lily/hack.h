@@ -92,16 +92,13 @@ private:
 	float RandSilentAimHead = 3.0f;
 	float RandSilentAimBody = 30.0f;
 
-	bool bPushingKey[0x100] = {};
-	bool bPushedKey[0x100] = {};
 	bool bCapsLockOn = false;
-
 	bool bShowMenu = true;
 	bool bDebug = false;
 
 	Render& render;
 	bool& bESP = render.bRender = true;
-	bool& bIgnoreMouseInput = render.bIgnoreMouseInput = false;
+	bool& bIgnoreInput = render.bIgnoreInput = false;
 
 	mutable char szBuf[0x100];
 

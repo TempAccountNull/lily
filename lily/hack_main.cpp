@@ -276,7 +276,7 @@ void Hack::Loop() {
 				}
 
 				Info.Location = Mesh.ComponentToWorld.Translation;
-				Info.IsVisible = Mesh.IsVisible() || (bPenetrate && bPushingKey[VK_CONTROL]);
+				Info.IsVisible = Mesh.IsVisible() || (bPenetrate && render.bKeyPushing[VK_CONTROL]);
 
 				//Bones
 				auto BoneSpaceTransforms = Mesh.BoneSpaceTransforms.GetVector();
@@ -308,7 +308,7 @@ void Hack::Loop() {
 					Info.GroggyHealth > 0.0f ? CharacterState::Groggy :
 					CharacterState::Dead;
 
-				Info.AimPoint = bPushingKey[VK_SHIFT] ? Info.BonesPos[forehead] : (Info.BonesPos[neck_01] + Info.BonesPos[spine_02]) * 0.5f;
+				Info.AimPoint = render.bKeyPushing[VK_SHIFT] ? Info.BonesPos[forehead] : (Info.BonesPos[neck_01] + Info.BonesPos[spine_02]) * 0.5f;
 
 				wchar_t PlayerName[0x100];
 				if (TslCharacter.CharacterName.GetValues(*PlayerName, 0x100))
@@ -611,7 +611,7 @@ void Hack::Loop() {
 				IsFPPOnly = true;
 			}
 
-			if (!bPushingKey[VK_MBUTTON])
+			if (!render.bKeyPushing[VK_MBUTTON])
 				LockTargetPtr = 0;
 
 			CharacterInfo LockedTargetInfo;
@@ -818,7 +818,7 @@ void Hack::Loop() {
 					if (!Info.IsLocked) {
 						if (Info.State == CharacterState::Dead)
 							return;
-						if (Info.State == CharacterState::Groggy && !bPushingKey[VK_CONTROL])
+						if (Info.State == CharacterState::Groggy && !render.bKeyPushing[VK_CONTROL])
 							return;
 					}
 
@@ -900,7 +900,7 @@ void Hack::Loop() {
 					std::string Line;
 
 					if (ESP_PlayerSetting.bNickName) {
-						if (!ESP_PlayerSetting.bShortNick || bPushingKey[VK_MBUTTON])
+						if (!ESP_PlayerSetting.bShortNick || render.bKeyPushing[VK_MBUTTON])
 							Line += Info.PlayerName;
 						else if (Info.IsAI)
 							Line += (std::string)"Bot"e;
@@ -1180,7 +1180,7 @@ void Hack::Loop() {
 
 					//DrawBoxContents
 					[&] {
-						if (!bPushingKey[VK_MBUTTON] || nItem == 0)
+						if (!render.bKeyPushing[VK_MBUTTON] || nItem == 0)
 							return;
 
 						AItemPackage ItemPackage;
@@ -1360,10 +1360,10 @@ void Hack::Loop() {
 					MoveMouse(hGameWnd, { (int)MouseX, (int)MouseY });
 				};
 
-				if (!bPushingKey[VK_MBUTTON])
+				if (!render.bKeyPushing[VK_MBUTTON])
 					return;
 
-				if (bPushedKey[VK_LWIN]) {
+				if (render.bKeyPushed[VK_LWIN]) {
 					std::string url = "https://pubg.op.gg/user/"e;
 					url += TargetInfo.PlayerName;
 					ShellExecuteA(0, "open"e, url.c_str(), 0, 0, SW_SHOWNORMAL);
@@ -1390,7 +1390,7 @@ void Hack::Loop() {
 					FVector RandedTargetPos = TargetPos;
 					float angle1 = randf(0.0f, PI);
 					float angle2 = randf(0.0f, PI * 2.0f);
-					float radious = randf(0.0f, bPushingKey[VK_SHIFT] ? RandSilentAimHead : RandSilentAimBody);
+					float radious = randf(0.0f, render.bKeyPushing[VK_SHIFT] ? RandSilentAimHead : RandSilentAimBody);
 					RandedTargetPos.X += radious * sinf(angle1) * cosf(angle2);
 					RandedTargetPos.Y += radious * sinf(angle1) * sinf(angle2);
 					RandedTargetPos.Z += radious * cosf(angle1);
@@ -1430,7 +1430,7 @@ void Hack::Loop() {
 				}
 			}();
 
-			if (!bPushingKey[VK_CAPITAL]) {
+			if (!render.bKeyPushing[VK_CAPITAL]) {
 				EnemyFocusingMePtr = 0;
 				bPushedCapsLock = false;
 			}

@@ -28,6 +28,7 @@ static VehicleInfo GetVehicleInfo(unsigned Hash) {
 	switch (Hash) {
 		HASH_DEFAULT({ ""e, VehicleType1::None, VehicleType2::Destructible, VehicleType3::Normal });
 
+		HASH_CASE("BP_EmPickup_Aircraft_C"h, { "Pickup"e, VehicleType1::None, VehicleType2::Invincible, VehicleType3::Special });
 		HASH_CASE("BP_EmergencyPickupVehicle_C"h, { "Pickup"e, VehicleType1::None, VehicleType2::Invincible, VehicleType3::Special });
 		HASH_CASE("TransportAircraft_Chimera_C"h, { "Aircraft"e, VehicleType1::None, VehicleType2::Invincible, VehicleType3::Special });
 		HASH_CASE("BP_Bicycle_C"h, { "Bike"e, VehicleType1::None, VehicleType2::Invincible, VehicleType3::Normal });
