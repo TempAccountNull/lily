@@ -112,36 +112,13 @@ private:
 
 	std::vector<unsigned> BlackList;
 	std::vector<unsigned> WhiteList;
+	char szUserName[0x100];
 
-	void LoadList(std::vector<unsigned>& List, const char* szFileName) {
-		GetDesktopPath(szBuf, szFileName);
-		FILE* in = fopen(szBuf, "a+"e);
-		if (!in)
-			error(szFileName);
-
-		List.clear();
-
-		while (fgets(szBuf, sizeof(szBuf), in)) {
-			char* pNewLine = strchr(szBuf, '\n');
-			if (pNewLine)
-				*pNewLine = 0;
-			List.push_back(CompileTime::StrHash(szBuf));
-		}
-
-		fclose(in);
-	}
-
-	bool IsUserInList(const std::vector<unsigned>& List, const char* szUserName) {
-		if (!szUserName || !*szUserName)
-			return false;
-
-		const unsigned NameHash = CompileTime::StrHash(szUserName);
-		for (const auto& Elem : List)
-			if (Elem == NameHash)
-				return true;
-
-		return false;
-	}
+	FILE* OpenDesktopFile(const char* szFileName, const char* Mode);
+	void LoadList(std::vector<unsigned>& List, const char* szFileName);
+	void AddUserToList(std::vector<unsigned>& List, const char* szFileName, const char* szUserName);
+	void RemoveUserFromList(std::vector<unsigned>& List, const char* szFileName, const char* szUserName);
+	bool IsUserInList(const std::vector<unsigned>& List, const char* szUserName) const;
 
 	std::map<unsigned, RankInfo> RankInfoSteamSolo;
 	std::map<unsigned, RankInfo> RankInfoSteamSquad;

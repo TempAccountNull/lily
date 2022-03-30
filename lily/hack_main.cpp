@@ -64,7 +64,8 @@ void Hack::Loop() {
 	float RemainMouseX = 0.0f;
 	float RemainMouseY = 0.0f;
 	NativePtr<ATslCharacter> CachedMyTslCharacterPtr = 0;
-	NativePtr<ATslCharacter> LockTargetPtr = 0;
+	NativePtr<ATslCharacter> LockAimbotTargetPtr = 0;
+	NativePtr<ATslCharacter> LockClosestTargetPtr = 0;
 	NativePtr<ATslCharacter> EnemyFocusingMePtr = 0;
 	bool bPushedCapsLock = false;
 	bool IsFPPOnly = true;
@@ -483,7 +484,7 @@ void Hack::Loop() {
 				//AimbotInfo
 				auto& AimbotInfo = EnemyInfoMap[CharacterPtr].AimbotInfo;
 
-				if (CharacterPtr == LockTargetPtr) {
+				if (CharacterPtr == LockAimbotTargetPtr) {
 					if (AimbotInfo.IsLocked) {
 						if (IsTimeChanged && AimbotInfo.IsInVehicle)
 							AimbotInfo.AimPoint = AimbotInfo.AimPoint + AimbotInfo.Velocity * render.TimeDelta;
@@ -598,6 +599,7 @@ void Hack::Loop() {
 			const float AimbotCircleSize = tanf(ConvertToRadians(AimbotFOV)) * render.Height * powf(1.5f, log2f(FOVRatio));
 			const float SilentCircleSize = tanf(ConvertToRadians(SilentFOV)) * render.Height * powf(1.5f, log2f(FOVRatio));
 			float AimbotDistant = bAimbot ? AimbotCircleSize : SilentCircleSize;
+			float ClosestDistant = render.Height / 2.0f;
 
 			if (GetCharacterInfo((uintptr_t)MyPawnPtr, MyInfo))
 				CachedMyTslCharacterPtr = (uintptr_t)MyPawnPtr;
@@ -607,18 +609,23 @@ void Hack::Loop() {
 
 			if (!CachedMyTslCharacterPtr) {
 				EnemyInfoMap.clear();
-				LockTargetPtr = 0;
+				LockAimbotTargetPtr = 0;
 				IsFPPOnly = true;
 			}
 
 			if (!render.bKeyPushing[VK_MBUTTON])
-				LockTargetPtr = 0;
+				LockAimbotTargetPtr = 0;
+			if (!render.bKeyPushing[VK_OEM_3])
+				LockClosestTargetPtr = 0;
 
-			CharacterInfo LockedTargetInfo;
-			if (!GetCharacterInfo(LockTargetPtr, LockedTargetInfo))
-				LockTargetPtr = 0;
+			CharacterInfo DummyInfo;
+			if (!GetCharacterInfo(LockAimbotTargetPtr, DummyInfo))
+				LockAimbotTargetPtr = 0;
+			if (!GetCharacterInfo(LockClosestTargetPtr, DummyInfo))
+				LockClosestTargetPtr = 0;
 
-			NativePtr<ATslCharacter> CurrentTargetPtr = 0;
+			NativePtr<ATslCharacter> AimbotTargetPtr = 0;
+			NativePtr<ATslCharacter> ClosestTargetPtr = 0;
 
 			auto ProcessTslCharacter = [&](uint64_t ActorPtr) {
 				if (MyPawnPtr == ActorPtr && !bDebug)
@@ -806,6 +813,29 @@ void Hack::Loop() {
 					ImGui::End();
 				}();
 
+				//ClosestEnemy
+				[&] {
+					if (Info.State == CharacterState::Dead)
+						return;
+					if (Info.IsAI)
+						return;
+
+					FVector AimPoint2D = WorldToScreen(Info.AimPoint);
+					if (AimPoint2D.Z < 0.0f)
+						return;
+
+					AimPoint2D.Z = 0.0f;
+					FVector Center2D = { render.Width / 2.0f, render.Height / 2.0f, 0 };
+
+					float DistanceFromCenter = Center2D.Distance(AimPoint2D);
+
+					if (DistanceFromCenter > ClosestDistant)
+						return;
+
+					ClosestTargetPtr = (uintptr_t)ActorPtr;
+					ClosestDistant = DistanceFromCenter;
+				}();
+
 				bool IsInCircle = false;
 				//Aimbot
 				[&] {
@@ -836,7 +866,7 @@ void Hack::Loop() {
 					if (DistanceFromCenter > AimbotDistant)
 						return;
 
-					CurrentTargetPtr = (uintptr_t)ActorPtr;
+					AimbotTargetPtr = (uintptr_t)ActorPtr;
 					AimbotDistant = DistanceFromCenter;
 				}();
 
@@ -850,7 +880,9 @@ void Hack::Loop() {
 
 					//GetColor
 					ImColor Color = [&]()->ImColor {
-						if (ActorPtr == LockTargetPtr)
+						if (ActorPtr == LockClosestTargetPtr)
+							return Render::COLOR_PURPLE;
+						if (ActorPtr == LockAimbotTargetPtr)
 							return Render::COLOR_PURPLE;
 						if (Info.Team == MyInfo.Team || Info.IsWhiteListed)
 							return Render::COLOR_GREEN;
@@ -1268,23 +1300,51 @@ void Hack::Loop() {
 				IsNeedToHookGunLoc = true;
 			}
 
-			//TargetCharacter
+			//ClosestTarget
+			[&] {
+				if (!LockClosestTargetPtr)
+					LockClosestTargetPtr = ClosestTargetPtr;
+
+				if (!render.bKeyPushing[VK_OEM_3])
+					return;
+
+				CharacterInfo ClosestTargetInfo;
+				if (!GetCharacterInfo(LockClosestTargetPtr, ClosestTargetInfo))
+					return;
+
+				const std::string& Name = ClosestTargetInfo.PlayerName;
+				if (Name.empty())
+					return;
+
+				if (render.bKeyPushed[VK_MBUTTON]) {
+					std::string url = (std::string)"https://pubg.op.gg/user/"e + Name;
+					ShellExecuteA(0, "open"e, url.c_str(), 0, 0, SW_SHOWNORMAL);
+				}
+
+				if (render.bKeyPushed[VK_ADD])
+					AddUserToList(BlackList, BlackListFile, Name.c_str());
+
+				if (render.bKeyPushed[VK_SUBTRACT])
+					RemoveUserFromList(BlackList, BlackListFile, Name.c_str());
+			}();
+
+			//Aimbot
 			[&] {
 				if (!MyInfo.IsWeaponed)
 					return;
 
-				if (!CurrentTargetPtr)
+				if (!AimbotTargetPtr)
 					return;
 
-				if (!LockTargetPtr)
-					LockTargetPtr = CurrentTargetPtr;
+				if (!LockAimbotTargetPtr)
+					LockAimbotTargetPtr = AimbotTargetPtr;
 
-				CharacterInfo TargetInfo;
-				if (!GetCharacterInfo(LockTargetPtr, TargetInfo))
+				CharacterInfo AimbotTargetInfo;
+				if (!GetCharacterInfo(LockAimbotTargetPtr, AimbotTargetInfo))
 					return;
 
-				const FVector TargetPos = TargetInfo.AimPoint;
-				const FVector TargetVelocity = TargetInfo.Velocity;
+				const FVector TargetPos = AimbotTargetInfo.AimPoint;
+				const FVector TargetVelocity = AimbotTargetInfo.Velocity;
 
 				auto Result = GetBulletDropAndTravelTime(
 					MyInfo.AimLocation,
@@ -1362,12 +1422,6 @@ void Hack::Loop() {
 
 				if (!render.bKeyPushing[VK_MBUTTON])
 					return;
-
-				if (render.bKeyPushed[VK_LWIN]) {
-					std::string url = "https://pubg.op.gg/user/"e;
-					url += TargetInfo.PlayerName;
-					ShellExecuteA(0, "open"e, url.c_str(), 0, 0, SW_SHOWNORMAL);
-				}
 
 				if (hGameWnd != hForeWnd)
 					return;
@@ -1459,7 +1513,7 @@ void Hack::Loop() {
 					if (!GetCharacterInfo(Ptr, Info))
 						break;
 
-					LockTargetPtr = Info.Ptr;
+					LockAimbotTargetPtr = Info.Ptr;
 					EnemyFocusingMePtr = Info.Ptr;
 
 					auto Result = GetBulletDropAndTravelTime(

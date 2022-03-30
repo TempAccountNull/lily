@@ -45,7 +45,7 @@ void Hack::ProcessImGui() {
 		return;
 
 	const float MenuSizeX = 320.0f;
-	const float MenuSizeY = 450.0f;
+	const float MenuSizeY = 550.0f;
 
 	const float MenuPosX = render.Width - MenuSizeX - Hack::MARGIN;
 	const float MenuPosY = render.Height / 2.0f - MenuSizeY / 2.0f;
@@ -72,12 +72,19 @@ void Hack::ProcessImGui() {
 
 		if (ImGui::Button("UpdateRankInfo"e))
 			UpdateRankInfo();
-
-		if (ImGui::Button("LoadBlackList"e))
-			LoadList(BlackList, BlackListFile);
 		ImGui::SameLine();
-		if (ImGui::Button("LoadWhiteList"e))
+		if (ImGui::Button("LoadList"e)) {
+			LoadList(BlackList, BlackListFile);
 			LoadList(WhiteList, WhiteListFile);
+		}
+
+		ImGui::InputText("##UserName"e, szUserName, sizeof(szUserName));
+		ImGui::SameLine();
+		if (ImGui::Button("Add"e))
+			AddUserToList(BlackList, BlackListFile, szUserName);
+		ImGui::SameLine();
+		if (ImGui::Button("Del"e))
+			RemoveUserFromList(BlackList, BlackListFile, szUserName);
 
 		ImGui::NewLine();
 

@@ -272,6 +272,9 @@
     <ClCompile Include="hack_rankinfo.cpp">
       <Filter>hack</Filter>
     </ClCompile>
+    <ClCompile Include="hack_userlist.cpp">
+      <Filter>hack</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <MASM Include="pubg_process_.asm">
