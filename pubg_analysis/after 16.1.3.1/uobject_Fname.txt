@@ -1,0 +1,38 @@
+UObject->FName
+
+//48 89 ? ? ? ? 48 ? ? 20 48 ? ? 48 ? ? e8 ? ? ? ? 48 ? ? e8 ? ? ? ? 48 8d
+TslGame.exe+792D7C - 48 89 5C 24 08        - mov [rsp+08],rbx
+TslGame.exe+792D81 - 57                    - push rdi
+TslGame.exe+792D82 - 48 83 EC 20           - sub rsp,20 { 32 }
+TslGame.exe+792D86 - 48 8B DA              - mov rbx,rdx
+TslGame.exe+792D89 - 48 8B F9              - mov rdi,rcx
+TslGame.exe+792D8C - E8 579BA7FF           - call TslGame.exe+20C8E8
+TslGame.exe+792D91 - 48 8B CF              - mov rcx,rdi
+TslGame.exe+792D94 - E8 CF000000           - call TslGame.exe+792E68
+TslGame.exe+792D99 - 48 8D 8F 10010000     - lea rcx,[rdi+00000110]
+TslGame.exe+792DA0 - 48 89 5F 50           - mov [rdi+50],rbx
+TslGame.exe+792DA4 - E8 13000000           - call TslGame.exe+792DBC
+TslGame.exe+792DA9 - 48 8B CF              - mov rcx,rdi
+TslGame.exe+792DAC - 48 8B 5C 24 30        - mov rbx,[rsp+30]
+TslGame.exe+792DB1 - 48 83 C4 20           - add rsp,20 { 32 }
+TslGame.exe+792DB5 - 5F                    - pop rdi
+TslGame.exe+792DB6 - E9 0DABA7FF           - jmp TslGame.exe+20D8C8		<-- Enter
+
+
+TslGame.exe+2729B0 - 48 89 4C 24 08        - mov [rsp+08],rcx
+TslGame.exe+2729B5 - 55                    - push rbp
+TslGame.exe+2729B6 - 53                    - push rbx
+TslGame.exe+2729B7 - 56                    - push rsi
+TslGame.exe+2729B8 - 57                    - push rdi
+TslGame.exe+2729B9 - 41 54                 - push r12
+TslGame.exe+2729BB - 41 55                 - push r13
+TslGame.exe+2729BD - 41 56                 - push r14
+TslGame.exe+2729BF - 41 57                 - push r15
+TslGame.exe+2729C1 - 48 8D 6C 24 E1        - lea rbp,[rsp-1F]
+TslGame.exe+2729C6 - 48 81 EC E8000000     - sub rsp,000000E8 { 232 }
+TslGame.exe+2729CD - 48 C7 45 0F FEFFFFFF  - mov qword ptr [rbp+0F],FFFFFFFFFFFFFFFE { -2 }
+TslGame.exe+2729D5 - 8B 51 0C              - mov edx,[rcx+0C]			<-- Look
+TslGame.exe+2729D8 - 81 F2 E68BF51D        - xor edx,1DF58BE6 { 502631398 }
+TslGame.exe+2729DE - 8B 41 08              - mov eax,[rcx+08]			<-- Look
+TslGame.exe+2729E1 - 35 947E026D           - xor eax,6D027E94 { 1828880020 }
+TslGame.exe+2729E6 - C1 C0 08              - rol eax,08 { 8 }

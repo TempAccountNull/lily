@@ -1,0 +1,10 @@
+//80 ? ? ? 00 00 00 75 ? 48 ? ? e8 ? ? ? ? 48 ? ? 48 85 c0 74
+TslGame.exe+4C60C7E - 80 BB 790F0000 00     - cmp byte ptr [rbx+00000F79],00 { 0 }
+TslGame.exe+4C60C85 - 75 78                 - jne TslGame.exe+4C60CFF
+TslGame.exe+4C60C87 - 48 8B CB              - mov rcx,rbx
+TslGame.exe+4C60C8A - E8 9D3985FB           - call TslGame.exe+4B462C		<-- Look Inside
+TslGame.exe+4C60C8F - 48 8B F8              - mov rdi,rax
+TslGame.exe+4C60C92 - 48 85 C0              - test rax,rax
+TslGame.exe+4C60C95 - 74 4B                 - je TslGame.exe+4C60CE2
+
+LocalPlayer, PlayerController, GameInstance

@@ -1,0 +1,11 @@
+//48 8d 91 ? ? 00 00 49 ? ? e8 ? ? ? ? 48 8d
+TslGame.exe+7CFAA9 - 48 8D 91 58020000     - lea rdx,[rcx+00000258]		<-- this
+TslGame.exe+7CFAB0 - 49 8B CE              - mov rcx,r14
+TslGame.exe+7CFAB3 - E8 24020000           - call TslGame.exe+7CFCDC
+TslGame.exe+7CFAB8 - 48 8D 96 A0070000     - lea rdx,[rsi+000007A0]
+TslGame.exe+7CFABF - 4C 8B C6              - mov r8,rsi
+TslGame.exe+7CFAC2 - 49 8B CE              - mov rcx,r14
+TslGame.exe+7CFAC5 - E8 3E040000           - call TslGame.exe+7CFF08
+
+
+

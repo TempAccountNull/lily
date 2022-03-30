@@ -1,0 +1,41 @@
+//e8 ? ? 00 00 48 8b d0 f7 83 ? ? 00 00 00 04 00 00
+
+TslGame.exe+537452 - E8 A9010000           - call TslGame.exe+537600
+TslGame.exe+537457 - 48 8B D0              - mov rdx,rax
+TslGame.exe+53745A - F7 83 50010000 00040000 - test [rbx+00000150],00000400 { 1024 }
+TslGame.exe+537464 - 0F84 94000000         - je TslGame.exe+5374FE
+TslGame.exe+53746A - 8B 4B 10              - mov ecx,[rbx+10]
+TslGame.exe+53746D - 81 F1 DEE88D40        - xor ecx,408DE8DE { 4.43 }
+TslGame.exe+537473 - C1 C1 05              - rol ecx,05 { 5 }
+TslGame.exe+537476 - 8B C1                 - mov eax,ecx
+TslGame.exe+537478 - C1 E0 10              - shl eax,10 { 16 }
+TslGame.exe+53747B - 35 12F3A853           - xor eax,53A8F312 { 1403581202 }
+TslGame.exe+537480 - 33 C1                 - xor eax,ecx
+TslGame.exe+537482 - 89 44 24 40           - mov [rsp+40],eax
+TslGame.exe+537486 - 8B 4B 14              - mov ecx,[rbx+14]
+TslGame.exe+537489 - 81 F1 12F3BAA0        - xor ecx,A0BAF312 { -1598360814 }
+TslGame.exe+53748F - C1 C9 03              - ror ecx,03 { 3 }
+TslGame.exe+537492 - 8B C1                 - mov eax,ecx
+TslGame.exe+537494 - C1 E0 10              - shl eax,10 { 16 }
+TslGame.exe+537497 - 33 C1                 - xor eax,ecx
+TslGame.exe+537499 - 35 DEE853A8           - xor eax,A853E8DE { -1470895906 }
+TslGame.exe+53749E - 89 44 24 44           - mov [rsp+44],eax
+TslGame.exe+5374A2 - 48 8B 8A E8020000     - mov rcx,[rdx+000002E8]
+TslGame.exe+5374A9 - 48 63 92 F0020000     - movsxd  rdx,dword ptr [rdx+000002F0]
+TslGame.exe+5374B0 - 48 C1 E2 04           - shl rdx,04 { 4 }
+TslGame.exe+5374B4 - 48 03 D1              - add rdx,rcx
+TslGame.exe+5374B7 - 48 3B CA              - cmp rcx,rdx
+TslGame.exe+5374BA - 74 13                 - je TslGame.exe+5374CF
+TslGame.exe+5374BC - 48 8B 44 24 40        - mov rax,[rsp+40]
+TslGame.exe+5374C1 - 48 3B 01              - cmp rax,[rcx]
+TslGame.exe+5374C4 - 74 0B                 - je TslGame.exe+5374D1
+TslGame.exe+5374C6 - 48 83 C1 10           - add rcx,10 { 16 }
+TslGame.exe+5374CA - 48 3B CA              - cmp rcx,rdx
+TslGame.exe+5374CD - 75 F2                 - jne TslGame.exe+5374C1
+TslGame.exe+5374CF - 33 C9                 - xor ecx,ecx
+TslGame.exe+5374D1 - 48 85 C9              - test rcx,rcx
+TslGame.exe+5374D4 - 74 0B                 - je TslGame.exe+5374E1
+TslGame.exe+5374D6 - 48 8B 41 08           - mov rax,[rcx+08]
+TslGame.exe+5374DA - 48 89 83 20010000     - mov [rbx+00000120],rax		<-- Offset 120
+TslGame.exe+5374E1 - 48 8D 8B 20010000     - lea rcx,[rbx+00000120]
+

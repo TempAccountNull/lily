@@ -1,0 +1,32 @@
+//41 0f ? ? 73 ? f3 0f 10 ? ? ? ? ? f3 0f 11 ? ? ? ? 00 00
+TslGame.exe+77FE9E - F3 0F11 B4 24 F4070000  - movss [rsp+000007F4],xmm6
+TslGame.exe+77FEA7 - F3 0F11 BC 24 F8070000  - movss [rsp+000007F8],xmm7
+TslGame.exe+77FEB0 - F3 44 0F11 84 24 FC070000  - movss [rsp+000007FC],xmm8
+TslGame.exe+77FEBA - F3 0F11 B4 24 00080000  - movss [rsp+00000800],xmm6		<--xmm6, xmm7, xmm8
+TslGame.exe+77FEC3 - F3 0F11 BC 24 04080000  - movss [rsp+00000804],xmm7
+TslGame.exe+77FECC - F3 44 0F11 84 24 08080000  - movss [rsp+00000808],xmm8
+TslGame.exe+77FED6 - E9 0F010000           - jmp TslGame.exe+77FFEA
+TslGame.exe+77FEDB - 41 0F28 D1            - movaps xmm2,xmm9
+TslGame.exe+77FEDF - F3 41 0F59 D1         - mulss xmm2,xmm9
+TslGame.exe+77FEE4 - 41 0F28 C2            - movaps xmm0,xmm10
+TslGame.exe+77FEE8 - F3 41 0F59 C2         - mulss xmm0,xmm10
+TslGame.exe+77FEED - F3 0F58 D0            - addss xmm2,xmm0
+TslGame.exe+77FEF1 - 41 0F28 CB            - movaps xmm1,xmm11
+TslGame.exe+77FEF5 - F3 41 0F59 CB         - mulss xmm1,xmm11
+TslGame.exe+77FEFA - F3 0F58 D1            - addss xmm2,xmm1
+TslGame.exe+77FEFE - 41 0F2E D6            - ucomiss xmm2,xmm14
+TslGame.exe+77FF02 - 75 19                 - jne TslGame.exe+77FF1D
+TslGame.exe+77FF04 - F3 44 0F11 8C 24 00080000  - movss [rsp+00000800],xmm9
+TslGame.exe+77FF0E - F3 44 0F11 9C 24 08080000  - movss [rsp+00000808],xmm11
+TslGame.exe+77FF18 - E9 C3000000           - jmp TslGame.exe+77FFE0
+TslGame.exe+77FF1D - 41 0F2F D0            - comiss xmm2,xmm8
+TslGame.exe+77FF21 - 73 38                 - jae TslGame.exe+77FF5B
+TslGame.exe+77FF23 - F3 0F10 05 8D2BCB08   - movss xmm0,[TslGame.exe+9432AB8] { (0.00) }
+TslGame.exe+77FF2B - F3 0F11 84 24 00080000  - movss [rsp+00000800],xmm0
+TslGame.exe+77FF34 - F3 0F10 0D 802BCB08   - movss xmm1,[TslGame.exe+9432ABC] { (0.00) }
+TslGame.exe+77FF3C - F3 0F11 8C 24 04080000  - movss [rsp+00000804],xmm1
+TslGame.exe+77FF45 - F3 0F10 05 732BCB08   - movss xmm0,[TslGame.exe+9432AC0] { (0.00) }
+TslGame.exe+77FF4D - F3 0F11 84 24 08080000  - movss [rsp+00000808],xmm0
+TslGame.exe+77FF56 - E9 8F000000           - jmp TslGame.exe+77FFEA
+TslGame.exe+77FF5B - 0F28 C6               - movaps xmm0,xmm6
+

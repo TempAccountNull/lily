@@ -1,0 +1,23 @@
+5.5.6.1
+
+class UStruct : public UField
+{
+public:
+	int32_t MinAlignment;		//useless member
+	int32_t pad1;
+	DWORD64 pad2[12];
+	UStruct* SuperField;
+	DWORD64 pad3;
+	UField* Children;
+	DWORD64 pad4[5];
+	int32_t PropertySize;
+};
+
+이 오브젝트를 참고하면 패딩값을 찾는데 도움이 될 것이다.
+Class Engine.World
+
+Children 멤버는 같은 값을 가진 멤버가 2개 이상일 때도 있다. 적당히 골라쓰자.
+
+SuperField, Children => 포인터
+MinAlignment => 아마도 값은 1
+PropertySize => sizeof(UWorld) 0xA00~0xB00 사이에 있을듯

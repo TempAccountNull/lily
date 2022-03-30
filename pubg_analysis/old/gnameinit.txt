@@ -1,0 +1,22 @@
+//ff 15 ? ? ? ? c7 44 24 ? 00 00 00 00 c6 44 24 ? 00 41 ? 01 00 00 00 45
+TslGame.exe+2E9CD0D - FF 15 B5BA2701        - call qword ptr [TslGame.exe+41187C8] { ->ntdll.RtlLeaveCriticalSection }
+TslGame.exe+2E9CD13 - C7 44 24 28 00000000  - mov [rsp+28],00000000 { 0 }
+TslGame.exe+2E9CD1B - C6 44 24 20 00        - mov byte ptr [rsp+20],00 { 0 }
+TslGame.exe+2E9CD20 - 41 B9 01000000        - mov r9d,00000001 { 1 }
+TslGame.exe+2E9CD26 - 45 33 C0              - xor r8d,r8d
+TslGame.exe+2E9CD29 - 48 8D 15 E8C5E701     - lea rdx,[TslGame.exe+4D19318] { ("None") }
+TslGame.exe+2E9CD30 - 48 8D 8D 30040000     - lea rcx,[rbp+00000430]
+TslGame.exe+2E9CD37 - E8 C4A5FFFF           - call TslGame.exe+2E97300
+TslGame.exe+2E9CD3C - C7 44 24 28 01000000  - mov [rsp+28],00000001 { 1 }
+TslGame.exe+2E9CD44 - C6 44 24 20 00        - mov byte ptr [rsp+20],00 { 0 }
+TslGame.exe+2E9CD49 - 41 B9 01000000        - mov r9d,00000001 { 1 }
+TslGame.exe+2E9CD4F - 45 33 C0              - xor r8d,r8d
+TslGame.exe+2E9CD52 - 48 8D 15 CFC5E701     - lea rdx,[TslGame.exe+4D19328] { ("ByteProperty") }
+TslGame.exe+2E9CD59 - 48 8D 8D 38040000     - lea rcx,[rbp+00000438]
+TslGame.exe+2E9CD60 - E8 9BA5FFFF           - call TslGame.exe+2E97300
+TslGame.exe+2E9CD65 - C7 44 24 28 02000000  - mov [rsp+28],00000002 { 2 }
+TslGame.exe+2E9CD6D - C6 44 24 20 00        - mov byte ptr [rsp+20],00 { 0 }
+TslGame.exe+2E9CD72 - 41 B9 01000000        - mov r9d,00000001 { 1 }
+TslGame.exe+2E9CD78 - 45 33 C0              - xor r8d,r8d
+TslGame.exe+2E9CD7B - 48 8D 15 E6C5E701     - lea rdx,[TslGame.exe+4D19368] { ("IntProperty") }
+......

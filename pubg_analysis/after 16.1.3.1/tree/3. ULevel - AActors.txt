@@ -1,0 +1,24 @@
+//e8 ? ? ? ? 44 8b c0 48 8d ? ? ? ? ? ? ? ? e8 ? ? ? ? b0
+TslGame.exe+61C17F4 - E8 97DC57FA           - call TslGame.exe+73F490			<-- Look Inside
+TslGame.exe+61C17F9 - 44 8B C0              - mov r8d,eax
+TslGame.exe+61C17FC - 48 8D 15 65D5FA00     - lea rdx,[TslGame.exe+716ED68] { ("Num Actors: %i") }
+TslGame.exe+61C1803 - 48 8B CB              - mov rcx,rbx
+TslGame.exe+61C1806 - E8 119278FA           - call TslGame.exe+94AA1C
+TslGame.exe+61C180B - B0 01                 - mov al,01 { 1 }
+
+TslGame.exe+73F490 - 48 89 5C 24 10        - mov [rsp+10],rbx
+TslGame.exe+73F495 - 48 89 74 24 18        - mov [rsp+18],rsi
+TslGame.exe+73F49A - 48 89 7C 24 20        - mov [rsp+20],rdi
+TslGame.exe+73F49F - 41 56                 - push r14
+TslGame.exe+73F4A1 - 48 83 EC 20           - sub rsp,20 { 32 }
+TslGame.exe+73F4A5 - 33 DB                 - xor ebx,ebx
+TslGame.exe+73F4A7 - 33 F6                 - xor esi,esi
+TslGame.exe+73F4A9 - 48 8B F9              - mov rdi,rcx
+TslGame.exe+73F4AC - 39 99 18030000        - cmp [rcx+00000318],ebx
+TslGame.exe+73F4B2 - 0F8E D6000000         - jng TslGame.exe+73F58E
+TslGame.exe+73F4B8 - 45 33 F6              - xor r14d,r14d
+TslGame.exe+73F4BB - 48 83 3D 3D32F506 00  - cmp qword ptr [TslGame.exe+7692700],00 { (0),0 }
+TslGame.exe+73F4C3 - 48 8B 87 10030000     - mov rax,[rdi+00000310]
+TslGame.exe+73F4CA - 49 8B 0C 06           - mov rcx,[r14+rax]
+TslGame.exe+73F4CE - 4C 8B 81 88020000     - mov r8,[rcx+00000288]		<-- This
+TslGame.exe+73F4D5 - 75 13                 - jne TslGame.exe+73F4EA

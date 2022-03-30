@@ -1,0 +1,12 @@
+UWORLD
+
+//48 83 ec ? 48 83 3d ? ? ? ? 00 48 8b 0d
+TslGame.exe+491FC21 - 48 83 EC 28           - sub rsp,28 { 40 }
+TslGame.exe+491FC25 - 48 83 3D D315D702 00  - cmp qword ptr [TslGame.exe+7691200],00 { (0),0 }
+TslGame.exe+491FC2D - 48 8B 0D 2C4A7604     - mov rcx,[TslGame.exe+9084660] { (-1767384159) }	<-- This
+TslGame.exe+491FC34 - 75 13                 - jne TslGame.exe+491FC49
+TslGame.exe+491FC36 - 48 8B D1              - mov rdx,rcx
+TslGame.exe+491FC39 - B9 A6CB3E48           - mov ecx,483ECBA6 { 1212074918 }
+TslGame.exe+491FC3E - 48 83 C4 28           - add rsp,28 { 40 }
+TslGame.exe+491FC42 - 48 FF 25 DF15D702     - jmp qword ptr [TslGame.exe+7691228] { ->7FF40FF01A3A }
+TslGame.exe+491FC49 - 8B C1                 - mov eax,ecx

@@ -1,0 +1,95 @@
+FRotator USceneComponent::GetSocketRotation(FName SocketName) const
+이 함수를 vtable 후킹하면 silent aimbot 완성
+
+//아래에서 vtable offset 확인
+//Function Engine.SceneComponent.GetSocketRotation 또는
+//Function TslGame.TslWeapon_Trajectory.GetBulletRotation 
+
+//후킹한 함수는 이렇게짜라
+FRotator USceneComponent::MyGetSocketRotation(FName SocketName) {
+	if (SocketName == FiringAttachPoint)
+		return Rotator(RotationToEnemy);
+	
+	return this->GetSocketRotation(SocketName);
+}
+
+//후킹 함수 본체
+//00 - 41 81 F8 34123412     - cmp r8d,00000000				<- SocketName.ComparisonIndex
+//07 - 75 18                 - jne original
+//09 - C7 02 00000000        - mov [rdx],00000000			<- Pitch
+//0F - C7 42 04 00000000     - mov [rdx+04],00000000		<- Yaw
+//16 - C7 42 08 00000000     - mov [rdx+08],00000000		<- Roll
+//1D - 48 8B C2              - mov rax,rdx
+//20 - C3                    - ret
+//21 - 53                    - push rbx
+//22 - 48 83 EC 70           - sub rsp,70
+//26 - 48 8B DA              - mov rbx,rdx
+//29 - 48 8B 01              - mov rax,[rcx]
+//2C - 4D 31 C9              - xor r9,r9
+//2F - 48 8D 54 24 30        - lea rdx,[rsp+30]
+//34 - FF 90 18040000        - call qword ptr [rax+00000418]	<-- VTable Offset (GetSocketTransform)
+//3A - 48 8B C8              - mov rcx,rax
+//3D - 48 8B D3              - mov rdx,rbx
+//40 - 48 B8 0000000000000000- mov rax,0000000000000000			<-- FRotator FQuat::Rotator()
+//4A - FF D0                 - call rax
+//4C - 48 83 C4 70           - add rsp,70
+//50 - 5B                    - pop rbx
+//51 - C3                    - ret
+//BYTE HookedFunction[] = {
+//	0x41, 0x81, 0xF8, 0x00, 0x00, 0x00, 0x00,
+//	0x75, 0x18,
+//	0xC7, 0x02, 0x00, 0x00, 0x00, 0x00,
+//	0xC7, 0x42, 0x04, 0x00, 0x00, 0x00, 0x00,
+//	0xC7, 0x42, 0x08, 0x00, 0x00, 0x00, 0x00,
+//	0x48, 0x8B, 0xC2,
+//	0xC3,
+//	0x53,
+//	0x48, 0x83, 0xEC, 0x70,
+//	0x48, 0x8B, 0xDA,
+//	0x48, 0x8B, 0x01,
+//	0x4D, 0x31, 0xC9,
+//	0x48, 0x8D, 0x54, 0x24, 0x30,
+//	0xFF, 0x90, 0x18, 0x04, 0x00, 0x00,
+//	0x48, 0x8B, 0xC8,
+//	0x48, 0x8B, 0xD3,
+//	0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+//	0xFF, 0xD0,
+//	0x48, 0x83, 0xC4, 0x70,
+//	0x5B,
+//	0xC3,
+//};
+//*(DWORD*)(HookedFunction + 0x36) = 0x418;
+//*(DWORD64*)(HookedFunction + 0x42) = xenuine.process.GetBaseAddress() + 0x2427EC0;
+//AimHookAddress = xenuine.process.GetBaseAddress() + 0x3614450;
+//if (!xenuine.process.Handler.WPMCloak(AimHookAddress, HookedFunction, sizeof(HookedFunction)))
+//	stophack("hook failed");
+
+
+//Rotation 수정시
+//Rotator RotationInput = (PredictedPos - GunLocation).GetDirectionRotator();
+//RotationInput.Clamp();
+//
+//BYTE HookedFunctionFront[] = {
+//	0x41, 0x81, 0xF8, 0x00, 0x00, 0x00, 0x00,
+//	0x75, 0x18,
+//	0xC7, 0x02, 0x00, 0x00, 0x00, 0x00,
+//	0xC7, 0x42, 0x04, 0x00, 0x00, 0x00, 0x00,
+//	0xC7, 0x42, 0x08, 0x00, 0x00, 0x00, 0x00,
+//	0x48, 0x8B, 0xC2,
+//	0xC3
+//};
+//
+//*(int*)(HookedFunctionFront + 0x3) = FiringAttachPoint.ComparisonIndex;
+//*(float*)(HookedFunctionFront + 0xB) = RotationInput.Pitch;
+//*(float*)(HookedFunctionFront + 0x12) = RotationInput.Yaw;
+//*(float*)(HookedFunctionFront + 0x19) = RotationInput.Roll;
+//xenuine.process.Handler.WPMCloak(AimHookAddress, HookedFunctionFront, sizeof(HookedFunctionFront));
+//bAimHooked = true;
+
+
+//원래 함수 호출시
+//BYTE HookedFunctionFront[] = {
+//	0x41, 0x81, 0xF8, 0x00, 0x00, 0x00, 0x00,
+//};
+//xenuine.process.Handler.WPMCloak(AimHookAddress, HookedFunctionFront, sizeof(HookedFunctionFront));
+

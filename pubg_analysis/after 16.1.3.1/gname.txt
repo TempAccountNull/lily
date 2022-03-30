@@ -1,0 +1,9 @@
+GNAME
+
+//48 8d 4c 24 ? e8 ? ? ? ? 4c 8b ? ? ? ? ? 8b ? 4d ? ? 75
+TslGame.exe+25E595 - 48 8D 4C 24 30        - lea rcx,[rsp+30]
+TslGame.exe+25E59A - E8 A1682802           - call TslGame.exe+24E4E40		<-- Look
+TslGame.exe+25E59F - 4C 8B 05 5A304307     - mov r8,[TslGame.exe+7691600] { (0) }
+TslGame.exe+25E5A6 - 8B 33                 - mov esi,[rbx]
+TslGame.exe+25E5A8 - 4D 85 C0              - test r8,r8
+TslGame.exe+25E5AB - 75 1C                 - jne TslGame.exe+25E5C9

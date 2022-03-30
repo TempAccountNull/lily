@@ -1,0 +1,50 @@
+//GunLocScope
+//e8 ? ? ? ? f2 0f 10 00 f2 0f ? ? ? ? ? 00 00 8b 40 08 89 ? ? ? ? 00 00 48
+TslGame.exe+8DC9A6 - E8 49E4F5FF           - call TslGame.exe+83ADF4
+TslGame.exe+8DC9AB - F2 0F10 00            - movsd xmm0,[rax]
+TslGame.exe+8DC9AF - F2 0F11 84 24 20090000  - movsd [rsp+00000920],xmm0		<--
+TslGame.exe+8DC9B8 - 8B 40 08              - mov eax,[rax+08]
+TslGame.exe+8DC9BB - 89 84 24 28090000     - mov [rsp+00000928],eax			<--
+TslGame.exe+8DC9C2 - 48 8D 0D 3F8BDE05     - lea rcx,[TslGame.exe+66C5508] { (468128466) }
+TslGame.exe+8DC9C9 - E9 E77FF10A           - jmp TslGame.exe+B7F49B5
+TslGame.exe+8DC9CE - CC                    - int 3 
+TslGame.exe+8DC9CF - CC                    - int 3 
+TslGame.exe+8DC9D0 - CC                    - int 3 
+TslGame.exe+8DC9D1 - CC                    - int 3 
+
+//GunLocNoScope
+//74 ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? eb ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? f2 0f 10 00 f2 0f
+TslGame.exe+8DC2FC - 74 0F                 - je TslGame.exe+8DC30D
+TslGame.exe+8DC2FE - 48 8D 94 24 A4070000  - lea rdx,[rsp+000007A4]
+TslGame.exe+8DC306 - E8 E9EAF5FF           - call TslGame.exe+83ADF4
+TslGame.exe+8DC30B - EB 0D                 - jmp TslGame.exe+8DC31A
+TslGame.exe+8DC30D - 48 8D 94 24 B0070000  - lea rdx,[rsp+000007B0]
+TslGame.exe+8DC315 - E8 62EBF5FF           - call TslGame.exe+83AE7C
+TslGame.exe+8DC31A - F2 0F10 00            - movsd xmm0,[rax]
+TslGame.exe+8DC31E - F2 0F11 84 24 20090000  - movsd [rsp+00000920],xmm0		<--
+TslGame.exe+8DC327 - 8B 40 08              - mov eax,[rax+08]
+TslGame.exe+8DC32A - 89 84 24 28090000     - mov [rsp+00000928],eax			<--
+TslGame.exe+8DC331 - F3 44 0F10 9C 24 90070000  - movss xmm11,[rsp+00000790]
+
+//GunLocNearWall
+//e8 ? ? ? ? f6 84 ? ? ? ? ? 01 74 ? f3 0f
+TslGame.exe+8DEA3A - E8 F12D99FF           - call TslGame.exe+271830
+TslGame.exe+8DEA3F - F6 84 24 C0090000 01  - test byte ptr [rsp+000009C0],01 { 1 }
+TslGame.exe+8DEA47 - 74 51                 - je TslGame.exe+8DEA9A
+TslGame.exe+8DEA49 - F3 0F10 94 24 E0090000  - movss xmm2,[rsp+000009E0]
+TslGame.exe+8DEA52 - F3 0F5C 94 24 08080000  - subss xmm2,[rsp+00000808]
+TslGame.exe+8DEA5B - F3 0F10 8C 24 DC090000  - movss xmm1,[rsp+000009DC]
+TslGame.exe+8DEA64 - F3 0F5C 8C 24 04080000  - subss xmm1,[rsp+00000804]
+TslGame.exe+8DEA6D - F3 0F10 84 24 D8090000  - movss xmm0,[rsp+000009D8]
+TslGame.exe+8DEA76 - F3 0F5C 84 24 00080000  - subss xmm0,[rsp+00000800]
+TslGame.exe+8DEA7F - F3 0F11 84 24 20090000  - movss [rsp+00000920],xmm0	<--
+TslGame.exe+8DEA88 - F3 0F11 8C 24 24090000  - movss [rsp+00000924],xmm1	<--
+TslGame.exe+8DEA91 - F3 0F11 94 24 28090000  - movss [rsp+00000928],xmm2	<--
+TslGame.exe+8DEA9A - 48 8B 06              - mov rax,[rsi]
+TslGame.exe+8DEA9D - 48 8B CE              - mov rcx,rsi
+TslGame.exe+8DEAA0 - FF 90 30010000        - call qword ptr [rax+00000130]
+
+
+
+
+

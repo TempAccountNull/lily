@@ -1,0 +1,12 @@
+//ff 90 ? ? ? ? ff c8 a9 fd ff ff ff 0f 84 ? ? 00 00 8a
+TslGame.exe+2B3F2A - FF 90 E0040000        - call qword ptr [rax+000004E0]
+TslGame.exe+2B3F30 - FF C8                 - dec eax
+TslGame.exe+2B3F32 - A9 FDFFFFFF           - test eax,FFFFFFFD { -3 }
+TslGame.exe+2B3F37 - 0F84 C6000000         - je TslGame.exe+2B4003		<-- set eflags.zf to 0 (nop)
+TslGame.exe+2B3F3D - 8A C3                 - mov al,bl
+TslGame.exe+2B3F3F - 41 0F2F F2            - comiss xmm6,xmm10
+TslGame.exe+2B3F43 - 0F86 06080000         - jbe TslGame.exe+2B474F
+
+
+
+44a126

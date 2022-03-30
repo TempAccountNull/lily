@@ -1,0 +1,64 @@
+//48 83 ec ? ? 30 00 00 00 48 ? ? e8 ? ? ? ? 84 c0 74 08
+TslGame.exe+21A4C60 - 40 53                 - push rbx
+TslGame.exe+21A4C62 - 48 83 EC 20           - sub rsp,20 { 32 }
+TslGame.exe+21A4C66 - BA 30000000           - mov edx,00000030 { 48 }
+TslGame.exe+21A4C6B - 48 8B D9              - mov rbx,rcx
+TslGame.exe+21A4C6E - E8 0D659500           - call TslGame.exe+2AFB180		<-- Look inside
+TslGame.exe+21A4C73 - 84 C0                 - test al,al
+TslGame.exe+21A4C75 - 74 08                 - je TslGame.exe+21A4C7F
+TslGame.exe+21A4C77 - 33 C0                 - xor eax,eax
+TslGame.exe+21A4C79 - 48 83 C4 20           - add rsp,20 { 32 }
+TslGame.exe+21A4C7D - 5B                    - pop rbx
+TslGame.exe+21A4C7E - C3                    - ret 
+TslGame.exe+21A4C7F - 48 8B 5B 08           - mov rbx,[rbx+08]
+
+
+
+//inside
+TslGame.exe+2AFB180 - 48 89 5C 24 08        - mov [rsp+08],rbx
+TslGame.exe+2AFB185 - 48 89 6C 24 10        - mov [rsp+10],rbp
+TslGame.exe+2AFB18A - 48 89 74 24 18        - mov [rsp+18],rsi
+TslGame.exe+2AFB18F - 48 89 7C 24 20        - mov [rsp+20],rdi
+TslGame.exe+2AFB194 - 41 56                 - push r14
+TslGame.exe+2AFB196 - 48 83 EC 20           - sub rsp,20 { 32 }
+TslGame.exe+2AFB19A - 8B F2                 - mov esi,edx
+TslGame.exe+2AFB19C - 48 8B F9              - mov rdi,rcx
+TslGame.exe+2AFB19F - 48 85 C9              - test rcx,rcx
+TslGame.exe+2AFB1A2 - 74 6E                 - je TslGame.exe+2AFB212
+TslGame.exe+2AFB1A4 - 48 BD 6044A34C2E175C41 - mov rbp,415C172E4CA34460 { 1285768288 }
+TslGame.exe+2AFB1AE - 49 BE 28A41D7E76788244 - mov r14,448278767E1DA428 { 2115871784 }
+TslGame.exe+2AFB1B8 - 8B 5F 10              - mov ebx,[rdi+10]					<-- Look (ObjectFlags)
+TslGame.exe+2AFB1BB - E8 204578FD           - call TslGame.AK::MusicEngine::Term
+TslGame.exe+2AFB1C0 - E8 1B4578FD           - call TslGame.AK::MusicEngine::Term
+TslGame.exe+2AFB1C5 - E8 164578FD           - call TslGame.AK::MusicEngine::Term
+TslGame.exe+2AFB1CA - 81 F3 C5569C3F        - xor ebx,3F9C56C5 { 1.22 }
+TslGame.exe+2AFB1D0 - C1 C3 03              - rol ebx,03 { 3 }
+TslGame.exe+2AFB1D3 - 8B C3                 - mov eax,ebx
+TslGame.exe+2AFB1D5 - C1 E0 10              - shl eax,10 { 16 }
+TslGame.exe+2AFB1D8 - 35 FE427172           - xor eax,727142FE { (640) }
+TslGame.exe+2AFB1DD - 33 C3                 - xor eax,ebx
+TslGame.exe+2AFB1DF - 85 C6                 - test esi,eax
+TslGame.exe+2AFB1E1 - 75 4C                 - jne TslGame.exe+2AFB22F
+TslGame.exe+2AFB1E3 - 48 8B 5F 08           - mov rbx,[rdi+08]					<-- Look (Outer)
+TslGame.exe+2AFB1E7 - E8 F44478FD           - call TslGame.AK::MusicEngine::Term
+TslGame.exe+2AFB1EC - E8 EF4478FD           - call TslGame.AK::MusicEngine::Term
+TslGame.exe+2AFB1F1 - E8 EA4478FD           - call TslGame.AK::MusicEngine::Term
+TslGame.exe+2AFB1F6 - 48 33 DD              - xor rbx,rbp
+TslGame.exe+2AFB1F9 - 48 C1 CB 1A           - ror rbx,1A { 26 }
+TslGame.exe+2AFB1FD - 48 8B C3              - mov rax,rbx
+TslGame.exe+2AFB200 - 48 C1 E0 20           - shl rax,20 { 32 }
+TslGame.exe+2AFB204 - 49 33 C6              - xor rax,r14
+TslGame.exe+2AFB207 - 48 8B F8              - mov rdi,rax
+TslGame.exe+2AFB20A - 48 33 FB              - xor rdi,rbx
+TslGame.exe+2AFB20D - 48 3B C3              - cmp rax,rbx
+TslGame.exe+2AFB210 - 75 A6                 - jne TslGame.exe+2AFB1B8
+TslGame.exe+2AFB212 - 32 C0                 - xor al,al
+TslGame.exe+2AFB214 - 48 8B 5C 24 30        - mov rbx,[rsp+30]
+TslGame.exe+2AFB219 - 48 8B 6C 24 38        - mov rbp,[rsp+38]
+TslGame.exe+2AFB21E - 48 8B 74 24 40        - mov rsi,[rsp+40]
+TslGame.exe+2AFB223 - 48 8B 7C 24 48        - mov rdi,[rsp+48]
+TslGame.exe+2AFB228 - 48 83 C4 20           - add rsp,20 { 32 }
+TslGame.exe+2AFB22C - 41 5E                 - pop r14
+TslGame.exe+2AFB22E - C3                    - ret 
+TslGame.exe+2AFB22F - B0 01                 - mov al,01 { 1 }
+TslGame.exe+2AFB231 - EB E1                 - jmp TslGame.exe+2AFB214

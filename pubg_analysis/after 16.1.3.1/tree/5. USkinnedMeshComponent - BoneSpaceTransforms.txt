@@ -1,0 +1,11 @@
+//80 ? ? ? 00 00 00 74 09 48 8d ? ? ? 00 00 eb 14
+
+TslGame.exe+2D889E - 80 BB 68100000 00     - cmp byte ptr [rbx+00001068],00 { 0 }
+TslGame.exe+2D88A5 - 74 09                 - je TslGame.exe+2D88B0
+TslGame.exe+2D88A7 - 48 8D 83 280D0000     - lea rax,[rbx+00000D28]
+TslGame.exe+2D88AE - EB 14                 - jmp TslGame.exe+2D88C4
+TslGame.exe+2D88B0 - 48 63 83 280B0000     - movsxd  rax,dword ptr [rbx+00000B28]
+TslGame.exe+2D88B7 - 48 C1 E0 04           - shl rax,04 { 4 }
+TslGame.exe+2D88BB - 48 05 080B0000        - add rax,00000B08 { 2824 }			<-- B08 is Offset
+TslGame.exe+2D88C1 - 48 03 C3              - add rax,rbx
+TslGame.exe+2D88C4 - 0F10 00               - movups xmm0,[rax]

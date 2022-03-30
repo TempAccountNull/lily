@@ -1,0 +1,49 @@
+GOBJECT
+
+before encrypt
+//c7 01 ff ff ff ff c7 41 04 00 00 00 00
+
+TslGame.exe+8BC790 - 40 53                 - push rbx
+TslGame.exe+8BC792 - 48 83 EC 20           - sub rsp,20 { 32 }
+TslGame.exe+8BC796 - 48 8B D9              - mov rbx,rcx
+TslGame.exe+8BC799 - 48 85 D2              - test rdx,rdx
+TslGame.exe+8BC79C - 74 1A                 - je TslGame.exe+8BC7B8
+TslGame.exe+8BC79E - 8B 52 0C              - mov edx,[rdx+0C]
+TslGame.exe+8BC7A1 - 89 11                 - mov [rcx],edx
+TslGame.exe+8BC7A3 - 48 8D 0D 9656E302     - lea rcx,[TslGame.exe+36F1E40] { (47470) }		<--- Look
+TslGame.exe+8BC7AA - E8 D166FEFF           - call TslGame.exe+8A2E80				<--- Look
+TslGame.exe+8BC7AF - 89 43 04              - mov [rbx+04],eax
+TslGame.exe+8BC7B2 - 48 83 C4 20           - add rsp,20 { 32 }
+TslGame.exe+8BC7B6 - 5B                    - pop rbx
+TslGame.exe+8BC7B7 - C3                    - ret 
+TslGame.exe+8BC7B8 - C7 01 FFFFFFFF        - mov [rcx],FFFFFFFF { -1 }
+TslGame.exe+8BC7BE - C7 41 04 00000000     - mov [rcx+04],00000000 { 0 }
+TslGame.exe+8BC7C5 - 48 83 C4 20           - add rsp,20 { 32 }
+TslGame.exe+8BC7C9 - 5B                    - pop rbx
+TslGame.exe+8BC7CA - C3                    - ret 
+
+after encrypt
+TslGame.exe+31CAE50 - 40 57                 - push rdi
+TslGame.exe+31CAE52 - 48 83 EC 20           - sub rsp,20 { 32 }
+TslGame.exe+31CAE56 - 48 8B F9              - mov rdi,rcx
+TslGame.exe+31CAE59 - 48 85 D2              - test rdx,rdx
+TslGame.exe+31CAE5C - 74 49                 - je TslGame.exe+31CAEA7
+TslGame.exe+31CAE5E - 48 89 5C 24 30        - mov [rsp+30],rbx
+TslGame.exe+31CAE63 - 8B 5A 10              - mov ebx,[rdx+10]
+TslGame.exe+31CAE66 - E8 25BD07FD           - call TslGame.AK::MemoryMgr::StartProfileThreadUsage
+TslGame.exe+31CAE6B - E8 20BD07FD           - call TslGame.AK::MemoryMgr::StartProfileThreadUsage
+TslGame.exe+31CAE70 - E8 1BBD07FD           - call TslGame.AK::MemoryMgr::StartProfileThreadUsage
+TslGame.exe+31CAE75 - 81 F3 69D7A386        - xor ebx,86A3D769 { -2036082839 }
+TslGame.exe+31CAE7B - 48 8D 0D 5641F602     - lea rcx,[TslGame.exe+612EFD8] { (58807) }		<--- Look
+TslGame.exe+31CAE82 - C1 C3 0A              - rol ebx,0A { 10 }
+TslGame.exe+31CAE85 - 8B D3                 - mov edx,ebx
+TslGame.exe+31CAE87 - C1 E2 10              - shl edx,10 { 16 }
+TslGame.exe+31CAE8A - 81 F2 CD9FE035        - xor edx,35E09FCD { (0) }
+TslGame.exe+31CAE90 - 33 D3                 - xor edx,ebx
+TslGame.exe+31CAE92 - 89 17                 - mov [rdi],edx
+TslGame.exe+31CAE94 - E8 F7CC2EFD           - call TslGame.AK::WriteBytesMem::SetCount+3700	<--- Look
+TslGame.exe+31CAE99 - 89 47 04              - mov [rdi+04],eax
+TslGame.exe+31CAE9C - 48 8B 5C 24 30        - mov rbx,[rsp+30]
+TslGame.exe+31CAEA1 - 48 83 C4 20           - add rsp,20 { 32 }
+TslGame.exe+31CAEA5 - 5F                    - pop rdi
+TslGame.exe+31CAEA6 - C3                    - ret 
