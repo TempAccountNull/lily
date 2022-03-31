@@ -2,9 +2,7 @@
 #include "common/wininet.h"
 #include "common/json.hpp"
 
-std::map<unsigned, RankInfo> GetRankInfo(std::wstring BaseUrl) {
-	std::map<unsigned, RankInfo> Result;
-
+void GetLeaderboardInfo(std::map<unsigned, RankInfo> Info, std::wstring BaseUrl) {
 	for (unsigned i = 1; i <= 10; i++) {
 		std::wstring Url = BaseUrl + (std::wstring)L"?page="e + std::to_wstring(i);
 		std::vector<uint8_t> JsonData = CWinInet().GetVectorVerified(Url);
@@ -14,20 +12,17 @@ std::map<unsigned, RankInfo> GetRankInfo(std::wstring BaseUrl) {
 
 		for (auto& Elem : Parsed["ranks"e].ArrayRange()) {
 			unsigned NameHash = CompileTime::StrHash(Elem["name"e].ToString().c_str());
-			unsigned rankPoint = Elem["rankPoint"e].ToInt();
-			Result[NameHash].rankPoint = rankPoint;
+			Info[NameHash] = { 0.0f, Elem["rankPoint"e].ToInt() };
 		}
 	}
-
-	return Result;
 }
 
-void Hack::UpdateRankInfo() {
+void Hack::GetAllLeaderboardInfo() {
 	std::wstring BaseUrl = L"https://pubg.dakgg.io/api/v1/ranks/"e;
-	RankInfoSteamSolo = GetRankInfo(BaseUrl + (std::wstring)L"steam/solo"e);
-	RankInfoSteamSquad = GetRankInfo(BaseUrl + (std::wstring)L"steam/squad"e);
-	RankInfoSteamSquadFPP = GetRankInfo(BaseUrl + (std::wstring)L"steam/squad-fpp"e);
-	RankInfoKakaoSquad = GetRankInfo(BaseUrl + (std::wstring)L"kakao/squad"e);
+	GetLeaderboardInfo(RankInfoSteamSolo, BaseUrl + (std::wstring)L"steam/solo"e);
+	GetLeaderboardInfo(RankInfoSteamSquad, BaseUrl + (std::wstring)L"steam/squad"e);
+	GetLeaderboardInfo(RankInfoSteamSquadFPP, BaseUrl + (std::wstring)L"steam/squad-fpp"e);
+	GetLeaderboardInfo(RankInfoKakaoSquad, BaseUrl + (std::wstring)L"kakao/squad"e);
 }
 
 bool Hack::RefreshUserInfo(const char* szUserName, bool bKakao) {
@@ -50,16 +45,24 @@ void Hack::UpdateUserInfo(const char* szUserName, bool bKakao) {
 	std::string JsonString(JsonData.begin(), JsonData.end());
 
 	auto Parsed = json::JSON::Load(JsonString);
-	verify(Parsed.hasKey("rankedStats"e));
-	auto& RankedStats = Parsed["rankedStats"e];
-
 	const unsigned NameHash = CompileTime::StrHash(szUserName);
+	const float TimeStamp = render.TimeSeconds;
+	if (!Parsed.hasKey("rankedStats"e)) {
+		RankInfoKakaoSquad[NameHash] =
+			RankInfoSteamSolo[NameHash] =
+			RankInfoSteamSquad[NameHash] =
+			RankInfoSteamSquadFPP[NameHash] =
+		{ TimeStamp, -1 };
+		return;
+	}
+
+	auto& RankedStats = Parsed["rankedStats"e];
 	if (bKakao)
-		RankInfoKakaoSquad[NameHash].rankPoint = RankedStats.hasKey("squad"e) ? RankedStats["squad"e]["currentRankPoint"e].ToInt() : 0;
+		RankInfoKakaoSquad[NameHash] = { TimeStamp, RankedStats.hasKey("squad"e) ? RankedStats["squad"e]["currentRankPoint"e].ToInt() : 0 };
 	else {
-		RankInfoSteamSolo[NameHash].rankPoint = RankedStats.hasKey("solo"e) ? RankedStats["solo"e]["currentRankPoint"e].ToInt() : 0;
-		RankInfoSteamSquad[NameHash].rankPoint = RankedStats.hasKey("squad"e) ? RankedStats["squad"e]["currentRankPoint"e].ToInt() : 0;
-		RankInfoSteamSquadFPP[NameHash].rankPoint = RankedStats.hasKey("squad-fpp"e) ? RankedStats["squad-fpp"e]["currentRankPoint"e].ToInt() : 0;
+		RankInfoSteamSolo[NameHash] = { TimeStamp, RankedStats.hasKey("solo"e) ? RankedStats["solo"e]["currentRankPoint"e].ToInt() : 0 };
+		RankInfoSteamSquad[NameHash] = { TimeStamp, RankedStats.hasKey("squad"e) ? RankedStats["squad"e]["currentRankPoint"e].ToInt() : 0 };
+		RankInfoSteamSquadFPP[NameHash] = { TimeStamp, RankedStats.hasKey("squad-fpp"e) ? RankedStats["squad-fpp"e]["currentRankPoint"e].ToInt() : 0 };
 	}
 }
 

@@ -16,7 +16,8 @@
 #define WhiteListFile "whitelist.txt"e
 
 struct RankInfo {
-	unsigned rankPoint;
+	float TimeStamp = 0.0f;
+	int rankPoint = -1;
 };
 
 class Hack {
@@ -127,11 +128,12 @@ private:
 	std::map<unsigned, RankInfo> RankInfoKakaoSquad;
 	std::map<unsigned, RankInfo> RankInfoEmpty;
 
-	constexpr static float RefreshWaitTime = 1.0f;
-	void UpdateRankInfo();
+	constexpr static float RefreshWaitTime = 5.0f;
+	constexpr static float InvalidateTime = 60.0f * 60.0f;		//1hour
 	void UpdateUserInfo(const char* szUserName, bool bKakao);
 	static bool RefreshUserInfo(const char* szUserName, bool bKakao);
 	static void OpenWebUserInfo(const char* szUserName);
+	void GetAllLeaderboardInfo();
 
 public:
 	constexpr static unsigned MARGIN = 10;

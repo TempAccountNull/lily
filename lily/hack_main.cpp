@@ -17,7 +17,7 @@ enum class CharacterState {
 };
 
 void Hack::Loop() {
-	UpdateRankInfo();
+	GetAllLeaderboardInfo();
 	LoadList(BlackList, BlackListFile);
 	LoadList(WhiteList, WhiteListFile);
 
@@ -155,11 +155,10 @@ void Hack::Loop() {
 
 	struct UpdateInfo {
 		float RemainTime = 0.0f;
-		std::string UserName;
 		bool bKakao = false;
 	};
 
-	std::vector<UpdateInfo> UpdateList;
+	std::map<std::string, UpdateInfo> UpdateList;
 
 	while (IsWindow(hGameWnd)) {
 		const HWND hForeWnd = GetForegroundWindow();
@@ -956,7 +955,7 @@ void Hack::Loop() {
 							Line += Info.PlayerName;
 					}
 
-					if (ESP_PlayerSetting.bRanksPoint && !Info.IsAI) {
+					if (ESP_PlayerSetting.bRanksPoint && !Info.PlayerName.empty() && !Info.IsAI) {
 						std::map<unsigned, RankInfo>& RankMap = *[&] {
 							const bool bSolo = !(Info.Team < 200);
 
@@ -976,11 +975,13 @@ void Hack::Loop() {
 						}();
 
 						const unsigned NameHash = CompileTime::StrHash(Info.PlayerName.c_str());
-						if (RankMap.find(NameHash) != RankMap.end()) {
+						if (RankMap.find(NameHash) != RankMap.end() && render.TimeSeconds < RankMap[NameHash].TimeStamp + InvalidateTime) {
 							Line += (std::string)"("e;
 							Line += std::to_string(RankMap[NameHash].rankPoint);
 							Line += (std::string)")"e;
 						}
+						else if (UpdateList.find(Info.PlayerName) == UpdateList.end())
+							UpdateList[Info.PlayerName] = { 0.0f, ESP_PlayerSetting.bKakao };
 					}
 
 					if (ESP_PlayerSetting.bTeam) {
@@ -1316,20 +1317,21 @@ void Hack::Loop() {
 				IsNeedToHookGunLoc = true;
 			}
 
-			//UpdateList
-			auto RemovePos = std::remove_if(UpdateList.begin(), UpdateList.end(),
-				[&](auto& Info) {
-					Info.RemainTime = std::clamp(Info.RemainTime - render.TimeDelta, 0.0f, RefreshWaitTime);
-					if (Info.RemainTime > 0.0f)
-						return false;
-					if (!RefreshUserInfo(Info.UserName.c_str(), Info.bKakao)) {
-						Info.RemainTime = RefreshWaitTime;
-						return false;
-					}
-					UpdateUserInfo(Info.UserName.c_str(), Info.bKakao);
-					return true;
+			std::erase_if(UpdateList, [&](auto& Elem) {
+				std::string UserName = Elem.first;
+				float& RemainTime = Elem.second.RemainTime;
+				bool bKakao = Elem.second.bKakao;
+
+				RemainTime = std::clamp(RemainTime - render.TimeDelta, 0.0f, RefreshWaitTime);
+				if (RemainTime > 0.0f)
+					return false;
+				if (!RefreshUserInfo(UserName.c_str(), bKakao)) {
+					RemainTime = RefreshWaitTime;
+					return false;
+				}
+				UpdateUserInfo(UserName.c_str(), bKakao);
+				return true;
 				});
-			UpdateList.erase(RemovePos, UpdateList.end());
 
 			//ClosestTarget
 			[&] {
@@ -1344,11 +1346,13 @@ void Hack::Loop() {
 					return;
 
 				const std::string& Name = ClosestTargetInfo.PlayerName;
+				const unsigned NameHash = CompileTime::StrHash(Name.c_str());
+
 				if (Name.empty())
 					return;
 
 				if (render.bKeyPushed[VK_MBUTTON])
-					UpdateList.push_back({ 0.0f, Name, ESP_PlayerSetting.bKakao });
+					UpdateList[Name] = { 0.0f, ESP_PlayerSetting.bKakao };
 
 				if (render.bKeyPushed[VK_RBUTTON])
 					OpenWebUserInfo(Name.c_str());

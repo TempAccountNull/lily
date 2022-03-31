@@ -70,12 +70,16 @@ void Hack::ProcessImGui() {
 		ImGui::RadioButton("CapsLock Mode : AimToEnemyFocusingMe"e, &nCapsLockMode, 2);
 		ImGui::RadioButton("CapsLock Mode : MoveEnemy"e, &nCapsLockMode, 3);
 
-		if (ImGui::Button("UpdateRankInfo"e))
-			UpdateRankInfo();
-		ImGui::SameLine();
 		if (ImGui::Button("LoadList"e)) {
 			LoadList(BlackList, BlackListFile);
 			LoadList(WhiteList, WhiteListFile);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("ClearRankInfo"e)) {
+			RankInfoKakaoSquad.clear();
+			RankInfoSteamSolo.clear();
+			RankInfoSteamSquad.clear();
+			RankInfoSteamSquadFPP.clear();
 		}
 
 		ImGui::InputText("##UserName"e, szUserName, sizeof(szUserName));
