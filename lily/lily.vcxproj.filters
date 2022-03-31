@@ -269,7 +269,7 @@
     <ClCompile Include="pubg_struct.cpp">
       <Filter>hack\pubg</Filter>
     </ClCompile>
-    <ClCompile Include="hack_rankinfo.cpp">
+    <ClCompile Include="hack_userinfo.cpp">
       <Filter>hack</Filter>
     </ClCompile>
     <ClCompile Include="hack_userlist.cpp">

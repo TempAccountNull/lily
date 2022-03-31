@@ -69,6 +69,7 @@ void Hack::Loop() {
 	NativePtr<ATslCharacter> EnemyFocusingMePtr = 0;
 	bool bPushedCapsLock = false;
 	bool IsFPPOnly = true;
+	bool bPrevLobby = true;
 
 	float LastRadarDistanceUpdateTime = 0.0f;
 	float LastRadarDistance = 200.0f;
@@ -583,6 +584,17 @@ void Hack::Loop() {
 			}();
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
+			const bool bLobby = (pubg.NameArr.GetNameHashByObjectPtr(MyPawnPtr) == "DefaultPawn"h);
+			const bool bEnterGame = (!bLobby && bPrevLobby);
+			bPrevLobby = bLobby;
+
+			if (bLobby) {
+				EnemyInfoMap.clear();
+				LockAimbotTargetPtr = 0;
+				IsFPPOnly = true;
+				return;
+			}
+
 			if (IsNearlyZero(CameraFOV))
 				return;
 			if (IsNearlyZero(DefaultFOV))
@@ -606,12 +618,6 @@ void Hack::Loop() {
 
 			if (!MyInfo.IsFPP)
 				IsFPPOnly = false;
-
-			if (!CachedMyTslCharacterPtr) {
-				EnemyInfoMap.clear();
-				LockAimbotTargetPtr = 0;
-				IsFPPOnly = true;
-			}
 
 			if (!render.bKeyPushing[VK_MBUTTON])
 				LockAimbotTargetPtr = 0;
@@ -1053,6 +1059,8 @@ void Hack::Loop() {
 					ActorLocationScreen = WorldToScreen(ActorLocation);
 					DistanceToActor = MyInfo.Location.Distance(ActorLocation) / 100.0f;
 
+					if (DistanceToActor >= 3000)
+						return false;
 					if (nRange != 1000 && DistanceToActor >= nRange)
 						return false;
 
@@ -1317,8 +1325,8 @@ void Hack::Loop() {
 					return;
 
 				if (render.bKeyPushed[VK_MBUTTON]) {
-					std::string url = (std::string)"https://pubg.op.gg/user/"e + Name;
-					ShellExecuteA(0, "open"e, url.c_str(), 0, 0, SW_SHOWNORMAL);
+					OpenWebUserInfo(Name.c_str());
+					UpdateUserInfo(Name.c_str(), ESP_PlayerSetting.bKakao);
 				}
 
 				if (render.bKeyPushed[VK_ADD])

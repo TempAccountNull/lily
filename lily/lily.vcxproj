@@ -201,8 +201,8 @@
     </ClCompile>
     <ClCompile Include="GNames.cpp" />
     <ClCompile Include="hack_main.cpp" />
-    <ClCompile Include="hack_rankinfo.cpp" />
     <ClCompile Include="hack_ui.cpp" />
+    <ClCompile Include="hack_userinfo.cpp" />
     <ClCompile Include="hack_userlist.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pubg_class_pubg.cpp" />
