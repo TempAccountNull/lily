@@ -14,7 +14,7 @@ public:
 	}
 
 	std::vector<uint8_t> GetVector(std::wstring Url) const {
-		const HINTERNET hOpenUrl = InternetOpenUrlW(hInternet, Url.c_str(), 0, 0, INTERNET_FLAG_KEEP_CONNECTION, 0);
+		const HINTERNET hOpenUrl = InternetOpenUrlW(hInternet, Url.c_str(), 0, 0, INTERNET_FLAG_NO_CACHE_WRITE, 0);
 		if (!hOpenUrl)
 			return {};
 

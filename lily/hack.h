@@ -121,15 +121,16 @@ private:
 	void RemoveUserFromList(std::vector<unsigned>& List, const char* szFileName, const char* szUserName);
 	bool IsUserInList(const std::vector<unsigned>& List, const char* szUserName) const;
 
-	CWinInet WinInet;
 	std::map<unsigned, RankInfo> RankInfoSteamSolo;
 	std::map<unsigned, RankInfo> RankInfoSteamSquad;
 	std::map<unsigned, RankInfo> RankInfoSteamSquadFPP;
 	std::map<unsigned, RankInfo> RankInfoKakaoSquad;
 	std::map<unsigned, RankInfo> RankInfoEmpty;
 
+	constexpr static float RefreshWaitTime = 1.0f;
 	void UpdateRankInfo();
 	void UpdateUserInfo(const char* szUserName, bool bKakao);
+	static bool RefreshUserInfo(const char* szUserName, bool bKakao);
 	static void OpenWebUserInfo(const char* szUserName);
 
 public:

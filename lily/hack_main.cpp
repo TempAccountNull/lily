@@ -153,6 +153,14 @@ void Hack::Loop() {
 
 	std::map<uintptr_t, tMapInfo> EnemyInfoMap;
 
+	struct UpdateInfo {
+		float RemainTime = 0.0f;
+		std::string UserName;
+		bool bKakao = false;
+	};
+
+	std::vector<UpdateInfo> UpdateList;
+
 	while (IsWindow(hGameWnd)) {
 		const HWND hForeWnd = GetForegroundWindow();
 		if (hGameWnd == hForeWnd)
@@ -1308,6 +1316,21 @@ void Hack::Loop() {
 				IsNeedToHookGunLoc = true;
 			}
 
+			//UpdateList
+			auto RemovePos = std::remove_if(UpdateList.begin(), UpdateList.end(),
+				[&](auto& Info) {
+					Info.RemainTime = std::clamp(Info.RemainTime - render.TimeDelta, 0.0f, RefreshWaitTime);
+					if (Info.RemainTime > 0.0f)
+						return false;
+					if (!RefreshUserInfo(Info.UserName.c_str(), Info.bKakao)) {
+						Info.RemainTime = RefreshWaitTime;
+						return false;
+					}
+					UpdateUserInfo(Info.UserName.c_str(), Info.bKakao);
+					return true;
+				});
+			UpdateList.erase(RemovePos, UpdateList.end());
+
 			//ClosestTarget
 			[&] {
 				if (!LockClosestTargetPtr)
@@ -1324,10 +1347,11 @@ void Hack::Loop() {
 				if (Name.empty())
 					return;
 
-				if (render.bKeyPushed[VK_MBUTTON]) {
+				if (render.bKeyPushed[VK_MBUTTON])
+					UpdateList.push_back({ 0.0f, Name, ESP_PlayerSetting.bKakao });
+
+				if (render.bKeyPushed[VK_RBUTTON])
 					OpenWebUserInfo(Name.c_str());
-					UpdateUserInfo(Name.c_str(), ESP_PlayerSetting.bKakao);
-				}
 
 				if (render.bKeyPushed[VK_ADD])
 					AddUserToList(BlackList, BlackListFile, Name.c_str());

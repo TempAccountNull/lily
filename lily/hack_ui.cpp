@@ -167,6 +167,9 @@ void Hack::ProcessImGui() {
 				ImGui::Checkbox("Debug mode"e, &bDebug);
 
 				ImGui::Checkbox("Capture Log"e, &bCaptureLog);
+				ImGui::SameLine();
+				if (ImGui::Button("Clear"e))
+					debuglog.clear();
 				ImGui::InputTextMultiline("##source"e, debuglog.data(), debuglog.size(), { -FLT_MIN, -FLT_MIN }, ImGuiInputTextFlags_ReadOnly);
 				if (bNeedToScroll) {
 					ImGui::BeginChild("##source"e);
