@@ -505,7 +505,7 @@ private:
 			return (HMODULE)pRemoteImageBase;
 
 		//if (!AddExceptionTable(OffsetNtHeader, ntHd, (uintptr_t)pRemoteImageBase)) {
-		//	strMsg << "Calling RtlAddFunctionTable failed"e;
+		//	strMsg = (std::string)"Calling RtlAddFunctionTable failed"e;
 		//	return 0;
 		//}
 

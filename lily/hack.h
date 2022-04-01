@@ -2,11 +2,11 @@
 #include <string>
 #include <map>
 
-#include "common/wininet.h"
 #include "common/render.h"
 #include "kernel_lily.h"
 #include "pubg_class.h"
 #include "pubg_func.h"
+#include "userinfo.h"
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_dx11.h"
@@ -14,11 +14,6 @@
 
 #define BlackListFile "blacklist.txt"e
 #define WhiteListFile "whitelist.txt"e
-
-struct RankInfo {
-	float TimeStamp = 0.0f;
-	int rankPoint = -1;
-};
 
 class Hack {
 private:
@@ -122,18 +117,12 @@ private:
 	void RemoveUserFromList(std::vector<unsigned>& List, const char* szFileName, const char* szUserName);
 	bool IsUserInList(const std::vector<unsigned>& List, const char* szUserName) const;
 
-	std::map<unsigned, RankInfo> RankInfoSteamSolo;
-	std::map<unsigned, RankInfo> RankInfoSteamSquad;
-	std::map<unsigned, RankInfo> RankInfoSteamSquadFPP;
-	std::map<unsigned, RankInfo> RankInfoKakaoSquad;
-	std::map<unsigned, RankInfo> RankInfoEmpty;
+	CUserInfo UserInfo = render;
 
-	constexpr static float RefreshWaitTime = 5.0f;
-	constexpr static float InvalidateTime = 60.0f * 60.0f;		//1hour
-	void UpdateUserInfo(const char* szUserName, bool bKakao);
-	static bool RefreshUserInfo(const char* szUserName, bool bKakao);
-	static void OpenWebUserInfo(const char* szUserName);
-	void GetAllLeaderboardInfo();
+	static void OpenWebUserInfo(const char* szUserName) {
+		std::string url = (std::string)"https://pubg.op.gg/user/"e + szUserName;
+		ShellExecuteA(0, "open"e, url.c_str(), 0, 0, SW_SHOW);
+	}
 
 public:
 	constexpr static unsigned MARGIN = 10;

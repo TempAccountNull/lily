@@ -144,7 +144,7 @@
     <ClInclude Include="..\common\process.h" />
     <ClInclude Include="..\common\remoteprocess.h" />
     <ClInclude Include="..\common\shellcode.h" />
-    <ClInclude Include="..\common\wininet.h" />
+    <ClInclude Include="..\common\download.h" />
     <ClInclude Include="..\imgui\imconfig.h" />
     <ClInclude Include="..\imgui\imgui.h" />
     <ClInclude Include="..\imgui\imgui_impl_dx11.h" />
@@ -179,6 +179,7 @@
     <ClInclude Include="kernel_lily.h" />
     <ClInclude Include="pubg_process.h" />
     <ClInclude Include="render_lily.h" />
+    <ClInclude Include="userinfo.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\common\render.cpp" />
@@ -202,7 +203,6 @@
     <ClCompile Include="GNames.cpp" />
     <ClCompile Include="hack_main.cpp" />
     <ClCompile Include="hack_ui.cpp" />
-    <ClCompile Include="hack_userinfo.cpp" />
     <ClCompile Include="hack_userlist.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pubg_class_pubg.cpp" />

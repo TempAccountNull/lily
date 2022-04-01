@@ -74,13 +74,6 @@ void Hack::ProcessImGui() {
 			LoadList(BlackList, BlackListFile);
 			LoadList(WhiteList, WhiteListFile);
 		}
-		ImGui::SameLine();
-		if (ImGui::Button("ClearRankInfo"e)) {
-			RankInfoKakaoSquad.clear();
-			RankInfoSteamSolo.clear();
-			RankInfoSteamSquad.clear();
-			RankInfoSteamSquadFPP.clear();
-		}
 
 		ImGui::InputText("##UserName"e, szUserName, sizeof(szUserName));
 		ImGui::SameLine();

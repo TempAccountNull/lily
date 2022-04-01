@@ -12,6 +12,7 @@
 #include <sstream>
 #include <utility>
 #include <shlobj_core.h>
+#include <fstream>
 
 #ifdef _WINDLL
 //#define DPRINT
@@ -325,4 +326,62 @@ static void GetDesktopPath(char* szPath, const char* szFileName = 0) {
 		strcat(szPath, "\\"e);
 		strcat(szPath, szFileName);
 	}
+}
+
+static bool CreateProcessA_Spoof(
+	HANDLE hParentProcess,
+	LPCSTR                lpApplicationName,
+	LPSTR                 lpCommandLine,
+	LPSECURITY_ATTRIBUTES lpProcessAttributes,
+	LPSECURITY_ATTRIBUTES lpThreadAttributes,
+	BOOL                  bInheritHandles,
+	DWORD                 dwCreationFlags,
+	LPVOID                lpEnvironment,
+	LPCSTR                lpCurrentDirectory,
+	LPSTARTUPINFOA        lpStartupInfo,
+	LPPROCESS_INFORMATION lpProcessInformation)
+{
+	SIZE_T cbAttributeListSize;
+	InitializeProcThreadAttributeList(0, 1, 0, &cbAttributeListSize);
+
+	std::vector<uint8_t> AttributeList(cbAttributeListSize);
+	PPROC_THREAD_ATTRIBUTE_LIST pAttributeList = (PPROC_THREAD_ATTRIBUTE_LIST)AttributeList.data();
+	if (!InitializeProcThreadAttributeList(pAttributeList, 1, 0, &cbAttributeListSize))
+		return false;
+
+	if (!UpdateProcThreadAttribute(pAttributeList, 0, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, &hParentProcess, sizeof(HANDLE), 0, 0)) {
+		DeleteProcThreadAttributeList(pAttributeList);
+		return false;
+	}
+
+	STARTUPINFOEXA sie = {
+		.StartupInfo = *lpStartupInfo,
+		.lpAttributeList = pAttributeList
+	};
+
+	bool bSuccess = CreateProcessA(
+		lpApplicationName,
+		lpCommandLine,
+		lpProcessAttributes,
+		lpThreadAttributes,
+		bInheritHandles,
+		dwCreationFlags | EXTENDED_STARTUPINFO_PRESENT,
+		lpEnvironment,
+		lpCurrentDirectory,
+		&sie.StartupInfo,
+		lpProcessInformation) == TRUE;
+
+	DeleteProcThreadAttributeList(pAttributeList);
+	return bSuccess;
+}
+
+static std::vector<uint8_t> LoadFromFile(const char* szFileName) {
+	std::ifstream file(szFileName, std::ios::in | std::ios::binary);
+	return std::vector<uint8_t>(std::istream_iterator<uint8_t>(file), std::istream_iterator<uint8_t>());
+}
+
+static void SaveToFile(const char* szFileName, std::vector<uint8_t> Data) {
+	std::ofstream file(szFileName, std::ios::out | std::ios::binary);
+	file.write((const char*)Data.data(), Data.size());
+	file.close();
 }

@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <cstdint>
@@ -202,7 +201,7 @@ namespace json {
             return ret;
         }
 
-        static JSON Load(const string&);
+        static inline JSON Load(const string&);
 
         template <typename T>
         void append(T arg) {
@@ -420,22 +419,22 @@ namespace json {
         Class Type = Class::Null;
     };
 
-    JSON Array() {
+    static JSON Array() {
         return std::move(JSON::Make(JSON::Class::Array));
     }
 
     template <typename... T>
-    JSON Array(T... args) {
+    static JSON Array(T... args) {
         JSON arr = JSON::Make(JSON::Class::Array);
         arr.append(args...);
         return std::move(arr);
     }
 
-    JSON Object() {
+    static JSON Object() {
         return std::move(JSON::Make(JSON::Class::Object));
     }
 
-    std::ostream& operator<<(std::ostream& os, const JSON& json) {
+    static std::ostream& operator<<(std::ostream& os, const JSON& json) {
         os << json.dump();
         return os;
     }

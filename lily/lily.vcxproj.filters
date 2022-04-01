@@ -201,8 +201,11 @@
     <ClInclude Include="..\common\json.hpp">
       <Filter>common</Filter>
     </ClInclude>
-    <ClInclude Include="..\common\wininet.h">
+    <ClInclude Include="..\common\download.h">
       <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="userinfo.h">
+      <Filter>hack</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -268,9 +271,6 @@
     </ClCompile>
     <ClCompile Include="pubg_struct.cpp">
       <Filter>hack\pubg</Filter>
-    </ClCompile>
-    <ClCompile Include="hack_userinfo.cpp">
-      <Filter>hack</Filter>
     </ClCompile>
     <ClCompile Include="hack_userlist.cpp">
       <Filter>hack</Filter>

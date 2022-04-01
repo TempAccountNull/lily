@@ -113,6 +113,7 @@
     <ClInclude Include="..\common\compiletime.h" />
     <ClInclude Include="..\common\dbvm.h" />
     <ClInclude Include="..\common\defclass.h" />
+    <ClInclude Include="..\common\download.h" />
     <ClInclude Include="..\common\encrypt_string.h" />
     <ClInclude Include="..\common\exception.h" />
     <ClInclude Include="..\common\fixed_string.hpp" />

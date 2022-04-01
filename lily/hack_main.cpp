@@ -17,7 +17,7 @@ enum class CharacterState {
 };
 
 void Hack::Loop() {
-	GetAllLeaderboardInfo();
+	//GetAllLeaderboardInfo();
 	LoadList(BlackList, BlackListFile);
 	LoadList(WhiteList, WhiteListFile);
 
@@ -153,13 +153,6 @@ void Hack::Loop() {
 
 	std::map<uintptr_t, tMapInfo> EnemyInfoMap;
 
-	struct UpdateInfo {
-		float RemainTime = 0.0f;
-		bool bKakao = false;
-	};
-
-	std::map<std::string, UpdateInfo> UpdateList;
-
 	while (IsWindow(hGameWnd)) {
 		const HWND hForeWnd = GetForegroundWindow();
 		if (hGameWnd == hForeWnd)
@@ -171,6 +164,7 @@ void Hack::Loop() {
 			ProcessImGui();
 			DrawHotkey();
 			DrawFPS(render.FPS, Render::COLOR_TEAL);
+			UserInfo.Update();
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			float WorldTimeSeconds = 0.0f;
@@ -956,32 +950,26 @@ void Hack::Loop() {
 					}
 
 					if (ESP_PlayerSetting.bRanksPoint && !Info.PlayerName.empty() && !Info.IsAI) {
-						std::map<unsigned, RankInfo>& RankMap = *[&] {
+						std::map<unsigned, tUserInfo>& UserInfoMap = *[&] {
 							const bool bSolo = !(Info.Team < 200);
-
 							if (ESP_PlayerSetting.bKakao && !bSolo && !IsFPPOnly)
-								return &RankInfoKakaoSquad;
-
+								return &UserInfo.InfoKakaoSquad;
 							if (IsFPPOnly && !bSolo)
-								return &RankInfoSteamSquadFPP;
-
+								return &UserInfo.InfoSteamSquadFPP;
 							if (!IsFPPOnly && bSolo)
-								return &RankInfoSteamSolo;
-
+								return &UserInfo.InfoSteamSolo;
 							if (!IsFPPOnly && !bSolo)
-								return &RankInfoSteamSquad;
-
-							return &RankInfoEmpty;
+								return &UserInfo.InfoSteamSquad;
+							return &UserInfo.InfoEmpty;
 						}();
 
+						UserInfo.AddUser(Info.PlayerName.c_str(), ESP_PlayerSetting.bKakao);
 						const unsigned NameHash = CompileTime::StrHash(Info.PlayerName.c_str());
-						if (RankMap.find(NameHash) != RankMap.end() && render.TimeSeconds < RankMap[NameHash].TimeStamp + InvalidateTime) {
+						if (UserInfoMap.find(NameHash) != UserInfoMap.end()) {
 							Line += (std::string)"("e;
-							Line += std::to_string(RankMap[NameHash].rankPoint);
+							Line += std::to_string(UserInfoMap[NameHash].rankPoint);
 							Line += (std::string)")"e;
 						}
-						else if (UpdateList.find(Info.PlayerName) == UpdateList.end())
-							UpdateList[Info.PlayerName] = { 0.0f, ESP_PlayerSetting.bKakao };
 					}
 
 					if (ESP_PlayerSetting.bTeam) {
@@ -1317,22 +1305,6 @@ void Hack::Loop() {
 				IsNeedToHookGunLoc = true;
 			}
 
-			std::erase_if(UpdateList, [&](auto& Elem) {
-				std::string UserName = Elem.first;
-				float& RemainTime = Elem.second.RemainTime;
-				bool bKakao = Elem.second.bKakao;
-
-				RemainTime = std::clamp(RemainTime - render.TimeDelta, 0.0f, RefreshWaitTime);
-				if (RemainTime > 0.0f)
-					return false;
-				if (!RefreshUserInfo(UserName.c_str(), bKakao)) {
-					RemainTime = RefreshWaitTime;
-					return false;
-				}
-				UpdateUserInfo(UserName.c_str(), bKakao);
-				return true;
-				});
-
 			//ClosestTarget
 			[&] {
 				if (!LockClosestTargetPtr)
@@ -1350,9 +1322,6 @@ void Hack::Loop() {
 
 				if (Name.empty())
 					return;
-
-				if (render.bKeyPushed[VK_MBUTTON])
-					UpdateList[Name] = { 0.0f, ESP_PlayerSetting.bKakao };
 
 				if (render.bKeyPushed[VK_RBUTTON])
 					OpenWebUserInfo(Name.c_str());

@@ -117,6 +117,9 @@
     <ClInclude Include="..\common\wininet.h">
       <Filter>common</Filter>
     </ClInclude>
+    <ClInclude Include="..\common\download.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\imgui\imgui.cpp">
