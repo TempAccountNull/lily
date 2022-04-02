@@ -1,60 +1,85 @@
 #pragma once
-#include "util.h"
+#include "async_wininet.h"
 #include <map>
+
+enum class DownloadStatus {
+	WaitOpenUrl,
+	WaitRead,
+	Done,
+	Failed
+};
 
 class Download {
 private:
-	HANDLE hExplorerProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, GetPIDByProcessName("explorer.exe"e));
-
-	struct DownloadStatus {
-		HANDLE hProcess = 0;
-		DWORD dwExitCode = -1;
+	struct DownloadInfo {
+		AsyncWinInet Inet;
+		DownloadStatus Code = DownloadStatus::Failed;
+		float TimeOut = 0.0f;
+		float StartTime = 0.0f;
 	};
-	std::map<std::string, DownloadStatus> DownloadList;
+
+	std::map<std::string, DownloadInfo> DownloadList;
 
 public:
-	Download() { verify(hExplorerProcess); }
-	~Download() { CloseHandle(hExplorerProcess); }
-
-	bool AddDownload(std::string Url, std::string Path) {
-		std::string Command = "curl --silent --output "e;
-		Command += (std::string)"\""e;
-		Command += Path;
-		Command += (std::string)"\""e;
-		Command += (std::string)" --create-dirs --url "e;
-		Command += (std::string)"\""e;
-		Command += Url;
-		Command += (std::string)"\""e;
-
-		STARTUPINFOA si = { .cb = sizeof(STARTUPINFOA) };
-		PROCESS_INFORMATION pi = {};
-		if (!CreateProcessA_Spoof(hExplorerProcess, 0, Command.data(), 0, 0, 0, CREATE_NO_WINDOW, 0, 0, &si, &pi))
-			return false;
-
-		CloseHandle(pi.hThread);
-		DownloadList[Url + Path] = { pi.hProcess, (DWORD)-1 };
-		return true;
+	DownloadStatus GetStatus(std::string Url) {
+		return DownloadList[Url].Code;
 	}
 
-	DWORD GetExitCode(std::string Url, std::string Path) {
-		return DownloadList[Url + Path].dwExitCode;
+	std::vector<uint8_t> GetData(std::string Url) {
+		return DownloadList[Url].Inet.GetData();
 	}
 
-	void UpdateDownloadStatus() {
+	void RemoveData(std::string Url) {
+		DownloadList.erase(Url);
+	}
+
+	void Add(std::string Url, float TimeOut = 1.0f) {
+		RemoveData(Url);
+
+		auto& Elem = DownloadList[Url] = { .TimeOut = TimeOut, .StartTime = GetTimeSeconds() };
+		AsyncWinInet& Inet = Elem.Inet;
+		DownloadStatus& Status = Elem.Code;
+
+		Status = Inet.AddOpenUrl(Url.c_str()) ?
+			DownloadStatus::WaitOpenUrl :
+			DownloadStatus::Failed;
+	}
+
+	void Update() {
+		float TimeSeconds = GetTimeSeconds();
 		for (auto& Elem : DownloadList) {
-			DownloadStatus& Status = Elem.second;
-			if (!Status.hProcess)
-				continue;
+			const std::string& Url = Elem.first;
+			AsyncWinInet& Inet = Elem.second.Inet;
+			DownloadStatus& Status = Elem.second.Code;
+			float& TimeOut = Elem.second.TimeOut;
+			float& StartTime = Elem.second.StartTime;
 
-			if (WaitForSingleObject(Status.hProcess, 0) == WAIT_TIMEOUT)
-				continue;
+			if (TimeSeconds > StartTime + TimeOut)
+				Status = DownloadStatus::Failed;
 
-			DWORD dwExitCode;
-			if (!GetExitCodeProcess(Status.hProcess, &dwExitCode))
-				continue;
+			switch (Status) {
+			case DownloadStatus::WaitOpenUrl:
+			{
+				if (!Inet.IsIdle())
+					break;
 
-			CloseHandle(Status.hProcess);
-			Status = { 0, dwExitCode };
+				Status = Inet.AddRead() ?
+					DownloadStatus::WaitRead :
+					DownloadStatus::Failed;
+				break;
+			}
+			case DownloadStatus::WaitRead:
+			{
+				if (!Inet.UpdateRead())
+					break;
+
+				Status = DownloadStatus::Done;
+			}
+			case DownloadStatus::Done:
+			case DownloadStatus::Failed:
+				Inet.CloseConnect();
+				break;
+			}
 		}
 	}
 };

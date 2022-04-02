@@ -123,6 +123,7 @@
     <ClInclude Include="..\common\compiletime.h" />
     <ClInclude Include="..\common\dbvm.h" />
     <ClInclude Include="..\common\defclass.h" />
+    <ClInclude Include="..\common\download.h" />
     <ClInclude Include="..\common\encrypt_string.h" />
     <ClInclude Include="..\common\exception.h" />
     <ClInclude Include="..\common\fixed_string.hpp" />
@@ -144,7 +145,7 @@
     <ClInclude Include="..\common\process.h" />
     <ClInclude Include="..\common\remoteprocess.h" />
     <ClInclude Include="..\common\shellcode.h" />
-    <ClInclude Include="..\common\download.h" />
+    <ClInclude Include="..\common\async_wininet.h" />
     <ClInclude Include="..\imgui\imconfig.h" />
     <ClInclude Include="..\imgui\imgui.h" />
     <ClInclude Include="..\imgui\imgui_impl_dx11.h" />

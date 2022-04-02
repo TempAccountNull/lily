@@ -201,11 +201,14 @@
     <ClInclude Include="..\common\json.hpp">
       <Filter>common</Filter>
     </ClInclude>
-    <ClInclude Include="..\common\download.h">
+    <ClInclude Include="..\common\async_wininet.h">
       <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="userinfo.h">
       <Filter>hack</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\download.h">
+      <Filter>common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

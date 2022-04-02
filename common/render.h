@@ -116,11 +116,11 @@ private:
 		}
 	}
 
-	float _TimeSeconds = GetTickCountInMicroSeconds() / 1000000.0f;
+	float _TimeSeconds = GetTimeSeconds();
 	float _TimeDelta = 0.0f;
 
-	void UpdateTimeDelta() {
-		float CurrTime = GetTickCountInMicroSeconds() / 1000000.0f;
+	void UpdateTime() {
+		float CurrTime = GetTimeSeconds();
 		_TimeDelta = CurrTime - _TimeSeconds;
 		_TimeSeconds = CurrTime;
 		UpdateFPS();
@@ -273,7 +273,7 @@ public:
 
 	void RenderArea(HWND hWnd, ImColor BgColor, auto func) {
 		UpdateKeyStates();
-		UpdateTimeDelta();
+		UpdateTime();
 		UpdateRenderArea(hWnd);
 
 		ProcessExitHotkey();

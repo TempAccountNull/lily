@@ -10,32 +10,23 @@ struct tUserInfo {
 class CUserInfo {
 private:
 	Download download;
-	Render& render;
 
-	float LastUpdateTime = 0.0f;
 	constexpr static float InvalidateTime = 60.0f * 60.0f;	//1hour
-	constexpr static float RefreshWaitTime = 4.0f;
-
-	const std::string TempPath = [&] {
-		char szTempPath[0x100];
-		GetTempPathA(sizeof(szTempPath), szTempPath);
-		return (std::string)szTempPath;
-	}();
+	constexpr static float RefreshWaitTime = 5.0f;
 
 public:
 	enum class Status {
 		None,
-		RetrySync,
+		Retry,
 		WaitSync,
 		WaitInfo,
 		Done,
-		Error
 	};
 
 	struct User {
 		bool bKakao = false;
 		Status Code = Status::None;
-		float WaitTime = 0.0f;
+		float RetryTime = 0.0f;
 		float DoneTime = 0.0f;
 	};
 
@@ -46,7 +37,7 @@ public:
 	std::map<unsigned, tUserInfo> InfoKakaoSquad;
 	std::map<unsigned, tUserInfo> InfoEmpty;
 
-	CUserInfo(Render& render) : render(render) {}
+	CUserInfo(Render& render) {}
 
 	void AddUser(std::string UserName, bool bKakao) {
 		if (UserName.empty())
@@ -56,7 +47,7 @@ public:
 			auto& User = UserList[UserName];
 			if (User.Code != Status::Done)
 				return;
-			if (render.TimeSeconds < User.DoneTime + InvalidateTime)
+			if (GetTimeSeconds() < User.DoneTime + InvalidateTime)
 				return;
 		}
 
@@ -64,75 +55,74 @@ public:
 	}
 
 	void Update() {
-		if (LastUpdateTime == render.TimeSeconds)
-			return;
-		LastUpdateTime = render.TimeSeconds;
-
-		download.UpdateDownloadStatus();
+		float TimeSeconds = GetTimeSeconds();
+		download.Update();
 
 		for (auto& Elem : UserList) {
 			std::string UserName = Elem.first;
 			auto& User = Elem.second;
-
-			User.WaitTime = std::clamp(User.WaitTime - render.TimeDelta, 0.0f, FLT_MAX);
 
 			const std::string Platform = User.bKakao ? (std::string)"kakao/"e : (std::string)"steam/"e;
 			const std::string SyncUrl = (std::string)"https://pubg.dakgg.io/api/v1/rpc/player-sync/"e + Platform + UserName;
 			const std::string InfoUrl = (std::string)"https://pubg.dakgg.io/api/v1/players/"e + Platform + UserName +
 				(std::string)"/seasons/division.bro.official.pc-2018-16"e;
 
-			const std::string InfoPath = TempPath + UserName + (std::string)"_info_1004"e;
-			const std::string SyncPath = TempPath + UserName + (std::string)"_sync_1004"e;
-
 			switch (User.Code) {
 			case Status::None:
 			{
-				download.AddDownload(SyncUrl, SyncPath);
+				download.Add(SyncUrl);
 				User.Code = Status::WaitSync;
 				break;
 			}
-			case Status::RetrySync:
+			case Status::Retry:
 			{
-				if (User.WaitTime == 0.0f)
+				if (TimeSeconds > User.RetryTime)
 					User.Code = Status::None;
 				break;
 			}
 			case Status::WaitSync:
 			{
-				switch (download.GetExitCode(SyncUrl, SyncPath)) {
-				case -1:
+				switch (download.GetStatus(SyncUrl)) {
+				case DownloadStatus::WaitOpenUrl:
+				case DownloadStatus::WaitRead:
 					break;
-				case 0:
+				case DownloadStatus::Done:
 				{
-					std::vector<uint8_t> JsonData = LoadFromFile(SyncPath.c_str());
-					DeleteFileA(SyncPath.c_str());
+					std::vector<uint8_t> JsonData = download.GetData(SyncUrl);
+					download.RemoveData(SyncUrl);
 					std::string JsonString(JsonData.begin(), JsonData.end());
 
 					auto Parsed = json::JSON::Load(JsonString);
 					if (Parsed.hasKey("retryAfter"e)) {
-						User.WaitTime = RefreshWaitTime;
-						User.Code = Status::RetrySync;
+						User.RetryTime = TimeSeconds + RefreshWaitTime;
+						User.Code = Status::Retry;
 						break;
 					}
 
-					download.AddDownload(InfoUrl, InfoPath);
+					download.Add(InfoUrl);
 					User.Code = Status::WaitInfo;
 					break;
 				}
+				case DownloadStatus::Failed:
+					User.RetryTime = TimeSeconds + RefreshWaitTime;
+					User.Code = Status::Retry;
+					break;
 				default:
-					User.Code = Status::Error;
+					error(UserName.c_str());
 					break;
 				}
+				break;
 			}
 			case Status::WaitInfo:
 			{
-				switch (download.GetExitCode(InfoUrl, InfoPath)) {
-				case -1:
+				switch (download.GetStatus(InfoUrl)) {
+				case DownloadStatus::WaitOpenUrl:
+				case DownloadStatus::WaitRead:
 					break;
-				case 0:
+				case DownloadStatus::Done:
 				{
-					std::vector<uint8_t> JsonData = LoadFromFile(InfoPath.c_str());
-					DeleteFileA(InfoPath.c_str());
+					std::vector<uint8_t> JsonData = download.GetData(InfoUrl);
+					download.RemoveData(InfoUrl);
 					std::string JsonString(JsonData.begin(), JsonData.end());
 
 					const unsigned NameHash = CompileTime::StrHash(UserName.c_str());
@@ -154,20 +144,21 @@ public:
 							InfoSteamSquadFPP[NameHash] =
 						{ -1 };
 					}
-					User.DoneTime = render.TimeSeconds;
+					User.DoneTime = TimeSeconds;
 					User.Code = Status::Done;
 					break;
 				}
+				case DownloadStatus::Failed:
+					User.RetryTime = TimeSeconds + RefreshWaitTime;
+					User.Code = Status::Retry;
+					break;
 				default:
-					User.Code = Status::Error;
+					error(UserName.c_str());
 					break;
 				}
 				break;
 			}
 			case Status::Done:
-				break;
-			case Status::Error:
-				error(UserName.c_str());
 				break;
 			}
 		}

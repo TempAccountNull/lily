@@ -106,6 +106,10 @@ static uint64_t GetTickCountInMicroSeconds() {
 	return PerformanceCount.QuadPart * 1000000 / Frequency.QuadPart;
 }
 
+static float GetTimeSeconds() {
+	return GetTickCountInMicroSeconds() / 1000000.0f;
+}
+
 static void* VirtualAllocVerified(size_t Size, DWORD dwProtect) {
 	void* const pResult = [&]() -> void* {
 		void* const pMemory = VirtualAlloc(0, Size, MEM_COMMIT | MEM_RESERVE, dwProtect);
