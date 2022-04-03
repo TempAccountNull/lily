@@ -937,16 +937,25 @@ void Hack::Loop() {
 					//Draw CharacterInfo
 					std::string PlayerInfo;
 					std::string Line;
+					bool bShortNick = ESP_PlayerSetting.bShortNick && !render.bKeyPushing[VK_MBUTTON];
 
 					if (ESP_PlayerSetting.bNickName) {
-						if (!ESP_PlayerSetting.bShortNick || render.bKeyPushing[VK_MBUTTON])
+						if (!bShortNick)
 							Line += Info.PlayerName;
 						else if (Info.IsAI)
 							Line += (std::string)"Bot"e;
-						else if (Info.PlayerName.size() > 8)
-							Line += Info.PlayerName.substr(0, 8) + (std::string)"..."e;
+						else if (Info.PlayerName.size() > MaxShortNickLen)
+							Line += Info.PlayerName.substr(0, MaxShortNickLen) + (std::string)"..."e;
 						else
 							Line += Info.PlayerName;
+					}
+
+					if (ESP_PlayerSetting.bTeam) {
+						if (Info.Team < 200 && Info.Team != MyInfo.Team) {
+							if (!Line.empty())
+								Line += (std::string)" "e;
+							Line += std::to_string(Info.Team);
+						}
 					}
 
 					if (ESP_PlayerSetting.bRanksPoint && !Info.PlayerName.empty() && !Info.IsAI) {
@@ -966,17 +975,19 @@ void Hack::Loop() {
 						UserInfo.AddUser(Info.PlayerName.c_str(), ESP_PlayerSetting.bKakao);
 						const unsigned NameHash = CompileTime::StrHash(Info.PlayerName.c_str());
 						if (UserInfoMap.find(NameHash) != UserInfoMap.end()) {
-							Line += (std::string)"("e;
-							Line += std::to_string(UserInfoMap[NameHash].rankPoint);
-							Line += (std::string)")"e;
-						}
-					}
-
-					if (ESP_PlayerSetting.bTeam) {
-						if (Info.Team < 200 && Info.Team != MyInfo.Team) {
-							if (!Line.empty())
-								Line += (std::string)" "e;
-							Line += std::to_string(Info.Team);
+							auto& UserInfo = UserInfoMap[NameHash];
+							if (UserInfo.bValid) {
+								if (UserInfo.bExist) {
+									Line += (std::string)"("e;
+									unsigned factor = bShortNick ? 100 : 1;
+									Line += std::to_string(UserInfo.rankPoint / factor);
+									Line += (std::string)" "e;
+									Line += std::to_string((unsigned)UserInfo.Damage / factor);
+									Line += (std::string)")"e;
+								}
+								else
+									Line += (std::string)"(0)"e;
+							}
 						}
 					}
 

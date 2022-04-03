@@ -64,6 +64,7 @@ private:
 		(RadarFrom.y + RadarTo.y) / 2.0f
 	};
 
+	constexpr static unsigned MaxShortNickLen = 6;
 	struct {
 		bool bSkeleton = true;
 		bool bHealth = true;

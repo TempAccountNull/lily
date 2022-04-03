@@ -4,7 +4,20 @@
 #include "common/json.hpp"
 
 struct tUserInfo {
-	int rankPoint = -1;
+	bool bValid = false;
+	bool bExist = false;
+	unsigned rankPoint = 0;
+	float Damage = 0.0f;
+
+	tUserInfo() {}
+	tUserInfo(json::JSON& rankedStats, std::string Key) {
+		bValid = true;
+		if (!rankedStats.hasKey(Key))
+			return;
+		bExist = true;
+		rankPoint = rankedStats[Key]["currentRankPoint"e].ToInt();
+		Damage = (float)rankedStats[Key]["damageDealt"e].ToFloat() / rankedStats[Key]["roundsPlayed"e].ToInt();
+	}
 };
 
 class CUserInfo {
@@ -62,22 +75,22 @@ public:
 		auto Parsed = json::JSON::Load(JsonString);
 		if (!Parsed.hasKey("rankedStats"e)) {
 			if (bKakao)
-				InfoKakaoSquad[NameHash] = { -1 };
+				InfoKakaoSquad[NameHash] = {};
 			else {
-				InfoSteamSolo[NameHash] = { -1 };
-				InfoSteamSquad[NameHash] = { -1 };
-				InfoSteamSquadFPP[NameHash] = { -1 };
+				InfoSteamSolo[NameHash] = {};
+				InfoSteamSquad[NameHash] = {};
+				InfoSteamSquadFPP[NameHash] = {};
 			}
 			return;
 		}
 
 		auto& RankedStats = Parsed["rankedStats"e];
 		if (bKakao)
-			InfoKakaoSquad[NameHash] = { RankedStats.hasKey("squad"e) ? RankedStats["squad"e]["currentRankPoint"e].ToInt() : 0 };
+			InfoKakaoSquad[NameHash] = { RankedStats, "squad"e };
 		else {
-			InfoSteamSolo[NameHash] = { RankedStats.hasKey("solo"e) ? RankedStats["solo"e]["currentRankPoint"e].ToInt() : 0 };
-			InfoSteamSquad[NameHash] = { RankedStats.hasKey("squad"e) ? RankedStats["squad"e]["currentRankPoint"e].ToInt() : 0 };
-			InfoSteamSquadFPP[NameHash] = { RankedStats.hasKey("squad-fpp"e) ? RankedStats["squad-fpp"e]["currentRankPoint"e].ToInt() : 0 };
+			InfoSteamSolo[NameHash] = { RankedStats, "solo"e };
+			InfoSteamSquad[NameHash] = { RankedStats, "squad"e };
+			InfoSteamSquadFPP[NameHash] = { RankedStats, "squad-fpp"e };
 		}
 	}
 
