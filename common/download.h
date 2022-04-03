@@ -33,7 +33,7 @@ public:
 		DownloadList.erase(Url);
 	}
 
-	void Add(std::string Url, float TimeOut = 1.0f) {
+	void Add(std::string Url, float TimeOut = 2.0f) {
 		RemoveData(Url);
 
 		auto& Elem = DownloadList[Url] = { .TimeOut = TimeOut, .StartTime = GetTimeSeconds() };
