@@ -35,6 +35,7 @@ public:
 
     ~AsyncWinInet() {
         CloseConnect();
+        InternetSetStatusCallback(hInet, 0);
         InternetCloseHandle(hInet);
     }
 
@@ -58,6 +59,8 @@ public:
             return false;
 
         hOpenUrl = 0;
+        Status = WinInetStatus::WaitUrlHandle;
+
         InternetOpenUrlA(
             hInet,
             Url,
@@ -66,8 +69,13 @@ public:
             INTERNET_FLAG_RELOAD | INTERNET_FLAG_PRAGMA_NOCACHE | INTERNET_FLAG_NO_CACHE_WRITE,
             (DWORD_PTR)this);
 
-        Status = WinInetStatus::WaitUrlHandle;
-        return true;
+        switch (GetLastError()) {
+        case ERROR_IO_PENDING:
+            return true;
+        default:
+            Status = WinInetStatus::Idle;
+            return false;
+        }
     }
 
     bool AddRead() {
@@ -85,16 +93,20 @@ public:
             .dwBufferLength = sizeof(temp)
         };
 
-        bool bSuccess = InternetReadFileExA(hOpenUrl, &ib, IRF_ASYNC, (DWORD_PTR)this);
-        if (bSuccess)
-            return true;
+        Status = WinInetStatus::WaitComplete;
 
-        if (GetLastError() == ERROR_IO_PENDING) {
-            Status = WinInetStatus::WaitComplete;
+        InternetReadFileExA(hOpenUrl, &ib, IRF_ASYNC, (DWORD_PTR)this);
+
+        switch (GetLastError()) {
+        case ERROR_SUCCESS:
+            Status = WinInetStatus::Idle;
             return true;
+        case ERROR_IO_PENDING:
+            return true;
+        default:
+            Status = WinInetStatus::Idle;
+            return false;
         }
-
-        return false;
     }
 
     bool UpdateRead() {
@@ -112,14 +124,20 @@ public:
             .dwBufferLength = sizeof(temp)
         };
 
-        bool bSuccess = InternetReadFileExA(hOpenUrl, &ib, IRF_ASYNC, (DWORD_PTR)this);
-        if (bSuccess)
+        Status = WinInetStatus::WaitComplete;
+
+        InternetReadFileExA(hOpenUrl, &ib, IRF_ASYNC, (DWORD_PTR)this);
+
+        switch (GetLastError()) {
+        case ERROR_SUCCESS:
+            Status = WinInetStatus::Idle;
             return false;
-
-        if (GetLastError() == ERROR_IO_PENDING)
-            Status = WinInetStatus::WaitComplete;
-
-        return false;
+        case ERROR_IO_PENDING:
+            return false;
+        default:
+            Status = WinInetStatus::Idle;
+            return false;
+        }
     }
 
     static void CallbackFunction(HINTERNET hInternet, DWORD_PTR Context, DWORD dwInetStatus, LPVOID lpStatusInfo, DWORD dwStatusInfoLength) {

@@ -28,7 +28,7 @@ public:
 		bool bKakao = false;
 		Status Code = Status::StartInfo;
 		float WaitUntil = 0.0f;
-		float SyncTime = 0.0f;
+		float SyncTime = -FLT_MAX;
 	};
 
 	std::map<std::string, User> UserList;
@@ -47,11 +47,11 @@ public:
 		if (UserList.find(UserName) != UserList.end()) {
 			auto& User = UserList[UserName];
 			if (User.Code == Status::Done && GetTimeSeconds() > User.SyncTime + InvalidateTime)
-				UserList[UserName] = { bKakao, Status::StartSync, 0.0f, 0.0f };
+				UserList[UserName] = { bKakao, Status::StartSync };
 			return;
 		}
 
-		UserList[UserName] = { bKakao, Status::StartInfo, 0.0f, 0.0f };
+		UserList[UserName] = { bKakao, Status::StartInfo };
 	}
 
 	void UpdateInfoFromJson(std::string UserName, bool bKakao, std::string JsonString) {
