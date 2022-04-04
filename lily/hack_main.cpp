@@ -745,7 +745,7 @@ void Hack::Loop() {
 						SavedRadarDistance = RadarDistance;
 					}
 
-					if (render.TimeSeconds > LastRadarDistanceUpdateTime + 0.2f)
+					if (render.TimeSeconds > LastRadarDistanceUpdateTime + 0.1f)
 						LastRadarDistance = SavedRadarDistance;
 
 					const FVector RadarPos = (Info.Location - MyInfo.Location) * 0.01f;
@@ -958,7 +958,7 @@ void Hack::Loop() {
 						}
 					}
 
-					if (ESP_PlayerSetting.bRanksPoint && !Info.PlayerName.empty() && !Info.IsAI) {
+					if (ESP_PlayerSetting.bRankInfo && !Info.PlayerName.empty() && !Info.IsAI) {
 						std::map<unsigned, tUserInfo>& UserInfoMap = *[&] {
 							const bool bSolo = !(Info.Team < 200);
 							if (ESP_PlayerSetting.bKakao && !bSolo && !IsFPPOnly)
@@ -975,19 +975,16 @@ void Hack::Loop() {
 						UserInfo.AddUser(Info.PlayerName.c_str(), ESP_PlayerSetting.bKakao);
 						const unsigned NameHash = CompileTime::StrHash(Info.PlayerName.c_str());
 						if (UserInfoMap.find(NameHash) != UserInfoMap.end()) {
+							unsigned factor = bShortNick ? 100 : 1;
 							auto& UserInfo = UserInfoMap[NameHash];
-							if (UserInfo.bValid) {
-								if (UserInfo.bExist) {
-									Line += (std::string)"("e;
-									unsigned factor = bShortNick ? 100 : 1;
-									Line += std::to_string(UserInfo.rankPoint / factor);
-									Line += (std::string)" "e;
-									Line += std::to_string((unsigned)UserInfo.Damage / factor);
-									Line += (std::string)")"e;
-								}
-								else
-									Line += (std::string)"(0)"e;
-							}
+							Line += (std::string)"("e;
+							Line +=
+								!UserInfo.bValid ? "?"e :
+								!UserInfo.bExist ? "0"e :
+								std::to_string(unsigned(UserInfo.rankPoint / factor)) +
+								(std::string)" "e +
+								std::to_string(unsigned(UserInfo.Damage / factor));
+							Line += (std::string)")"e;
 						}
 					}
 
@@ -1333,6 +1330,9 @@ void Hack::Loop() {
 
 				if (Name.empty())
 					return;
+
+				if (render.bKeyPushed[VK_MBUTTON])
+					UserInfo.Invalidate(Name, ESP_PlayerSetting.bKakao);
 
 				if (render.bKeyPushed[VK_RBUTTON])
 					OpenWebUserInfo(Name.c_str());

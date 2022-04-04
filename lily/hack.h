@@ -70,7 +70,7 @@ private:
 		bool bHealth = true;
 		bool bNickName = true;
 		bool bShortNick = true;
-		bool bRanksPoint = true;
+		bool bRankInfo = true;
 		bool bKakao = false;
 		bool bTeam = true;
 		bool bWeapon = true;
@@ -118,7 +118,7 @@ private:
 	void RemoveUserFromList(std::vector<unsigned>& List, const char* szFileName, const char* szUserName);
 	bool IsUserInList(const std::vector<unsigned>& List, const char* szUserName) const;
 
-	CUserInfo UserInfo = render;
+	CUserInfo UserInfo;
 
 	static void OpenWebUserInfo(const char* szUserName) {
 		std::string url = (std::string)"https://pubg.op.gg/user/"e + szUserName;

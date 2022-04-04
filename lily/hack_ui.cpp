@@ -99,7 +99,7 @@ void Hack::ProcessImGui() {
 						ImGui::TableNextColumn(); ImGui::Checkbox("Health"e, &ESP_PlayerSetting.bHealth);
 						ImGui::TableNextColumn(); ImGui::Checkbox("NickName"e, &ESP_PlayerSetting.bNickName);
 						ImGui::TableNextColumn(); ImGui::Checkbox("ShortNick"e, &ESP_PlayerSetting.bShortNick);
-						ImGui::TableNextColumn(); ImGui::Checkbox("RankInfo"e, &ESP_PlayerSetting.bRanksPoint);
+						ImGui::TableNextColumn(); ImGui::Checkbox("RankInfo"e, &ESP_PlayerSetting.bRankInfo);
 						ImGui::TableNextColumn(); ImGui::Checkbox("IsKakao?"e, &ESP_PlayerSetting.bKakao);
 						ImGui::TableNextColumn(); ImGui::Checkbox("Team"e, &ESP_PlayerSetting.bTeam);
 						ImGui::TableNextColumn(); ImGui::Checkbox("Weapon"e, &ESP_PlayerSetting.bWeapon);

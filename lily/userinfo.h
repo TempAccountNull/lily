@@ -1,6 +1,5 @@
 #pragma once
 #include "common/download.h"
-#include "common/render.h"
 #include "common/json.hpp"
 
 struct tUserInfo {
@@ -16,7 +15,13 @@ struct tUserInfo {
 			return;
 		bExist = true;
 		rankPoint = rankedStats[Key]["currentRankPoint"e].ToInt();
-		Damage = (float)rankedStats[Key]["damageDealt"e].ToFloat() / rankedStats[Key]["roundsPlayed"e].ToInt();
+
+		float TotalDamage =
+			rankedStats[Key]["damageDealt"e].JSONType() == json::JSON::Class::Floating ?
+			(float)rankedStats[Key]["damageDealt"e].ToFloat() :
+			(float)rankedStats[Key]["damageDealt"e].ToInt();
+		int RoundsPlayed = rankedStats[Key]["roundsPlayed"e].ToInt();
+		Damage = RoundsPlayed ? TotalDamage / RoundsPlayed : 0;
 	}
 };
 
@@ -27,7 +32,6 @@ private:
 	constexpr static float InvalidateTime = 60.0f * 60.0f;	//1hour
 	constexpr static float WaitTime = 5.0f;
 
-public:
 	enum class Status {
 		Reset,
 		StartSync,
@@ -45,13 +49,20 @@ public:
 	};
 
 	std::map<std::string, User> UserList;
+
+public:
 	std::map<unsigned, tUserInfo> InfoSteamSolo;
 	std::map<unsigned, tUserInfo> InfoSteamSquad;
 	std::map<unsigned, tUserInfo> InfoSteamSquadFPP;
 	std::map<unsigned, tUserInfo> InfoKakaoSquad;
 	std::map<unsigned, tUserInfo> InfoEmpty;
 
-	CUserInfo(Render& render) {}
+	void Invalidate(std::string UserName, bool bKakao) {
+		if (UserName.empty())
+			return;
+		if (UserList.find(UserName) != UserList.end())
+			UserList[UserName].SyncTime = -FLT_MAX;
+	}
 
 	void AddUser(std::string UserName, bool bKakao) {
 		if (UserName.empty())
