@@ -138,8 +138,8 @@ struct FVector2D
 
 struct FName
 {
-	int ComparisonIndex;
-	int Number;
+	int ComparisonIndex = 0;
+	int Number = 0;
 	bool operator == (const FName& rhs) const { return ComparisonIndex == rhs.ComparisonIndex && Number == rhs.Number; }
 	bool operator != (const FName& rhs) const { return !(*this == rhs); }
 	bool GetName(char* szBuf, size_t SizeMax) const { return g_Pubg->NameArr.GetName(*this, szBuf, SizeMax); }
@@ -153,6 +153,9 @@ struct FName
 			return {};
 		return szBuf;
 	}
+
+	constexpr FName(int ComparisonIndex = 0, int Number = 0) : ComparisonIndex(ComparisonIndex), Number(Number) {}
+	FName(const char* szName) { *this = g_Pubg->NameArr.FindName(szName); }
 };
 
 struct FMeshBoneInfo

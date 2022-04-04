@@ -24,11 +24,11 @@ void Hack::Loop() {
 	const HWND hGameWnd = pubg.hGameWnd;
 	const CR3 mapCR3 = kernel.GetMapCR3();
 	//FUObjectArray ObjectArr;
-	//ObjectArr.DumpObject(NameArr);
+	//ObjectArr.DumpObject();
 
-	const FName KeyMouseX = pubg.NameArr.FindName("MouseX"e);
+	const FName KeyMouseX("MouseX"e);
 	verify(KeyMouseX.ComparisonIndex);
-	const FName KeyMouseY = pubg.NameArr.FindName("MouseY"e);
+	const FName KeyMouseY("MouseY"e);
 	verify(KeyMouseY.ComparisonIndex);
 
 	//41 0f ? ? 73 ? f3 0f 10 ? ? ? ? ? f3 0f 11 ? ? ? ? 00 00
@@ -208,7 +208,7 @@ void Hack::Loop() {
 				auto ItemInfo = Item.GetInfo();
 				auto& ItemName = ItemInfo.Name;
 
-				if (!ItemName[0] && !pubg.NameArr.GetName(Item.GetItemID(), ItemName.data(), sizeof(ItemName)))
+				if (!ItemName[0] && !Item.GetItemID().GetName(ItemName.data(), sizeof(ItemName)))
 					return false;
 
 				const int ItemPriority = ItemInfo.ItemPriority;
@@ -1602,25 +1602,3 @@ void Hack::Loop() {
 	}
 }
 
-void FUObjectArray::DumpObject(const TNameEntryArray& NameArr) const {
-	for (unsigned i = 0; i < GetNumElements(); i++) {
-		UObject obj;
-		auto Ptr = GetNativePtrById(i);
-		if (!Ptr.Read(obj))
-			continue;
-
-		char szName[0x200];
-		if (!NameArr.GetName(obj.GetFName(), szName, sizeof(szName)))
-			continue;
-
-		if (_stricmp(szName, "World"e) == 0) {
-			dprintf("%I64X %s\n"e, (uintptr_t)Ptr, szName);
-		}
-		if (_stricmp(szName, "PlayerState"e) == 0) {
-			dprintf("%I64X %s\n"e, (uintptr_t)Ptr, szName);
-		}
-		if (_stricmp(szName, "ForceLayoutPrepass"e) == 0) {
-			dprintf("%I64X %s\n"e, (uintptr_t)Ptr, szName);
-		}
-	}
-}

@@ -99,5 +99,23 @@ public:
 	}
 
 	size_t GetNumElements() const { return NumElements; }
-	void DumpObject(const TNameEntryArray& NameArr) const;
+	void DumpObject() const {
+		for (unsigned i = 0; i < GetNumElements(); i++) {
+			UObject obj;
+			auto Ptr = GetNativePtrById(i);
+			if (!Ptr.Read(obj))
+				continue;
+
+			std::string Name = obj.GetFName().GetName();
+			if (Name.empty())
+				continue;
+
+			if (Name == (std::string)"World"e)
+				dprintf("%I64X %s\n"e, (uintptr_t)Ptr, Name.c_str());
+			if (Name == (std::string)"PlayerState"e)
+				dprintf("%I64X %s\n"e, (uintptr_t)Ptr, Name.c_str());
+			if (Name == (std::string)"ForceLayoutPrepass"e)
+				dprintf("%I64X %s\n"e, (uintptr_t)Ptr, Name.c_str());
+		}
+	}
 };

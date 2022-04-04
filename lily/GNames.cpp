@@ -44,7 +44,7 @@ void TNameEntryArray::EnumNames(tl::function<bool(FName ID, const char* szName)>
 }
 
 FName TNameEntryArray::FindName(const char* szNameToFind) const {
-	FName Result{};
+	FName Result = {};
 	EnumNames([&](FName ID, const char* szName) {
 		if (strcmp(szNameToFind, szName) != 0)
 			return true;
