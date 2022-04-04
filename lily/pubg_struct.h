@@ -114,6 +114,12 @@ public:
 
 	template<class DataType>
 	bool WriteAtOffset(const DataType& Data, size_t Offset) const { return g_Pubg->Write(P + Offset, &Data); }
+
+	unsigned GetHash() const {
+		using UObject = typename ObjectType::UObject;
+		UObject Obj;
+		return NativePtr<UObject>(P).Read(Obj) ? Obj.GetFName().GetHash() : 0;
+	}
 };
 
 template <class ObjectType>
@@ -136,6 +142,17 @@ struct FName
 	int Number;
 	bool operator == (const FName& rhs) const { return ComparisonIndex == rhs.ComparisonIndex && Number == rhs.Number; }
 	bool operator != (const FName& rhs) const { return !(*this == rhs); }
+	bool GetName(char* szBuf, size_t SizeMax) const { return g_Pubg->NameArr.GetName(*this, szBuf, SizeMax); }
+	unsigned GetHash() const {
+		char szBuf[TNameEntryArray::NAME_SIZE];
+		return GetName(szBuf, sizeof(szBuf)) ? CompileTime::StrHash(szBuf) : 0;
+	}
+	std::string GetName() const {
+		char szBuf[TNameEntryArray::NAME_SIZE];
+		if (!GetName(szBuf, sizeof(szBuf)))
+			return {};
+		return szBuf;
+	}
 };
 
 struct FMeshBoneInfo

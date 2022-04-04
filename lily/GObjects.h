@@ -35,11 +35,7 @@ public:
 		v3 = __ROR4__(v1, 0xC);
 		HIDWORD(v75) = v3 ^ (v3 << 0x10) ^ 0x6ED28B35;
 
-		FName name;
-		name.ComparisonIndex = LODWORD(v75);
-		name.Number = HIDWORD(v75);
-
-		return name;
+		return *(FName*)&v75;
 	}
 
 	//DWORD GetIndex() {
@@ -66,15 +62,6 @@ public:
 	//	v2 = v4 ^ (v4 << 0x20) ^ 0x3811FD43E3F5A7C4i64;
 	//	return v2;
 	//}
-
-	unsigned GetNameHash() const { return g_Pubg->NameArr.GetNameHashByID(GetFName()); }
-	bool GetName(char* szBuf, size_t SizeMax) const { return g_Pubg->NameArr.GetNameByID(GetFName(), szBuf, SizeMax); }
-	std::string GetName() const {
-		char szBuf[0x100];
-		if (!GetName(szBuf, sizeof(szBuf)))
-			return {};
-		return szBuf;
-	}
 };
 
 class FUObjectItem

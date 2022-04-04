@@ -69,7 +69,7 @@ FName UItem::GetItemID() const {
 }
 
 unsigned UItem::GetHash() const {
-	return g_Pubg->NameArr.GetNameHashByID(GetItemID());
+	return GetItemID().GetHash();
 }
 
 ItemInfo UItem::GetInfo() const {
@@ -77,11 +77,14 @@ ItemInfo UItem::GetInfo() const {
 }
 
 std::string ATslWeapon::GetWeaponName() const {
-	return ::GetWeaponName(GetNameHash()).data();
+	return ::GetWeaponName(GetFName().GetHash()).data();
 }
 
 float ATslWeapon_Trajectory::GetZeroingDistance() const {
-	float ZeroingDistance = 0.0f;
+	if (bCantedSighted)
+		return 50.0f;
+
+	ZeroingInfo Info = GetWeaponZeroingInfo(GetFName().GetHash());
 
 	for (const auto& AttachableItemPtr : AttachedItems.GetVector()) {
 		UAttachableItem AttachableItem;
@@ -92,21 +95,22 @@ float ATslWeapon_Trajectory::GetZeroingDistance() const {
 		if (!AttachableItem.WeaponAttachmentData.Read(ItemTableRowAttachment))
 			continue;
 
-		UWeaponAttachmentDataAsset WeaponAttachmentDataAsset;
-		if (!ItemTableRowAttachment.WeaponAttachmentData.Read(WeaponAttachmentDataAsset))
-			continue;
-
-		if (WeaponAttachmentDataAsset.AttachmentData.AttachmentSlotID != EWeaponAttachmentSlotID::UpperRail)
-			continue;
-
-		if (WeaponAttachmentDataAsset.AttachmentData.ZeroingDistances.GetValue(CurrentZeroLevel, ZeroingDistance))
-			return ZeroingDistance;
+		switch (ItemTableRowAttachment.ItemID.GetHash()) {
+		case "Item_Attach_Weapon_Upper_PM2_01_C"h:
+		case "Item_Attach_Weapon_Upper_CQBSS_C"h:
+			return Info.BaseScope + Info.Increment * CurrentZeroLevel;
+		case "Item_Attach_Weapon_Upper_Scope6x_C"h:
+		case "Item_Attach_Weapon_Upper_ACOG_01_C"h:
+		case "Item_Attach_Weapon_Upper_Scope3x_C"h:
+		case "Item_Attach_Weapon_Upper_Aimpoint_C"h:
+		case "Item_Attach_Weapon_Upper_DotSight_01_C"h:
+			return Info.BaseScope;
+		case "Item_Attach_Weapon_Upper_Holosight_C"h:
+			return Info.BaseHolo;
+		}
 	}
 
-	if (WeaponConfig_IronSightZeroingDistances.GetValue(CurrentZeroLevel, ZeroingDistance))
-		return ZeroingDistance;
-
-	return 100.0f * (CurrentZeroLevel + 1) + 1.0f;
+	return Info.BaseIron + Info.Increment * CurrentZeroLevel;
 }
 
 NativePtr<UStaticMeshComponent> UWeaponMeshComponent::GetStaticMeshComponentScopeType() const {

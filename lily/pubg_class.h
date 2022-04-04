@@ -56,7 +56,6 @@ class ATslPlayerState;
 class UCurveVector;
 class FWeaponAttachmentWeaponTagData;
 class FItemTableRowAttachment;
-class UWeaponAttachmentDataAsset;
 
 //Engine.World.CurrentLevel 
 //Function TslGame.TslLivingThing.GetWorldTimeSeconds 
@@ -357,35 +356,17 @@ DefClass(UAttachableItem, UItem,
 	MemberAtOffset(NativePtr<FItemTableRowAttachment>, WeaponAttachmentData, 0x138)
 )
 
-//TslGame.WeaponAttachmentData.ZeroingDistances 
-//TslGame.WeaponAttachmentData.Name
-//TslGame.WeaponAttachmentData.AttachmentSlotID
-DefBaseClass(FWeaponAttachmentData,
-	MemberAtOffsetZero(uint8_t, AttachmentSlotID, 0x0)
-	MemberAtOffset(TArray<float>, ZeroingDistances, 0x50)
-	MemberAtOffset(FName, Name, 0x10)
-)
-
-//TslGame.WeaponAttachmentDataAsset.AttachmentData 
-DefBaseClass(UWeaponAttachmentDataAsset,
-	MemberAtOffset(FWeaponAttachmentData, AttachmentData, 0x48)
-)
-
-DefClass(FItemTableRowAttachment, FItemTableRowBase,
-	MemberAtOffset(NativePtr<UWeaponAttachmentDataAsset>, WeaponAttachmentData, 0x268)
-)
+DefClass(FItemTableRowAttachment, FItemTableRowBase,)
 
 //TslGame.TslWeapon.AttachedItems 
 //TslGame.TslWeapon.Mesh3P 
 //TslGame.TslWeapon.WeaponTag 
 //TslGame.TslWeapon.FiringAttachPoint 
-//TslGame.TslWeapon.WeaponConfig + TslGame.WeaponData.IronSightZeroingDistances 
 DefClass(ATslWeapon, AActor,
 	MemberAtOffset(TArray<NativePtr<UAttachableItem>>, AttachedItems, 0x7f8)
 	MemberAtOffset(EncryptedPtr<UWeaponMeshComponent>, Mesh3P, 0x7b0)
 	MemberAtOffset(FName, WeaponTag, 0x808)
 	MemberAtOffset(FName, FiringAttachPoint, 0x850)
-	MemberAtOffset(TArray<float>, WeaponConfig_IronSightZeroingDistances, 0x4f0 + 0xc0)
 	,
 	std::string GetWeaponName() const;
 )
@@ -393,10 +374,13 @@ DefClass(ATslWeapon, AActor,
 //TslGame.TslWeapon_Gun.CurrentZeroLevel 
 //TslGame.TslWeapon_Gun.ScopingAttachPoint 
 //TslGame.TslWeapon_Gun.CurrentAmmoData
+//Function TslGame.TslWeapon_Gun.GetCurrentScopeZeroingLevel 
 DefClass(ATslWeapon_Gun, ATslWeapon,
 	MemberAtOffset(int, CurrentZeroLevel, 0xa1c)
 	MemberAtOffset(FName, ScopingAttachPoint, 0xc08)
 	MemberAtOffset(uint16_t, CurrentAmmoData, 0xa18)
+
+	MemberAtOffset(uint8_t, bCantedSighted, 0xE85)
 )
 
 //TslGame.TslWeapon_Trajectory.WeaponTrajectoryData 

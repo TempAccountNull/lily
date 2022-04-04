@@ -15,7 +15,7 @@ TNameEntryArray::TNameEntryArray() {
 
 //DWORD64 GetNumElements() const { return NumElements; }
 
-bool TNameEntryArray::GetNameByID(FName ID, char* szBuf, size_t SizeMax) const {
+bool TNameEntryArray::GetName(FName ID, char* szBuf, size_t SizeMax) const {
 	if (ID.ComparisonIndex <= 0)
 		return false;
 
@@ -35,24 +35,10 @@ bool TNameEntryArray::GetNameByID(FName ID, char* szBuf, size_t SizeMax) const {
 	return true;
 }
 
-unsigned TNameEntryArray::GetNameHashByID(FName ID) const {
-	char szBuf[NAME_SIZE];
-	if (!GetNameByID(ID, szBuf, sizeof(szBuf)))
-		return 0;
-	return CompileTime::StrHash(szBuf);
-}
-
-unsigned TNameEntryArray::GetNameHashByObjectPtr(uintptr_t Ptr) const {
-	UObject Obj;
-	if (!NativePtr<UObject>(Ptr).Read(Obj))
-		return 0;
-	return Obj.GetNameHash();
-}
-
 void TNameEntryArray::EnumNames(tl::function<bool(FName ID, const char* szName)> f) const {
 	for (int Index = 1; Index < 0x100000; Index++) {
 		char szBuf[NAME_SIZE];
-		if (GetNameByID({ (int)Index, 0 }, szBuf, sizeof(szBuf)) && !f({ Index, 0 }, szBuf))
+		if (GetName({ (int)Index, 0 }, szBuf, sizeof(szBuf)) && !f({ Index, 0 }, szBuf))
 			return;
 	}
 }

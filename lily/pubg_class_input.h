@@ -133,28 +133,17 @@ uint8_t WeaponArmInfo + WeaponArmInfo.RightWeaponIndex
 class UAttachableItem
 function GetAttachmentData
 
-struct WeaponAttachmentData
-uint8_t AttachmentSlotID
-TArray<float> ZeroingDistances
-FName Name
-
-class UWeaponAttachmentDataAsset
-FWeaponAttachmentData AttachmentData
-
-struct ItemTableRowAttachment
-NativePtr<UWeaponAttachmentDataAsset> WeaponAttachmentData
-
 class ATslWeapon
 TArray<NativePtr<UAttachableItem>> AttachedItems
 EncryptedPtr<UWeaponMeshComponent> Mesh3P
 FName WeaponTag
 FName FiringAttachPoint
-TArray<float> WeaponConfig + WeaponData.IronSightZeroingDistances
 
 class ATslWeapon_Gun
 int CurrentZeroLevel
 FName ScopingAttachPoint
 uint16_t CurrentAmmoData
+function GetCurrentScopeZeroingLevel
 
 class ATslWeapon_Trajectory
 NativePtr<UWeaponTrajectoryData> WeaponTrajectoryData

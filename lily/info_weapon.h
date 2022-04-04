@@ -1,6 +1,44 @@
 #pragma once
 #include "common/util.h"
 
+struct ZeroingInfo {
+	float BaseIron = 100.0f;
+	float BaseScope = 100.0f;
+	float Increment = 100.0f;
+	float BaseHolo = BaseScope;
+};
+
+static ZeroingInfo GetWeaponZeroingInfo(unsigned Hash) {
+	constexpr static ZeroingInfo ZeroingSG = { 50.0f, 100.0f, 0.0f };
+	constexpr static ZeroingInfo ZeroingCBow = { 25.0f, 25.0f, 0.0f };
+	constexpr static ZeroingInfo ZeroingVSS = { 100.0f, 100.0f, 25.0f };
+	constexpr static ZeroingInfo ZeroingPistol = { 50.0f, 50.0f, 0.0f, 100.0f };
+
+	switch (Hash) {
+		HASH_DEFAULT({});
+
+		//SG
+		HASH_CASE("WeapBerreta686_C"h, ZeroingSG);
+		HASH_CASE("WeapSaiga12_C"h, ZeroingSG);
+		HASH_CASE("WeapWinchester_C"h, ZeroingSG);
+		HASH_CASE("WeapDP12_C"h, ZeroingSG);
+		HASH_CASE("WeapSawnoff_C"h, ZeroingSG);
+
+		//Pistol
+		HASH_CASE("WeapG18_C"h, ZeroingPistol);
+		HASH_CASE("WeapM1911_C"h, ZeroingPistol);
+		HASH_CASE("WeapM9_C"h, ZeroingPistol);
+		HASH_CASE("WeapRhino_C"h, ZeroingPistol);
+		HASH_CASE("WeapNagantM1895_C"h, ZeroingPistol);
+		HASH_CASE("WeapDesertEagle_C"h, { 50.0f, 100.0f, 0.0f, 100.0f });
+		HASH_CASE("Weapvz61Skorpion_C"h, { 100.0f, 50.0f, 0.0, 100.0f });
+
+		//Special
+		HASH_CASE("WeapCrossbow_1_C"h, ZeroingCBow);
+		HASH_CASE("WeapVSS_C"h, ZeroingVSS);
+	}
+}
+
 static fixstr::basic_fixed_string<char, 0x100> GetWeaponName(unsigned Hash) {
 	switch (Hash) {
 		HASH_DEFAULT(""e);

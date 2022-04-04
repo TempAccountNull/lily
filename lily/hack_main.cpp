@@ -176,8 +176,8 @@ void Hack::Loop() {
 			FMatrix CameraRotationMatrix;
 			float CameraFOV = 0.0f;
 			float DefaultFOV = 0.0f;
-			float MouseXSensitivity = 0.2f;
-			float MouseYSensitivity = 0.2f;
+			float MouseXSensitivity = 0.02f;
+			float MouseYSensitivity = 0.02f;
 
 			CharacterInfo MyInfo;
 
@@ -208,7 +208,7 @@ void Hack::Loop() {
 				auto ItemInfo = Item.GetInfo();
 				auto& ItemName = ItemInfo.Name;
 
-				if (!ItemName[0] && !pubg.NameArr.GetNameByID(Item.GetItemID(), ItemName.data(), sizeof(ItemName)))
+				if (!ItemName[0] && !pubg.NameArr.GetName(Item.GetItemID(), ItemName.data(), sizeof(ItemName)))
 					return false;
 
 				const int ItemPriority = ItemInfo.ItemPriority;
@@ -232,12 +232,12 @@ void Hack::Loop() {
 				return true;
 			};
 			auto GetCharacterInfo = [&](NativePtr<ATslCharacter> CharacterPtr, CharacterInfo& Info) -> bool {
-				const unsigned NameHash = pubg.NameArr.GetNameHashByObjectPtr(CharacterPtr);
+				const unsigned NameHash = CharacterPtr.GetHash();
 				if (!IsPlayerCharacter(NameHash) && !IsAICharacter(NameHash))
 					return false;
 
 				ATslCharacter TslCharacter;
-				if (!CharacterPtr.ReadOtherType(TslCharacter))
+				if (!CharacterPtr.Read(TslCharacter))
 					return false;
 
 				USceneComponent RootComponent;
@@ -365,7 +365,7 @@ void Hack::Loop() {
 
 					Info.WeaponName = TslWeapon.GetWeaponName();
 					if (Info.WeaponName.empty() && bDebug)
-						Info.WeaponName = TslWeapon.GetName();
+						Info.WeaponName = TslWeapon.GetFName().GetName();
 
 					Info.Ammo = [&] {
 						ATslWeapon_Trajectory TslWeapon;
@@ -585,7 +585,7 @@ void Hack::Loop() {
 			}();
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
-			const bool bLobby = (pubg.NameArr.GetNameHashByObjectPtr(MyPawnPtr) == "DefaultPawn"h);
+			const bool bLobby = (MyPawnPtr.GetHash() == "DefaultPawn"h);
 			const bool bEnterGame = (!bLobby && bPrevLobby);
 			bPrevLobby = bLobby;
 
@@ -996,10 +996,9 @@ void Hack::Loop() {
 
 					if (ESP_PlayerSetting.bWeapon) {
 						if (Info.WeaponName.size()) {
-							if (Info.Ammo == -1)
-								Line += Info.WeaponName;
-							else
-								Line += Info.WeaponName + (std::string)"("e + std::to_string(Info.Ammo) + (std::string)")"e;
+							Line += Info.WeaponName;
+							if (Info.Ammo != -1)
+								Line += (std::string)"("e + std::to_string(Info.Ammo) + (std::string)")"e;
 						}
 					}
 
@@ -1074,16 +1073,17 @@ void Hack::Loop() {
 					if (RootComponent.AttachParent.Read(AttachParent) && AttachParent.Owner == MyPawnPtr)
 						return false;
 
-					if (!Actor.GetName(szBuf, sizeof(szBuf)))
+					const std::string ActorName = Actor.GetFName().GetName();
+					if (ActorName.empty())
 						return false;
 
-					bAircraftCarePackage = (strncmp(szBuf, "AircraftCarePackage"e, sizeof("AircraftCarePackage"e) - 1) == 0);
-					ActorNameHash = Actor.GetNameHash();
+					ActorNameHash = CompileTime::StrHash(ActorName.c_str());
+					bAircraftCarePackage = (ActorName.substr(0, sizeof("AircraftCarePackage"e) - 1) == (std::string)"AircraftCarePackage"e);
 
 					if (bDebug) {
 						FVector v2_DebugLoc = ActorLocationScreen;
 						v2_DebugLoc.Y += 15.0;
-						DrawString(v2_DebugLoc, szBuf, Render::COLOR_WHITE, false);
+						DrawString(v2_DebugLoc, ActorName.c_str(), Render::COLOR_WHITE, false);
 					}
 
 					return true;
@@ -1267,7 +1267,7 @@ void Hack::Loop() {
 						if (!Element.Value.ReadOtherType(ItemComponent))
 							continue;
 
-						unsigned ItemComponentHash = ItemComponent.GetNameHash();
+						unsigned ItemComponentHash = ItemComponent.GetFName().GetHash();
 						if (!ItemComponentHash)
 							continue;
 
@@ -1610,7 +1610,7 @@ void FUObjectArray::DumpObject(const TNameEntryArray& NameArr) const {
 			continue;
 
 		char szName[0x200];
-		if (!NameArr.GetNameByID(obj.GetFName(), szName, sizeof(szName)))
+		if (!NameArr.GetName(obj.GetFName(), szName, sizeof(szName)))
 			continue;
 
 		if (_stricmp(szName, "World"e) == 0) {

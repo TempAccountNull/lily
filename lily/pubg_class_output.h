@@ -133,28 +133,17 @@ MemberAtOffset(uint8_t, WeaponArmInfo_RightWeaponIndex, 0x2e8 + 0x1)
 class UAttachableItem
 //function UAttachableItem.GetAttachmentData 0x4ccda60
 
-struct FWeaponAttachmentData
-MemberAtOffsetZero(uint8_t, AttachmentSlotID, 0x0)
-MemberAtOffset(TArray<float>, ZeroingDistances, 0x50)
-MemberAtOffset(FName, Name, 0x10)
-
-class UWeaponAttachmentDataAsset
-MemberAtOffset(FWeaponAttachmentData, AttachmentData, 0x48)
-
-struct FItemTableRowAttachment
-MemberAtOffset(NativePtr<UWeaponAttachmentDataAsset>, WeaponAttachmentData, 0x268)
-
 class ATslWeapon
 MemberAtOffset(TArray<NativePtr<UAttachableItem>>, AttachedItems, 0x7f8)
 MemberAtOffset(EncryptedPtr<UWeaponMeshComponent>, Mesh3P, 0x7b0)
 MemberAtOffset(FName, WeaponTag, 0x808)
 MemberAtOffset(FName, FiringAttachPoint, 0x850)
-MemberAtOffset(TArray<float>, WeaponConfig_IronSightZeroingDistances, 0x4f0 + 0xc0)
 
 class ATslWeapon_Gun
 MemberAtOffset(int, CurrentZeroLevel, 0xa1c)
 MemberAtOffset(FName, ScopingAttachPoint, 0xc08)
 MemberAtOffset(uint16_t, CurrentAmmoData, 0xa18)
+//function ATslWeapon_Gun.GetCurrentScopeZeroingLevel 0x4ccef54
 
 class ATslWeapon_Trajectory
 MemberAtOffset(NativePtr<UWeaponTrajectoryData>, WeaponTrajectoryData, 0x1008)

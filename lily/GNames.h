@@ -5,6 +5,8 @@ struct FName;
 
 class TNameEntryArray
 {
+public:
+	static constexpr size_t NAME_SIZE = 0x200;
 private:
 	static constexpr uintptr_t ADDRESS_GNAMES = 0x8F9B0A8;
 	static constexpr uint32_t ElementsPerChunk = 0x3EB8;
@@ -14,7 +16,6 @@ private:
 	//DWORD64 NumElements;
 	uintptr_t BasePtr;
 
-	static constexpr size_t NAME_SIZE = 0x200;
 	struct FNameEntry
 	{
 	public:
@@ -28,9 +29,7 @@ private:
 public:
 	TNameEntryArray();
 	//DWORD64 GetNumElements() const { return NumElements; }
-	bool GetNameByID(FName ID, char* szBuf, size_t SizeMax) const;
-	unsigned GetNameHashByID(FName ID) const;
-	unsigned GetNameHashByObjectPtr(uintptr_t Ptr) const;
+	bool GetName(FName ID, char* szBuf, size_t SizeMax) const;
 	void EnumNames(tl::function<bool(FName ID, const char* szName)> f) const;
 	FName FindName(const char* szNameToFind) const;
 	void DumpAllNames() const;
