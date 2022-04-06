@@ -28,12 +28,12 @@ public:
 		__int64 v5;
 		__int64 v75;
 
-		v1 = *(_DWORD*)(a1 + 0x38) ^ 0xFA8628E8;
-		LODWORD(v5) = __ROL4__(*(_DWORD*)(a1 + 0x34) ^ 0xE5E78B35, 0xC);
-		v2 = int(v5 ^ ((_DWORD)v5 << 0x10) ^ 0xD26E28E8);
+		v1 = *(_DWORD*)(a1 + 0xC) ^ 0xF7153A63;
+		LODWORD(v5) = __ROL4__(*(_DWORD*)(a1 + 8) ^ 0x63841549, 5);
+		v2 = int(v5 ^ ((_DWORD)v5 << 0x10) ^ 0xCD763A63);
 		LODWORD(v75) = v2;
-		v3 = __ROR4__(v1, 0xC);
-		HIDWORD(v75) = v3 ^ (v3 << 0x10) ^ 0x6ED28B35;
+		v3 = __ROR4__(v1, 3);
+		HIDWORD(v75) = v3 ^ (v3 << 0x10) ^ 0x76CD1549;
 
 		return *(FName*)&v75;
 	}

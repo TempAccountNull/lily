@@ -1,12 +1,26 @@
 UWORLD
 
-//48 83 ec ? 48 83 3d ? ? ? ? 00 48 8b 0d
-TslGame.exe+491FC21 - 48 83 EC 28           - sub rsp,28 { 40 }
-TslGame.exe+491FC25 - 48 83 3D D315D702 00  - cmp qword ptr [TslGame.exe+7691200],00 { (0),0 }
-TslGame.exe+491FC2D - 48 8B 0D 2C4A7604     - mov rcx,[TslGame.exe+9084660] { (-1767384159) }	<-- This
-TslGame.exe+491FC34 - 75 13                 - jne TslGame.exe+491FC49
-TslGame.exe+491FC36 - 48 8B D1              - mov rdx,rcx
-TslGame.exe+491FC39 - B9 A6CB3E48           - mov ecx,483ECBA6 { 1212074918 }
-TslGame.exe+491FC3E - 48 83 C4 28           - add rsp,28 { 40 }
-TslGame.exe+491FC42 - 48 FF 25 DF15D702     - jmp qword ptr [TslGame.exe+7691228] { ->7FF40FF01A3A }
-TslGame.exe+491FC49 - 8B C1                 - mov eax,ecx
+//e8 ? ? ? ? f3 0f ? ? ? ? ? ? 0f 2f ? ? ? 72
+TslGame.exe+5C978F4 - E8 37760000           - call TslGame.exe+5C9EF30				<-- look inside
+TslGame.exe+5C978F9 - F3 0F59 05 B3D14501   - mulss xmm0,[TslGame.exe+70F4AB4] 		<-- 1000.0f
+TslGame.exe+5C97901 - 0F2F 44 FB 04         - comiss xmm0,[rbx+rdi*8+04]
+TslGame.exe+5C97906 - 72 21                 - jb TslGame.exe+5C97929
+TslGame.exe+5C97908 - 48 63 86 FC000000     - movsxd  rax,dword ptr [rsi+000000FC]
+TslGame.exe+5C9790F - 48 8D 0C 40           - lea rcx,[rax+rax*2]
+TslGame.exe+5C97913 - 48 8B 86 08010000     - mov rax,[rsi+00000108]
+TslGame.exe+5C9791A - 80 7C C8 12 00        - cmp byte ptr [rax+rcx*8+12],00
+TslGame.exe+5C9791F - 74 08                 - je TslGame.exe+5C97929
+
+
+TslGame.exe+5C9EF30 - 48 89 4C 24 08        - mov [rsp+08],rcx
+TslGame.exe+5C9EF35 - 48 83 EC 28           - sub rsp,28
+TslGame.exe+5C9EF39 - 48 83 3D BF6C4501 00  - cmp qword ptr [TslGame.exe+70F5C00],00
+TslGame.exe+5C9EF41 - 4C 8B 05 18B80603     - mov r8,[TslGame.exe+8D0A760]			<-- this
+TslGame.exe+5C9EF48 - 75 13                 - jne TslGame.exe+5C9EF5D
+TslGame.exe+5C9EF4A - 49 8B D0              - mov rdx,r8
+TslGame.exe+5C9EF4D - B9 38CC3E48           - mov ecx,483ECC38
+TslGame.exe+5C9EF52 - FF 15 D06C4501        - call qword ptr [TslGame.exe+70F5C28]
+TslGame.exe+5C9EF58 - E9 8E000000           - jmp TslGame.exe+5C9EFEB
+TslGame.exe+5C9EF5D - 41 8B C8              - mov ecx,r8d
+TslGame.exe+5C9EF60 - 41 B9 0000FFFF        - mov r9d,FFFF0000
+TslGame.exe+5C9EF66 - C1 E9 10              - shr ecx,10

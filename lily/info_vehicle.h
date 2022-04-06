@@ -35,7 +35,7 @@ static VehicleInfo GetVehicleInfo(unsigned Hash) {
 
 		HASH_CASE("BP_BRDM_C"h, { "BRDM"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
 		HASH_CASE("Uaz_Armored_C"h, { "UAZ"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
-		HASH_CASE("BP_Mirado_Open_05_C"h, { "MiradoO"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
+		HASH_CASE("BP_Mirado_Open_05_C"h, { "MiradoG"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
 		HASH_CASE("BP_Motorglider_C"h, { "Glider"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
 		HASH_CASE("BP_Motorglider_Blue_C"h, { "Glider"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
 		HASH_CASE("BP_Motorglider_Green_C"h, { "Glider"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Special });
@@ -91,9 +91,10 @@ static VehicleInfo GetVehicleInfo(unsigned Hash) {
 		HASH_CASE("BP_TukTukTuk_A_01_C"h, { "Tukshai"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_TukTukTuk_A_02_C"h, { "Tukshai"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_TukTukTuk_A_03_C"h, { "Tukshai"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("BP_Van_A_01_C"h, { "Van"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("BP_Van_A_02_C"h, { "Van"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("BP_Van_A_03_C"h, { "Van"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Van_A_01_C"h, { "Bus"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Van_A_02_C"h, { "Bus"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Van_A_03_C"h, { "Bus"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_MiniBus_C"h, { "Bus"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_Scooter_01_A_C"h, { "Scooter"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_Scooter_02_A_C"h, { "Scooter"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_Scooter_03_A_C"h, { "Scooter"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
@@ -119,8 +120,7 @@ static VehicleInfo GetVehicleInfo(unsigned Hash) {
 		HASH_CASE("Uaz_B_01_C"h, { "UAZ"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("Uaz_B_01_esports_C"h, { "UAZ"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("Uaz_C_01_C"h, { "UAZ"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("BP_MiniBus_C"h, { "Bus"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
-		HASH_CASE("BP_Dirtbike_C"h, { "DirtBike"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
+		HASH_CASE("BP_Dirtbike_C"h, { "DBike"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_CoupeRB_C"h, { "Coupe"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_ATV_C"h, { "Quad"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });
 		HASH_CASE("BP_PonyCoupe_C"h, { "Pony"e, VehicleType1::Wheeled, VehicleType2::Destructible, VehicleType3::Normal });

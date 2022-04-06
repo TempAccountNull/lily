@@ -31,7 +31,7 @@ FVector WorldToScreen(const FVector& WorldLocation, const FMatrix& RotationMatri
 }
 
 bool UWorld::GetUWorld(UWorld& World) {
-	NativePtr<EncryptedPtr<UWorld>> PP = g_Pubg->GetBaseAddress() + UWorld::UWORLDBASE;
+	NativePtr<EncryptedPtr<UWorld>> PP = g_Pubg->GetBaseAddress() + UWorld::BASE;
 	EncryptedPtr<UWorld> P;
 	return PP.Read(P) && P.Read(World);
 }

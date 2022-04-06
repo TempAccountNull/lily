@@ -1,60 +1,60 @@
 class ATslLivingThing
-//function ATslLivingThing.GetWorldTimeSeconds 0x4d157b4
+//function ATslLivingThing.GetWorldTimeSeconds 0x4d0f5a8
 
 class UWorld
-MemberAtOffset(EncryptedPtr<ULevel>, CurrentLevel, 0x910)
+MemberAtOffset(EncryptedPtr<ULevel>, CurrentLevel, 0x1a0)
 
 class AController
-MemberAtOffset(EncryptedPtr<ACharacter>, Character, 0x468)
-MemberAtOffset(EncryptedPtr<APawn>, Pawn, 0x418)
+MemberAtOffset(EncryptedPtr<ACharacter>, Character, 0x430)
+MemberAtOffset(EncryptedPtr<APawn>, Pawn, 0x408)
 
 class APlayerController
-MemberAtOffset(NativePtr<APawn>, SpectatorPawn, 0x750)
-MemberAtOffset(NativePtr<APlayerCameraManager>, PlayerCameraManager, 0x4c0)
-MemberAtOffset(NativePtr<UPlayerInput>, PlayerInput, 0x538)
+MemberAtOffset(NativePtr<APawn>, SpectatorPawn, 0x738)
+MemberAtOffset(NativePtr<APlayerCameraManager>, PlayerCameraManager, 0x4a8)
+MemberAtOffset(NativePtr<UPlayerInput>, PlayerInput, 0x520)
 
 class UPlayerInput
-//function UPlayerInput.SetMouseSensitivity 0x5ae77c4
+//function UPlayerInput.SetMouseSensitivity 0x5adf88c
 
 class ATslPlayerController
-MemberAtOffset(float, DefaultFOV, 0xadc)
+MemberAtOffset(float, DefaultFOV, 0xacc)
 
 class APlayerCameraManager
-MemberAtOffset(float, CameraCache_POV_FOV, 0xa50 + 0x10 + 0x5b4)
-MemberAtOffset(FRotator, CameraCache_POV_Rotation, 0xa50 + 0x10 + 0x28)
-MemberAtOffset(FVector, CameraCache_POV_Location, 0xa50 + 0x10 + 0x8)
+MemberAtOffset(float, CameraCache_POV_FOV, 0x1650 + 0x10 + 0x590)
+MemberAtOffset(FRotator, CameraCache_POV_Rotation, 0x1650 + 0x10 + 0x5a4)
+MemberAtOffset(FVector, CameraCache_POV_Location, 0x1650 + 0x10 + 0x574)
 
 class AActor
-MemberAtOffset(EncryptedPtr<USceneComponent>, RootComponent, 0x1a0)
+MemberAtOffset(EncryptedPtr<USceneComponent>, RootComponent, 0xf8)
 MemberAtOffset(FRepMovement, ReplicatedMovement, 0x70)
 
 class APawn
-MemberAtOffset(EncryptedPtr<APlayerState>, PlayerState, 0x440)
+MemberAtOffset(EncryptedPtr<APlayerState>, PlayerState, 0x428)
 
 class ACharacter
-MemberAtOffset(NativePtr<USkeletalMeshComponent>, Mesh, 0x4c8)
+MemberAtOffset(NativePtr<USkeletalMeshComponent>, Mesh, 0x4a8)
 MemberAtOffset(FVector, BaseTranslationOffset, 0x504)
 
 class ATslCharacter
-MemberAtOffset(float, Health, 0x19f8)
-MemberAtOffset(float, HealthMax, 0x12d0)
-MemberAtOffset(float, GroggyHealth, 0x11d4)
-MemberAtOffset(float, GroggyHealthMax, 0x1234)
-MemberAtOffset(FString, CharacterName, 0xf28)
-MemberAtOffset(int, LastTeamNum, 0x27a8)
-MemberAtOffset(NativePtr<UVehicleRiderComponent>, VehicleRiderComponent, 0x1b20)
-MemberAtOffset(NativePtr<UWeaponProcessorComponent>, WeaponProcessor, 0x1aa8)
-MemberAtOffset(int, SpectatedCount, 0x1270)
+MemberAtOffset(float, Health, 0x1fcc)
+MemberAtOffset(float, HealthMax, 0x2154)
+MemberAtOffset(float, GroggyHealth, 0x1f88)
+MemberAtOffset(float, GroggyHealthMax, 0xf70)
+MemberAtOffset(FString, CharacterName, 0x1988)
+MemberAtOffset(int, LastTeamNum, 0x1958)
+MemberAtOffset(NativePtr<UVehicleRiderComponent>, VehicleRiderComponent, 0x1a70)
+MemberAtOffset(NativePtr<UWeaponProcessorComponent>, WeaponProcessor, 0xf58)
+MemberAtOffset(int, SpectatedCount, 0xf04)
 MemberAtOffset(FRotator, AimOffsets, 0x1570)
 
 class ATslWheeledVehicle
-MemberAtOffset(NativePtr<UTslVehicleCommonComponent>, VehicleCommonComponent, 0xaf8)
+MemberAtOffset(NativePtr<UTslVehicleCommonComponent>, VehicleCommonComponent, 0xad8)
 
 class ATslFloatingVehicle
-MemberAtOffset(NativePtr<UTslVehicleCommonComponent>, VehicleCommonComponent, 0x4d8)
+MemberAtOffset(NativePtr<UTslVehicleCommonComponent>, VehicleCommonComponent, 0x4c0)
 
 class UActorComponent
-//function UActorComponent.GetOwner 0xb350e0
+//function UActorComponent.GetOwner 0xb4fb98
 
 class UTslVehicleCommonComponent
 MemberAtOffset(float, Health, 0x2e0)
@@ -64,9 +64,9 @@ MemberAtOffset(float, FuelMax, 0x2ec)
 MemberAtOffset(float, ExplosionTimer, 0x2f0)
 
 class USceneComponent
-//function USceneComponent.K2_GetComponentToWorld 0x5adb660
-MemberAtOffset(FVector, ComponentVelocity, 0x390)
-MemberAtOffset(NativePtr<USceneComponent>, AttachParent, 0x258)
+//function USceneComponent.K2_GetComponentToWorld 0x5ad3750
+MemberAtOffset(FVector, ComponentVelocity, 0x388)
+MemberAtOffset(NativePtr<USceneComponent>, AttachParent, 0x278)
 
 class UPrimitiveComponent
 MemberAtOffset(float, LastSubmitTime, 0x788)
@@ -99,7 +99,7 @@ MemberAtOffset(NativePtr<USkeleton>, Skeleton, 0x60)
 MemberAtOffset(TArray<NativePtr<USkeletalMeshSocket>>, Sockets, 0x2e0)
 
 class USkinnedMeshComponent
-//function USkinnedMeshComponent.GetNumBones 0x5b0e058
+//function USkinnedMeshComponent.GetNumBones 0x5b0614c
 
 class UStaticMesh
 MemberAtOffset(TArray<NativePtr<UStaticMeshSocket>>, Sockets, 0xd8)
@@ -111,7 +111,7 @@ class USkeleton
 MemberAtOffset(TArray<NativePtr<USkeletalMeshSocket>>, Sockets, 0x1a8)
 
 class ADroppedItem
-MemberAtOffset(EncryptedPtr<UItem>, Item, 0x440)
+MemberAtOffset(EncryptedPtr<UItem>, Item, 0x428)
 
 class UDroppedItemInteractionComponent
 MemberAtOffset(NativePtr<UItem>, Item, 0x740)
@@ -120,7 +120,7 @@ struct FItemTableRowBase
 MemberAtOffset(FName, ItemID, 0x248)
 
 class UItem
-//function UItem.BP_GetItemID 0x4c745ec
+//function UItem.BP_GetItemID 0x4c6e590
 
 class UVehicleRiderComponent
 MemberAtOffset(int, SeatIndex, 0x238)
@@ -131,23 +131,23 @@ MemberAtOffset(TArray<NativePtr<ATslWeapon>>, EquippedWeapons, 0x2c8)
 MemberAtOffset(uint8_t, WeaponArmInfo_RightWeaponIndex, 0x2e8 + 0x1)
 
 class UAttachableItem
-//function UAttachableItem.GetAttachmentData 0x4ccda60
+//function UAttachableItem.GetAttachmentData 0x4cc7890
 
 class ATslWeapon
-MemberAtOffset(TArray<NativePtr<UAttachableItem>>, AttachedItems, 0x7f8)
-MemberAtOffset(EncryptedPtr<UWeaponMeshComponent>, Mesh3P, 0x7b0)
-MemberAtOffset(FName, WeaponTag, 0x808)
-MemberAtOffset(FName, FiringAttachPoint, 0x850)
+MemberAtOffset(TArray<NativePtr<UAttachableItem>>, AttachedItems, 0x7d8)
+MemberAtOffset(EncryptedPtr<UWeaponMeshComponent>, Mesh3P, 0x790)
+MemberAtOffset(FName, WeaponTag, 0x7e8)
+MemberAtOffset(FName, FiringAttachPoint, 0x830)
 
 class ATslWeapon_Gun
-MemberAtOffset(int, CurrentZeroLevel, 0xa1c)
-MemberAtOffset(FName, ScopingAttachPoint, 0xc08)
-MemberAtOffset(uint16_t, CurrentAmmoData, 0xa18)
-//function ATslWeapon_Gun.GetCurrentScopeZeroingLevel 0x4ccef54
+MemberAtOffset(int, CurrentZeroLevel, 0x9fc)
+MemberAtOffset(FName, ScopingAttachPoint, 0xbe8)
+MemberAtOffset(uint16_t, CurrentAmmoData, 0x9f8)
+//function ATslWeapon_Gun.GetCurrentScopeZeroingLevel 0x4cc8d84
 
 class ATslWeapon_Trajectory
-MemberAtOffset(NativePtr<UWeaponTrajectoryData>, WeaponTrajectoryData, 0x1008)
-MemberAtOffset(float, TrajectoryGravityZ, 0xfa8)
+MemberAtOffset(NativePtr<UWeaponTrajectoryData>, WeaponTrajectoryData, 0x1000)
+MemberAtOffset(float, TrajectoryGravityZ, 0xf38)
 
 class UTslAnimInstance
 MemberAtOffset(FRotator, ControlRotation_CP, 0x744)
@@ -161,11 +161,11 @@ class UWeaponTrajectoryData
 MemberAtOffset(FWeaponTrajectoryConfig, TrajectoryConfig, 0x118)
 
 class AItemPackage
-MemberAtOffset(TArray<NativePtr<UItem>>, Items, 0x570)
+MemberAtOffset(TArray<NativePtr<UItem>>, Items, 0x558)
 
 class ATslPlayerState
-MemberAtOffset(float, DamageDealtOnEnemy, 0x4a0)
-MemberAtOffset(int, PlayerStatistics_NumKills, 0xa6c + 0x0)
+MemberAtOffset(float, DamageDealtOnEnemy, 0x4a4)
+MemberAtOffset(int, PlayerStatistics_NumKills, 0x890 + 0x0)
 
 class UCurveVector
 MemberAtOffset(FRichCurve, FloatCurves, 0x48)
