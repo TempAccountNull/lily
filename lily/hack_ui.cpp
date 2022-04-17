@@ -177,6 +177,11 @@ void Hack::ProcessImGui() {
 
 				ImGui::EndTabItem();
 			}
+			if (ImGui::BeginTabItem("Status"e))
+			{
+				ImGui::Text(status.c_str());
+				ImGui::EndTabItem();
+			}
 			ImGui::EndTabBar();
 		}
 	}

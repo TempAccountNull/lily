@@ -169,7 +169,7 @@
     <ClInclude Include="info_character.h" />
     <ClInclude Include="info_item.h" />
     <ClInclude Include="info_package.h" />
-    <ClInclude Include="info_proj.h" />
+    <ClInclude Include="info_object.h" />
     <ClInclude Include="info_vehicle.h" />
     <ClInclude Include="info_weapon.h" />
     <ClInclude Include="pubg_class.h" />

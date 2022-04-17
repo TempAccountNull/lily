@@ -119,6 +119,7 @@ static fixstr::basic_fixed_string<char, 0x100> GetWeaponName(unsigned Hash) {
 		HASH_CASE("WeapMk12_C"h, "Mk12"e);
 		HASH_CASE("WeapP90_C"h, "P90"e);
 		HASH_CASE("WeapM79_C"h, "M79"e);
+		HASH_CASE("WeapACE32_C"h, "ACE"e);
 
 		//Special
 		HASH_CASE("WeapMortar_C"h, "Mortar"e);

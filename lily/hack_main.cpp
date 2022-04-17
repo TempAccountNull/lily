@@ -6,7 +6,7 @@
 
 #include "info_bone.h"
 #include "info_vehicle.h"
-#include "info_proj.h"
+#include "info_object.h"
 #include "info_package.h"
 #include "info_character.h"
 
@@ -32,13 +32,13 @@ void Hack::Loop() {
 	verify(KeyMouseY.ComparisonIndex);
 
 	//41 0f ? ? 73 ? f3 0f 10 ? ? ? ? ? f3 0f 11 ? ? ? ? 00 00
-	constexpr uintptr_t HookBaseAddress = 0x5BF414;
+	constexpr uintptr_t HookBaseAddress = 0x4F0848;
 	const uintptr_t AimHookAddressVA = pubg.GetBaseAddress() + HookBaseAddress;
 	const PhysicalAddress AimHookAddressPA = dbvm.GetPhysicalAddress(AimHookAddressVA, mapCR3);
 	verify(AimHookAddressPA);
 
 	//e8 ? ? ? ? f2 0f 10 00 f2 0f ? ? ? ? ? 00 00 8b 40 08 89 ? ? ? ? 00 00 48
-	constexpr uintptr_t GunLocScopeHookBaseAddress = 0x5BE550;
+	constexpr uintptr_t GunLocScopeHookBaseAddress = 0x4EF7FD;
 	const uintptr_t GunLocScopeHookAddressVA = pubg.GetBaseAddress() + GunLocScopeHookBaseAddress;
 	const PhysicalAddress GunLocScopeHookAddressPA1 = dbvm.GetPhysicalAddress(GunLocScopeHookAddressVA, mapCR3);
 	const PhysicalAddress GunLocScopeHookAddressPA2 = dbvm.GetPhysicalAddress(GunLocScopeHookAddressVA + 0xC, mapCR3);
@@ -46,7 +46,7 @@ void Hack::Loop() {
 	verify(GunLocScopeHookAddressPA2);
 
 	//74 ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? eb ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? f2 0f 10 00 f2 0f
-	constexpr uintptr_t GunLocNoScopeHookBaseAddress = 0x5BE0C5;
+	constexpr uintptr_t GunLocNoScopeHookBaseAddress = 0x4EF1EB;
 	const uintptr_t GunLocNoScopeHookAddressVA = pubg.GetBaseAddress() + GunLocNoScopeHookBaseAddress;
 	const PhysicalAddress GunLocNoScopeHookAddressPA1 = dbvm.GetPhysicalAddress(GunLocNoScopeHookAddressVA, mapCR3);
 	const PhysicalAddress GunLocNoScopeHookAddressPA2 = dbvm.GetPhysicalAddress(GunLocNoScopeHookAddressVA + 0xC, mapCR3);
@@ -54,7 +54,7 @@ void Hack::Loop() {
 	verify(GunLocNoScopeHookAddressPA2);
 
 	//e8 ? ? ? ? f6 84 ? ? ? ? ? 01 74 ? f3 0f
-	constexpr uintptr_t GunLocNearWallHookBaseAddress = 0x5BFFDF;
+	constexpr uintptr_t GunLocNearWallHookBaseAddress = 0x4F170F;
 	const uintptr_t GunLocNearWallHookAddressVA = pubg.GetBaseAddress() + GunLocNearWallHookBaseAddress;
 	const PhysicalAddress GunLocNearWallHookAddressPA = dbvm.GetPhysicalAddress(GunLocNearWallHookAddressVA, mapCR3);
 	verify(GunLocNearWallHookAddressPA);
@@ -165,6 +165,7 @@ void Hack::Loop() {
 			DrawHotkey();
 			DrawFPS(render.FPS, Render::COLOR_TEAL);
 			UserInfo.Update();
+			status.clear();
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			float WorldTimeSeconds = 0.0f;
@@ -180,6 +181,7 @@ void Hack::Loop() {
 			float MouseYSensitivity = 0.02f;
 
 			CharacterInfo MyInfo;
+			auto IsPenetrateOn = [&] { return bPenetrate && render.bKeyPushing[VK_CONTROL] && !MyInfo.IsInVehicle; };
 
 			auto WorldToScreen = [&](const FVector& WorldLocation) {
 				return this->WorldToScreen(WorldLocation, CameraRotationMatrix, CameraLocation, CameraFOV);
@@ -279,7 +281,7 @@ void Hack::Loop() {
 				}
 
 				Info.Location = Mesh.ComponentToWorld.Translation;
-				Info.IsVisible = Mesh.IsVisible() || (bPenetrate && render.bKeyPushing[VK_CONTROL]);
+				Info.IsVisible = Mesh.IsVisible() || IsPenetrateOn();
 
 				//Bones
 				auto BoneSpaceTransforms = Mesh.BoneSpaceTransforms.GetVector();
@@ -422,13 +424,14 @@ void Hack::Loop() {
 						return;
 					}
 
-					PosInfo.push_back({ render.TimeSeconds, Info.Location });
+					if (IsTimeChanged)
+						PosInfo.push_back({ render.TimeSeconds, Info.Location });
 
 					float SumTimeDelta = 0.0f;
 					FVector SumPosDif;
 					for (size_t i = 1; i < PosInfo.size(); i++) {
 						const float DeltaTime = PosInfo[i].Time - PosInfo[i - 1].Time;
-						if (DeltaTime > 0.5f) {
+						if (DeltaTime > 0.1f) {
 							PosInfo.clear();
 							return;
 						}
@@ -464,7 +467,8 @@ void Hack::Loop() {
 				}();
 
 				float& DisconnectedTime = EnemyInfoMap[CharacterPtr].DisconnectedTime;
-				DisconnectedTime = IsDisconnected ? DisconnectedTime + render.TimeDelta : 0.0f;
+				if (IsTimeChanged)
+					DisconnectedTime = IsDisconnected ? DisconnectedTime + render.TimeDelta : 0.0f;
 				if (DisconnectedTime > 2.0f)
 					Info.IsDisconnected = true;
 
@@ -476,7 +480,7 @@ void Hack::Loop() {
 					FiringInfo.RemainTime = FiringTime;
 					FiringInfo.AimOffsets = Info.AimOffsets;
 				}
-				else
+				else if (IsTimeChanged)
 					FiringInfo.RemainTime = std::clamp(FiringInfo.RemainTime - render.TimeDelta, 0.0f, 1.0f);
 
 				Info.IsFiring = FiringInfo.RemainTime > 0.0f;
@@ -528,6 +532,7 @@ void Hack::Loop() {
 					return;
 
 				WorldTimeSeconds = World.TimeSeconds;
+				status += (std::string)"WorldTime : "e + std::to_string((unsigned)WorldTimeSeconds) + (std::string)"\n"e;
 
 				ULevel Level;
 				if (!World.CurrentLevel.Read(Level))
@@ -588,6 +593,7 @@ void Hack::Loop() {
 			const bool bLobby = (MyPawnPtr.GetHash() == "DefaultPawn"h);
 			const bool bEnterGame = (!bLobby && bPrevLobby);
 			bPrevLobby = bLobby;
+			status += bLobby ? (std::string)"Lobby\n"e : "InGame\n"e;
 
 			if (bLobby) {
 				EnemyInfoMap.clear();
@@ -617,8 +623,17 @@ void Hack::Loop() {
 			if (GetCharacterInfo((uintptr_t)MyPawnPtr, MyInfo))
 				CachedMyTslCharacterPtr = (uintptr_t)MyPawnPtr;
 
-			if (!MyInfo.IsFPP)
-				IsFPPOnly = false;
+			if (CachedMyTslCharacterPtr) {
+				if (!MyInfo.IsFPP)
+					IsFPPOnly = false;
+				status += (std::string)"Playing\n"e;
+				status += MyInfo.IsFPP ? (std::string)"FPP\n"e : "TPP\n"e;
+				status += IsFPPOnly ? (std::string)"FPP Only\n"e : "TPP Allowed\n"e;
+				if (MyInfo.IsScoping)
+					status += (std::string)"Zero : "e + std::to_string((unsigned)MyInfo.ZeroingDistance) + (std::string)"M\n"e;
+			}
+			else
+				status += (std::string)"Spectating\n"e;
 
 			if (!render.bKeyPushing[VK_MBUTTON])
 				LockAimbotTargetPtr = 0;
@@ -1100,18 +1115,18 @@ void Hack::Loop() {
 					DrawString(ActorLocationScreen, szBuf, Render::COLOR_TEAL, false);
 				}();
 
-				//DrawProj
+				//DrawObject
 				[&] {
-					auto ProjInfo = GetProjInfo(ActorNameHash);
-					auto& ProjName = ProjInfo.Name;
-					if (!ProjName[0])
+					auto ObjectInfo = GetObjectInfo(ActorNameHash);
+					auto& ObjectName = ObjectInfo.Name;
+					if (!ObjectName[0])
 						return;
 
-					if (!ProjInfo.IsLong && DistanceToActor > 300.0f)
+					if (!ObjectInfo.IsLong && DistanceToActor > 300.0f)
 						return;
 
-					sprintf(szBuf, "%s\n%.0fM"e, ProjName.data(), DistanceToActor);
-					DrawString(ActorLocationScreen, szBuf, Render::COLOR_RED, false);
+					sprintf(szBuf, "%s\n%.0fM"e, ObjectName.data(), DistanceToActor);
+					DrawString(ActorLocationScreen, szBuf, ObjectInfo.bFrendly ? Render::COLOR_TEAL : Render::COLOR_RED, false);
 				}();
 
 				//DrawVehicle
@@ -1284,7 +1299,7 @@ void Hack::Loop() {
 
 			float CustomTimeDilation = 1.0f;
 
-			if (bPenetrate && !MyInfo.IsInVehicle) {
+			if (IsPenetrateOn()) {
 				FVector Direction = CameraRotation.GetUnitVector();
 				MyInfo.AimLocation = MyInfo.BonesPos[forehead] + Direction * 80.0f;
 
@@ -1588,8 +1603,7 @@ void Hack::Loop() {
 
 			if (MyInfo.IsWeaponed) {
 				if (bAimbot)
-					render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f, 0.0f }, AimbotCircleSize, 
-						bPenetrate ? IM_COL32(255, 0, 0, 100) : IM_COL32(255, 255, 255, 100));
+					render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f, 0.0f }, AimbotCircleSize, IsPenetrateOn() ? IM_COL32(255, 0, 0, 100) : IM_COL32(255, 255, 255, 100));
 				if (bSilentAim)
 					render.DrawCircle({ render.Width / 2.0f, render.Height / 2.0f, 0.0f }, SilentCircleSize, IM_COL32(255, 255, 0, 100));
 			}

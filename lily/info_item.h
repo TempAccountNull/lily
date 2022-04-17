@@ -62,16 +62,16 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Attach_Weapon_Muzzle_Suppressor_Medium_C"h, { "S_SMG"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Muzzle_Suppressor_Small_C"h, { "S_P"e, 3 });
 
-		HASH_CASE("Item_Attach_Weapon_Muzzle_Choke_C"h, { "Choke"e, 2 });
+		HASH_CASE("Item_Attach_Weapon_Muzzle_Choke_C"h, { "Choke"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Muzzle_Duckbill_C"h, { "Duckbill"e, 2 });
 
-		HASH_CASE("Item_Attach_Weapon_SideRail_DotSight_RMR_C"h, { "Canted"e, 1 });
+		HASH_CASE("Item_Attach_Weapon_SideRail_DotSight_RMR_C"h, { "Canted"e, 2 });
 
 		HASH_CASE("Item_Attach_Weapon_Stock_AR_Composite_C"h, { "ST_AR"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Stock_SniperRifle_CheekPad_C"h, { "ST_SR"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Stock_UZI_C"h, { "ST_UZI"e, 2 });
 		HASH_CASE("Item_Attach_Weapon_Stock_Shotgun_BulletLoops_C"h, { "ST_SG"e, 2 });
-		HASH_CASE("Item_Attach_Weapon_Stock_SniperRifle_BulletLoops_C"h, { "BulletLoops"e, 2 });
+		HASH_CASE("Item_Attach_Weapon_Stock_SniperRifle_BulletLoops_C"h, { "Belt"e, 2 });
 		
 		HASH_CASE("Item_Attach_Weapon_Upper_PM2_01_C"h, { "15X"e, 4 });
 		HASH_CASE("Item_Attach_Weapon_Upper_CQBSS_C"h, { "8X"e, 4 });
@@ -130,6 +130,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Weapon_P90_C"h, { "P90"e, 4 });
 		HASH_CASE("Item_Weapon_Groza_C"h, { "Groza"e, 4 });
 		HASH_CASE("Item_Weapon_BerylM762_C"h, { "Beryl"e, 4 });
+		HASH_CASE("Item_Weapon_ACE32_C"h, { "ACE"e, 4 });
 		HASH_CASE("Item_Weapon_Duncans_M416_C"h, { "M4"e, 4 });
 		HASH_CASE("Item_Weapon_HK416_C"h, { "M4"e, 4 });
 		HASH_CASE("Item_Weapon_AUG_C"h, { "AUG"e, 4 });
@@ -164,10 +165,10 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Weapon_VSS_C"h, { "VSS"e, 3 });
 		
 		//SG
-		HASH_CASE("Item_Weapon_DP12_C"h, { "DBS"e, 2 });
+		HASH_CASE("Item_Weapon_DP12_C"h, { "DBS"e, 3 });
+		HASH_CASE("Item_Weapon_Winchester_C"h, { "S1897"e, 3 });
 		HASH_CASE("Item_Weapon_Berreta686_C"h, { "S686"e, 2 });
 		HASH_CASE("Item_Weapon_Saiga12_C"h, { "S12K"e, 2 });
-		HASH_CASE("Item_Weapon_Winchester_C"h, { "S1897"e, 2 });
 
 		//Pistol
 		HASH_CASE("Item_Weapon_G18_C"h, { "P18C"e, 4 });

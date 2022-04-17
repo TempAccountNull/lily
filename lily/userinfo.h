@@ -29,6 +29,7 @@ class CUserInfo {
 private:
 	Download download;
 
+	constexpr static unsigned RankSeason = 17;
 	constexpr static float InvalidateTime = 60.0f * 60.0f;	//1hour
 	constexpr static float WaitTime = 5.0f;
 
@@ -119,7 +120,7 @@ public:
 			const std::string Platform = User.bKakao ? (std::string)"kakao/"e : (std::string)"steam/"e;
 			const std::string SyncUrl = (std::string)"https://pubg.dakgg.io/api/v1/rpc/player-sync/"e + Platform + UserName;
 			const std::string InfoUrl = (std::string)"https://pubg.dakgg.io/api/v1/players/"e + Platform + UserName +
-				(std::string)"/seasons/division.bro.official.pc-2018-16"e;
+				(std::string)"/seasons/division.bro.official.pc-2018-"e + std::to_string(RankSeason);
 
 			switch (User.Code) {
 			case Status::Reset:

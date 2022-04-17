@@ -51,7 +51,7 @@
     <ClInclude Include="info_package.h">
       <Filter>hack\pubg\info</Filter>
     </ClInclude>
-    <ClInclude Include="info_proj.h">
+    <ClInclude Include="info_object.h">
       <Filter>hack\pubg\info</Filter>
     </ClInclude>
     <ClInclude Include="info_vehicle.h">

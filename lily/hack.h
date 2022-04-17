@@ -106,7 +106,9 @@ private:
 	bool bCaptureLog = true;
 	bool bNeedToScroll = false;
 
-	constexpr static float MinFocusTime = 0.1f;
+	std::string status;
+
+	constexpr static float MinFocusTime = 0.05f;
 
 	std::vector<unsigned> BlackList;
 	std::vector<unsigned> WhiteList;
@@ -215,7 +217,7 @@ public:
 	}
 
 	void DrawEnemiesFocusingMe(const char* szPlayers, ImColor Color) const {
-		render.DrawString({ render.Width * 0.5f, 0.0f , 0.0f }, Hack::MARGIN, szPlayers, Hack::FONTSIZE_SMALL, Color, true, true, true);
+		render.DrawString({ render.Width * 0.5f, 0.0f , 0.0f }, Hack::MARGIN, szPlayers, Hack::FONTSIZE_NORMAL, Color, true, true, true);
 	}
 
 	void DrawSpectatedCount(unsigned SpectatedCount, ImColor Color) const {
