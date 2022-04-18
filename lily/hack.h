@@ -87,8 +87,8 @@ private:
 	float AimSpeedY = AimSpeedDefault;
 
 	constexpr static float RandSilentAimMax = 40.0f;
-	float RandSilentAimHead = 3.0f;
-	float RandSilentAimBody = 30.0f;
+	float RandSilentAimHead = 2.5f;
+	float RandSilentAimBody = 25.0f;
 
 	bool bCapsLockOn = false;
 	bool bShowMenu = true;

@@ -85,6 +85,7 @@ void Hack::Loop() {
 		bool IsFPP = false;
 		bool IsWeaponed = false;
 		bool IsFiring = false;
+		bool IsFocusingMe = false;
 		FRotator AimOffsets;
 		FRotator LastFiringRot;
 		bool IsScoping = false;
@@ -119,11 +120,12 @@ void Hack::Loop() {
 		std::map<int, FVector> BonesPos, BonesScreenPos;
 		std::string PlayerName;
 		std::string WeaponName;
+		tWeaponType WeaponType = tWeaponType::None;
 		int Ammo = -1;
 	};
 
 	struct tMapInfo {
-		float TimeStamp = 0;
+		float TimeStamp = 0.0f;
 
 		struct {
 			struct PosInfo {
@@ -168,6 +170,8 @@ void Hack::Loop() {
 			status.clear();
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
 			////////////////////////////////////////////////////////////////////////////////////////////////////////
+			constexpr float BallisticDragScale = 1.0f;
+			constexpr float BallisticDropScale = 1.0f;
 			float WorldTimeSeconds = 0.0f;
 			bool IsNeedToHookAim = false;
 			bool IsNeedToHookGunLoc = false;
@@ -365,7 +369,9 @@ void Hack::Loop() {
 					if (!TslCharacter.GetTslWeapon(TslWeapon))
 						return;
 
-					Info.WeaponName = TslWeapon.GetWeaponName();
+					auto WeaopnInfo = TslWeapon.GetWeaponInfo();
+					Info.WeaponName = WeaopnInfo.WeaponName.data();
+					Info.WeaponType = WeaopnInfo.WeaponType;
 					if (Info.WeaponName.empty() && bDebug)
 						Info.WeaponName = TslWeapon.GetFName().GetName();
 
@@ -387,8 +393,7 @@ void Hack::Loop() {
 
 					Info.IsWeaponed = true;
 					Info.Gravity = TslWeapon.TrajectoryGravityZ;
-					if (Info.IsScoping)
-						Info.ZeroingDistance = TslWeapon.GetZeroingDistance();
+					Info.ZeroingDistance = TslWeapon.GetZeroingDistance(Info.IsScoping);
 
 					UWeaponTrajectoryData WeaponTrajectoryData;
 					if (TslWeapon.WeaponTrajectoryData.Read(WeaponTrajectoryData)) {
@@ -412,8 +417,8 @@ void Hack::Loop() {
 				Info.AimLocation = Info.GunLocation.Length() > 0.0f ? Info.GunLocation : Info.Location;
 				Info.AimRotation = Info.IsScoping ? Info.GunRotation : Info.ControlRotation;
 
-				bool IsTimeChanged = (EnemyInfoMap[CharacterPtr].TimeStamp != render.TimeSeconds);
-				EnemyInfoMap[CharacterPtr].TimeStamp = render.TimeSeconds;
+				float TimeStampDelta = WorldTimeSeconds - EnemyInfoMap[CharacterPtr].TimeStamp;
+				EnemyInfoMap[CharacterPtr].TimeStamp = WorldTimeSeconds;
 
 				//PosInfo
 				[&] {
@@ -424,20 +429,18 @@ void Hack::Loop() {
 						return;
 					}
 
-					if (IsTimeChanged)
-						PosInfo.push_back({ render.TimeSeconds, Info.Location });
+					if (TimeStampDelta)
+						PosInfo.push_back({ WorldTimeSeconds, Info.Location });
 
 					float SumTimeDelta = 0.0f;
 					FVector SumPosDif;
 					for (size_t i = 1; i < PosInfo.size(); i++) {
 						const float DeltaTime = PosInfo[i].Time - PosInfo[i - 1].Time;
-						if (DeltaTime > 0.1f) {
-							PosInfo.clear();
-							return;
-						}
-
 						const FVector DeltaPos = PosInfo[i].Pos - PosInfo[i - 1].Pos;
-						if (DeltaPos.Length() / 100.0f > 1.0f) {
+						const FVector DeltaVelocity = DeltaPos * (1.0f / DeltaTime);
+						const float DeltaSpeedPerHour = DeltaVelocity.Length() / 100.0f * 3.6f;
+
+						if (DeltaTime > 0.1f || DeltaSpeedPerHour > 500.0f) {
 							PosInfo.clear();
 							return;
 						}
@@ -467,8 +470,7 @@ void Hack::Loop() {
 				}();
 
 				float& DisconnectedTime = EnemyInfoMap[CharacterPtr].DisconnectedTime;
-				if (IsTimeChanged)
-					DisconnectedTime = IsDisconnected ? DisconnectedTime + render.TimeDelta : 0.0f;
+				DisconnectedTime = IsDisconnected ? DisconnectedTime + TimeStampDelta : 0.0f;
 				if (DisconnectedTime > 2.0f)
 					Info.IsDisconnected = true;
 
@@ -480,8 +482,8 @@ void Hack::Loop() {
 					FiringInfo.RemainTime = FiringTime;
 					FiringInfo.AimOffsets = Info.AimOffsets;
 				}
-				else if (IsTimeChanged)
-					FiringInfo.RemainTime = std::clamp(FiringInfo.RemainTime - render.TimeDelta, 0.0f, 1.0f);
+				else
+					FiringInfo.RemainTime = std::clamp(FiringInfo.RemainTime - TimeStampDelta, 0.0f, 1.0f);
 
 				Info.IsFiring = FiringInfo.RemainTime > 0.0f;
 				Info.LastFiringRot = FiringInfo.AimOffsets;
@@ -492,8 +494,8 @@ void Hack::Loop() {
 
 				if (CharacterPtr == LockAimbotTargetPtr) {
 					if (AimbotInfo.IsLocked) {
-						if (IsTimeChanged && AimbotInfo.IsInVehicle)
-							AimbotInfo.AimPoint = AimbotInfo.AimPoint + AimbotInfo.Velocity * render.TimeDelta;
+						if (AimbotInfo.IsInVehicle)
+							AimbotInfo.AimPoint = AimbotInfo.AimPoint + AimbotInfo.Velocity * TimeStampDelta;
 						Info.AimPoint = AimbotInfo.AimPoint;
 						Info.Velocity = AimbotInfo.Velocity;
 						Info.IsVisible = true;
@@ -518,11 +520,89 @@ void Hack::Loop() {
 				Info.IsLocked = AimbotInfo.IsLocked;
 				AimbotInfo.State = Info.State;
 
+				//FocusingInfo
+				[&] {
+					if (&Info == &MyInfo)
+						return;
+
+					float AccTime = EnemyInfoMap[Info.Ptr].FocusTime;
+					EnemyInfoMap[Info.Ptr].FocusTime = 0.0f;
+
+					if (MyInfo.Health <= 0.0f)
+						return;
+					if (Info.Health <= 0.0f)
+						return;
+					if (!Info.IsWeaponed)
+						return;
+					if (Info.AimOffsets.Length() == 0.0f)
+						return;
+					if (!bTeamKill && (Info.Team == MyInfo.Team || Info.IsWhiteListed))
+						return;
+
+					auto Result = GetBulletDropAndTravelTime(
+						Info.GunLocation,
+						Info.AimOffsets,
+						MyInfo.Location,
+						Info.ZeroingDistance,
+						Info.BulletDropAdd,
+						Info.InitialSpeed,
+						Info.Gravity,
+						BallisticDragScale,
+						BallisticDropScale,
+						Info.BDS,
+						Info.SimulationSubstepTime,
+						Info.VDragCoefficient,
+						Info.BallisticCurve);
+
+					float BulletDrop = Result.first;
+					float TravelTime = Result.second;
+
+					float MinPitch = FLT_MAX;
+					float MaxPitch = -FLT_MAX;
+					float MinYaw = FLT_MAX;
+					float MaxYaw = -FLT_MAX;
+
+					for (auto BoneIndex : GetBoneIndexArray()) {
+						FVector PredictedPos = MyInfo.BonesPos[BoneIndex];
+						PredictedPos.Z += BulletDrop;
+						PredictedPos = PredictedPos + MyInfo.Velocity * TravelTime;
+						FRotator Rotator = (PredictedPos - Info.GunLocation).GetDirectionRotator();
+						Rotator.Clamp();
+						MinPitch = std::clamp(Rotator.Pitch, -FLT_MAX, MinPitch);
+						MaxPitch = std::clamp(Rotator.Pitch, MaxPitch, FLT_MAX);
+						MinYaw = std::clamp(Rotator.Yaw, -FLT_MAX, MinYaw);
+						MaxYaw = std::clamp(Rotator.Yaw, MaxYaw, FLT_MAX);
+					}
+
+					float CenterYaw = (MinYaw + MaxYaw) / 2.0f;
+					float RangeYaw = (MaxYaw - MinYaw) / 2.0f;
+					float RangeYawAdd = RangeYaw + std::clamp(RangeYaw * 1.5f, 1.0f, FLT_MAX);
+					float RangeYawMinus = RangeYawAdd;
+
+					float CenterPitch = (MinPitch + MaxPitch) / 2.0f;
+					float RangePitch = (MaxPitch - MinPitch) / 2.0f;
+					float RangePitchAdd = RangePitch + std::clamp(RangePitch * 2.0f, 5.0f, FLT_MAX);
+					float RangePitchMinus = RangePitch + std::clamp(RangePitch * 1.5f, 1.0f, FLT_MAX);
+
+					FRotator AimOffsets = Info.AimOffsets;
+					AimOffsets.Clamp();
+
+					if (AimOffsets.Yaw < CenterYaw - RangeYawMinus)
+						return;
+					if (AimOffsets.Yaw > CenterYaw + RangeYawAdd)
+						return;
+					if (AimOffsets.Pitch < CenterPitch - RangePitchMinus)
+						return;
+					if (AimOffsets.Pitch > CenterPitch + RangePitchAdd)
+						return;
+
+					EnemyInfoMap[Info.Ptr].FocusTime = AccTime + TimeStampDelta;
+					if (EnemyInfoMap[Info.Ptr].FocusTime > MinFocusTime)
+						Info.IsFocusingMe = true;
+				}();
+
 				return true;
 			};
-
-			constexpr float BallisticDragScale = 1.0f;
-			constexpr float BallisticDropScale = 1.0f;
 
 			NativePtr<UObject> MyPawnPtr = 0;
 
@@ -532,6 +612,7 @@ void Hack::Loop() {
 					return;
 
 				WorldTimeSeconds = World.TimeSeconds;
+
 				status += (std::string)"WorldTime : "e + std::to_string((unsigned)WorldTimeSeconds) + (std::string)"\n"e;
 
 				ULevel Level;
@@ -661,84 +742,7 @@ void Hack::Loop() {
 				if (Distance > 1500.0f)
 					return;
 
-				bool bFocusingMe = false;
-				//Get bFocusingMe
-				[&] {
-					float AccTime = EnemyInfoMap[Info.Ptr].FocusTime;
-					EnemyInfoMap[Info.Ptr].FocusTime = 0.0f;
 
-					if (MyInfo.Health <= 0.0f)
-						return;
-					if (Info.Health <= 0.0f)
-						return;
-					if (!Info.IsWeaponed)
-						return;
-					if (Info.AimOffsets.Length() == 0.0f)
-						return;
-					if (!bTeamKill && (Info.Team == MyInfo.Team || Info.IsWhiteListed))
-						return;
-
-					auto Result = GetBulletDropAndTravelTime(
-						Info.GunLocation,
-						Info.AimOffsets,
-						MyInfo.Location,
-						Info.ZeroingDistance,
-						Info.BulletDropAdd,
-						Info.InitialSpeed,
-						Info.Gravity,
-						BallisticDragScale,
-						BallisticDropScale,
-						Info.BDS,
-						Info.SimulationSubstepTime,
-						Info.VDragCoefficient,
-						Info.BallisticCurve);
-
-					float BulletDrop = Result.first;
-					float TravelTime = Result.second;
-
-					float MinPitch = FLT_MAX;
-					float MaxPitch = -FLT_MAX;
-					float MinYaw = FLT_MAX;
-					float MaxYaw = -FLT_MAX;
-
-					for (auto BoneIndex : GetBoneIndexArray()) {
-						FVector PredictedPos = MyInfo.BonesPos[BoneIndex];
-						PredictedPos.Z += BulletDrop;
-						PredictedPos = PredictedPos + MyInfo.Velocity * TravelTime;
-						FRotator Rotator = (PredictedPos - Info.GunLocation).GetDirectionRotator();
-						Rotator.Clamp();
-						MinPitch = std::clamp(Rotator.Pitch, -FLT_MAX, MinPitch);
-						MaxPitch = std::clamp(Rotator.Pitch, MaxPitch, FLT_MAX);
-						MinYaw = std::clamp(Rotator.Yaw, -FLT_MAX, MinYaw);
-						MaxYaw = std::clamp(Rotator.Yaw, MaxYaw, FLT_MAX);
-					}
-
-					float CenterYaw = (MinYaw + MaxYaw) / 2.0f;
-					float RangeYaw = (MaxYaw - MinYaw) / 2.0f;
-					float RangeYawAdd = RangeYaw + std::clamp(RangeYaw * 1.5f, 1.0f, FLT_MAX);
-					float RangeYawMinus = RangeYawAdd;
-
-					float CenterPitch = (MinPitch + MaxPitch) / 2.0f;
-					float RangePitch = (MaxPitch - MinPitch) / 2.0f;
-					float RangePitchAdd = RangePitch + std::clamp(RangePitch * 2.0f, 5.0f, FLT_MAX);
-					float RangePitchMinus = RangePitch + std::clamp(RangePitch * 1.5f, 1.0f, FLT_MAX);
-
-					FRotator AimOffsets = Info.AimOffsets;
-					AimOffsets.Clamp();
-
-					if (AimOffsets.Yaw < CenterYaw - RangeYawMinus)
-						return;
-					if (AimOffsets.Yaw > CenterYaw + RangeYawAdd)
-						return;
-					if (AimOffsets.Pitch < CenterPitch - RangePitchMinus)
-						return;
-					if (AimOffsets.Pitch > CenterPitch + RangePitchAdd)
-						return;
-
-					EnemyInfoMap[Info.Ptr].FocusTime = AccTime + render.TimeDelta;
-					if (EnemyInfoMap[Info.Ptr].FocusTime > MinFocusTime)
-						bFocusingMe = true;
-				}();
 
 				//DrawRadar
 				[&] {
@@ -756,11 +760,11 @@ void Hack::Loop() {
 						400.0f;
 
 					if (RadarDistance != SavedRadarDistance) {
-						LastRadarDistanceUpdateTime = render.TimeSeconds;
+						LastRadarDistanceUpdateTime = WorldTimeSeconds;
 						SavedRadarDistance = RadarDistance;
 					}
 
-					if (render.TimeSeconds > LastRadarDistanceUpdateTime + 0.1f)
+					if (WorldTimeSeconds > LastRadarDistanceUpdateTime + 0.1f)
 						LastRadarDistance = SavedRadarDistance;
 
 					const FVector RadarPos = (Info.Location - MyInfo.Location) * 0.01f;
@@ -776,7 +780,7 @@ void Hack::Loop() {
 							return Render::COLOR_GREEN;
 						if (Info.Health <= 0.0f)
 							return Render::COLOR_GRAY;
-						if (bFocusingMe)
+						if (Info.IsFocusingMe)
 							return Render::COLOR_RED;
 						if (Info.IsAI || Info.IsDisconnected)
 							return Render::COLOR_TEAL;
@@ -910,7 +914,7 @@ void Hack::Loop() {
 							return Render::COLOR_GREEN;
 						if (Info.Health <= 0.0f)
 							return Render::COLOR_GRAY;
-						if (bFocusingMe)
+						if (Info.IsFocusingMe)
 							return Render::COLOR_RED;
 						if (Info.IsAI || Info.IsDisconnected)
 							return Render::COLOR_TEAL;
@@ -1473,9 +1477,19 @@ void Hack::Loop() {
 						return;
 
 					FVector RandedTargetPos = TargetPos;
+					float radiousMax = [&] {
+						if (render.bKeyPushing[VK_SHIFT])
+							return RandSilentAimHead;
+						switch (MyInfo.WeaponType) {
+						case tWeaponType::SR:
+						case tWeaponType::SG:
+							return RandSilentAimHead;
+						}
+						return RandSilentAimBody;
+					}();
+					float radious = randf(0.0f, radiousMax);
 					float angle1 = randf(0.0f, PI);
 					float angle2 = randf(0.0f, PI * 2.0f);
-					float radious = randf(0.0f, render.bKeyPushing[VK_SHIFT] ? RandSilentAimHead : RandSilentAimBody);
 					RandedTargetPos.X += radious * sinf(angle1) * cosf(angle2);
 					RandedTargetPos.Y += radious * sinf(angle1) * sinf(angle2);
 					RandedTargetPos.Z += radious * cosf(angle1);

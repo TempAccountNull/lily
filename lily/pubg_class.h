@@ -368,7 +368,7 @@ DefClass(ATslWeapon, AActor,
 	MemberAtOffset(FName, WeaponTag, 0x818)
 	MemberAtOffset(FName, FiringAttachPoint, 0x860)
 	,
-	std::string GetWeaponName() const;
+	tWeaponInfo GetWeaponInfo() const;
 )
 
 //TslGame.TslWeapon_Gun.CurrentZeroLevel 
@@ -390,7 +390,7 @@ DefClass(ATslWeapon_Trajectory, ATslWeapon_Gun,
 	MemberAtOffset(NativePtr<UWeaponTrajectoryData>, WeaponTrajectoryData, 0x1000)
 	MemberAtOffset(float, TrajectoryGravityZ, 0xfa0)
 	,
-	float GetZeroingDistance() const;
+	float GetZeroingDistance(bool IsScoping) const;
 )
 
 DefClass(ATslWeapon_Throwable, ATslWeapon_Gun, );

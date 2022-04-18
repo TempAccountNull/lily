@@ -76,15 +76,16 @@ ItemInfo UItem::GetInfo() const {
 	return GetItemInfo(GetHash());
 }
 
-std::string ATslWeapon::GetWeaponName() const {
-	return ::GetWeaponName(GetFName().GetHash()).data();
+tWeaponInfo ATslWeapon::GetWeaponInfo() const {
+	return ::GetWeaponInfo(GetFName().GetHash());
 }
 
-float ATslWeapon_Trajectory::GetZeroingDistance() const {
+float ATslWeapon_Trajectory::GetZeroingDistance(bool IsScoping) const {
 	if (bCantedSighted)
 		return 50.0f;
 
-	ZeroingInfo Info = GetWeaponZeroingInfo(GetFName().GetHash());
+	auto ZeroingInfo = GetWeaponInfo().ZeroingInfo;
+	int ZeroLevel = IsScoping ? CurrentZeroLevel : 0;
 
 	for (const auto& AttachableItemPtr : AttachedItems.GetVector()) {
 		UAttachableItem AttachableItem;
@@ -98,19 +99,19 @@ float ATslWeapon_Trajectory::GetZeroingDistance() const {
 		switch (ItemTableRowAttachment.ItemID.GetHash()) {
 		case "Item_Attach_Weapon_Upper_PM2_01_C"h:
 		case "Item_Attach_Weapon_Upper_CQBSS_C"h:
-			return Info.BaseScope + Info.Increment * CurrentZeroLevel;
+			return ZeroingInfo.BaseScope + ZeroingInfo.Increment * ZeroLevel;
 		case "Item_Attach_Weapon_Upper_Scope6x_C"h:
 		case "Item_Attach_Weapon_Upper_ACOG_01_C"h:
 		case "Item_Attach_Weapon_Upper_Scope3x_C"h:
 		case "Item_Attach_Weapon_Upper_Aimpoint_C"h:
 		case "Item_Attach_Weapon_Upper_DotSight_01_C"h:
-			return Info.BaseScope;
+			return ZeroingInfo.BaseScope;
 		case "Item_Attach_Weapon_Upper_Holosight_C"h:
-			return Info.BaseHolo;
+			return ZeroingInfo.BaseHolo;
 		}
 	}
 
-	return Info.BaseIron + Info.Increment * CurrentZeroLevel;
+	return ZeroingInfo.BaseIron + ZeroingInfo.Increment * ZeroLevel;
 }
 
 NativePtr<UStaticMeshComponent> UWeaponMeshComponent::GetStaticMeshComponentScopeType() const {

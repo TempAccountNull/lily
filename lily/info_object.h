@@ -25,6 +25,11 @@ static ObjectInfo GetObjectInfo(unsigned Hash) {
 		HASH_CASE("BP_Drone_C"h, { "Drone"e });
 		HASH_CASE("WeapMortar_C"h, { "Mortar"e });
 
+		HASH_CASE("WeapMacheteProjectile_C"h, { "Machete"e });
+		HASH_CASE("WeapCowbarProjectile_C"h, { "Cowbar"e });
+		HASH_CASE("WeapPanProjectile_C"h, { "Pan"e });
+		HASH_CASE("WeapSickleProjectile_C"h, { "Sickle"e });
+
 		HASH_CASE("PanzerFaust100M_Projectile_C"h, { "Rocket"e, true });
 		HASH_CASE("Mortar_Projectile_C"h, { "Shell"e, true });
 		HASH_CASE("Flare_Projectile_C"h, { "Flare"e, true });
