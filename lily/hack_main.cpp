@@ -17,7 +17,6 @@ enum class CharacterState {
 };
 
 void Hack::Loop() {
-	//GetAllLeaderboardInfo();
 	LoadList(BlackList, BlackListFile);
 	LoadList(WhiteList, WhiteListFile);
 
@@ -132,7 +131,7 @@ void Hack::Loop() {
 				float Time = 0;
 				FVector Pos;
 			};
-			std::vector<PosInfo> Info;
+			std::deque<PosInfo> Info;
 		}PosInfo;
 
 		struct {
@@ -430,30 +429,34 @@ void Hack::Loop() {
 					}
 
 					if (TimeStampDelta)
-						PosInfo.push_back({ WorldTimeSeconds, Info.Location });
+						PosInfo.push_front({ WorldTimeSeconds, Info.Location });
+
+					if (PosInfo.size() > 200)
+						PosInfo.pop_back();
 
 					float SumTimeDelta = 0.0f;
 					FVector SumPosDif;
+
 					for (size_t i = 1; i < PosInfo.size(); i++) {
-						const float DeltaTime = PosInfo[i].Time - PosInfo[i - 1].Time;
-						const FVector DeltaPos = PosInfo[i].Pos - PosInfo[i - 1].Pos;
+						const float DeltaTime = PosInfo[i - 1].Time - PosInfo[i].Time;
+						const FVector DeltaPos = PosInfo[i - 1].Pos - PosInfo[i].Pos;
 						const FVector DeltaVelocity = DeltaPos * (1.0f / DeltaTime);
 						const float DeltaSpeedPerHour = DeltaVelocity.Length() / 100.0f * 3.6f;
 
-						if (DeltaTime > 0.1f || DeltaSpeedPerHour > 500.0f) {
+						if (DeltaTime > 0.05f || DeltaSpeedPerHour > 500.0f) {
 							PosInfo.clear();
 							return;
 						}
 
 						SumTimeDelta = SumTimeDelta + DeltaTime;
 						SumPosDif = SumPosDif + DeltaPos;
+
+						if (SumTimeDelta > 0.15f)
+							break;
 					}
 
 					if (SumTimeDelta < 0.1f)
 						return;
-
-					if (SumTimeDelta > 0.15f)
-						PosInfo.erase(PosInfo.begin());
 
 					Info.Velocity = SumPosDif * (1.0f / SumTimeDelta);
 				}();
