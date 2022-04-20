@@ -1500,16 +1500,18 @@ void Hack::Loop() {
 					if (MyInfo.Ammo < 1)
 						return;
 
-					switch (CompileTime::StrHash(MyInfo.WeaponName.c_str())) {
-					case "R45"h:
-					case "Deagle"h:
-					case "R1895"h:
-						if (MyInfo.TimeAfterShot < 0.1f)
+					if (MyInfo.IsScoping) {
+						switch (CompileTime::StrHash(MyInfo.WeaponName.c_str())) {
+						case "R45"h:
+						case "Deagle"h:
+						case "R1895"h:
+							if (MyInfo.TimeAfterShot < 0.15f)
+								return;
+						}
+
+						if (!MyInfo.IsAutoFiring && MyInfo.TimeAfterShot < 0.1f)
 							return;
 					}
-
-					if (!MyInfo.IsAutoFiring && MyInfo.TimeAfterShot < 0.1f && MyInfo.IsScoping)
-						return;
 
 					AImbot_MouseMove();
 				}();
