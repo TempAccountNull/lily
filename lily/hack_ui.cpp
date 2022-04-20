@@ -30,7 +30,8 @@ void Hack::DrawHotkey() const {
 	AddOnOff("Silent Aimbot(F7)"e, bSilentAim);
 	AddOnOff("Penetrate(F8)"e, bPenetrate);
 	AddOnOff("MoveEnemy(F9)"e, bMoveEnemy);
-	AddOnOff("TeamKill(F10)"e, bTeamKill);
+	AddOnOff("AutoClick(F10)"e, bAutoClick);
+	AddOnOff("TeamKill(F11)"e, bTeamKill);
 	AddOnOff("Total ESP(F12)"e, bESP);
 
 	strNotice += (std::string)"Range (+-) : "e;
@@ -69,7 +70,6 @@ void Hack::ProcessImGui() {
 		ImGui::RadioButton("CapsLock Mode : OFF"e, &nCapsLockMode, 0);
 		ImGui::RadioButton("CapsLock Mode : TurnBack"e, &nCapsLockMode, 1);
 		ImGui::RadioButton("CapsLock Mode : AimToEnemyFocusingMe"e, &nCapsLockMode, 2);
-		ImGui::RadioButton("CapsLock Mode : AutoClick"e, &nCapsLockMode, 3);
 
 		if (ImGui::Button("LoadList"e)) {
 			LoadList(BlackList, BlackListFile);
@@ -157,7 +157,8 @@ void Hack::ProcessImGui() {
 
 				ImGui::Checkbox("Penetrate(F8)"e, &bPenetrate);
 				ImGui::Checkbox("MoveEnemy(F9)"e, &bMoveEnemy);
-				ImGui::Checkbox("TeamKill(F10)"e, &bTeamKill);
+				ImGui::Checkbox("AutoClick(F10)"e, &bAutoClick);
+				ImGui::Checkbox("TeamKill(F11)"e, &bTeamKill);
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Debug"e))
@@ -237,6 +238,10 @@ void Hack::ProcessHotkey() {
 			NoticeTimeRemain = NOTICE_TIME;
 		}
 		if (render.bKeyPushed[VK_F10]) {
+			bAutoClick = !bAutoClick;
+			NoticeTimeRemain = NOTICE_TIME;
+		}
+		if (render.bKeyPushed[VK_F11]) {
 			bTeamKill = !bTeamKill;
 			NoticeTimeRemain = NOTICE_TIME;
 		}

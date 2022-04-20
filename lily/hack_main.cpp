@@ -140,7 +140,7 @@ void Hack::Loop() {
 
 		struct {
 			int Ammo = -1;
-			float TimeAfterShot = 0.0f;
+			float TimeAfterShot = 10.0f;
 			FRotator AimOffsets;
 		}FiringInfo;
 
@@ -186,7 +186,7 @@ void Hack::Loop() {
 			float DefaultFOV = 0.0f;
 			float MouseXSensitivity = 0.02f;
 			float MouseYSensitivity = 0.02f;
-			const bool IsAutoClickOn = nCapsLockMode == 3 && render.KeyStates[VK_CAPITAL];
+			const bool IsAutoClickOn = bAutoClick && render.KeyStates[VK_SCROLL];
 
 			CharacterInfo MyInfo;
 			auto IsPenetrateOn = [&] { return bPenetrate && render.bKeyPushing[VK_CONTROL] && !MyInfo.IsInVehicle; };
@@ -274,7 +274,7 @@ void Hack::Loop() {
 					if (!bMoveEnemy)
 						return;
 
-					if (!render.bKeyPushing[VK_CAPITAL]) {
+					if (!render.KeyStates[VK_CAPITAL]) {
 						nEnemyMoveDir = Direction::None;
 						return;
 					}
@@ -767,8 +767,6 @@ void Hack::Loop() {
 				if (Distance > 1500.0f)
 					return;
 
-
-
 				//DrawRadar
 				[&] {
 					if (!bRadar)
@@ -1066,7 +1064,7 @@ void Hack::Loop() {
 						Line += std::to_string(Info.NumKills);
 					}
 
-					if (ESP_PlayerSetting.bDamage) {
+					if (ESP_PlayerSetting.bDamage && !bShortNick) {
 						if (!Line.empty())
 							Line += (std::string)" "e;
 						Line += std::to_string((int)Info.Damage);
