@@ -29,6 +29,7 @@ void Hack::DrawHotkey() const {
 	AddOnOff("Aimbot(F6)"e, bAimbot);
 	AddOnOff("Silent Aimbot(F7)"e, bSilentAim);
 	AddOnOff("Penetrate(F8)"e, bPenetrate);
+	AddOnOff("MoveEnemy(F9)"e, bMoveEnemy);
 	AddOnOff("TeamKill(F10)"e, bTeamKill);
 	AddOnOff("Total ESP(F12)"e, bESP);
 
@@ -68,7 +69,7 @@ void Hack::ProcessImGui() {
 		ImGui::RadioButton("CapsLock Mode : OFF"e, &nCapsLockMode, 0);
 		ImGui::RadioButton("CapsLock Mode : TurnBack"e, &nCapsLockMode, 1);
 		ImGui::RadioButton("CapsLock Mode : AimToEnemyFocusingMe"e, &nCapsLockMode, 2);
-		ImGui::RadioButton("CapsLock Mode : MoveEnemy"e, &nCapsLockMode, 3);
+		ImGui::RadioButton("CapsLock Mode : AutoClick"e, &nCapsLockMode, 3);
 
 		if (ImGui::Button("LoadList"e)) {
 			LoadList(BlackList, BlackListFile);
@@ -155,6 +156,7 @@ void Hack::ProcessImGui() {
 				}
 
 				ImGui::Checkbox("Penetrate(F8)"e, &bPenetrate);
+				ImGui::Checkbox("MoveEnemy(F9)"e, &bMoveEnemy);
 				ImGui::Checkbox("TeamKill(F10)"e, &bTeamKill);
 				ImGui::EndTabItem();
 			}
@@ -230,6 +232,10 @@ void Hack::ProcessHotkey() {
 			bPenetrate = !bPenetrate;
 			NoticeTimeRemain = NOTICE_TIME;
 		}
+		if (render.bKeyPushed[VK_F9]) {
+			bMoveEnemy = !bMoveEnemy;
+			NoticeTimeRemain = NOTICE_TIME;
+		}
 		if (render.bKeyPushed[VK_F10]) {
 			bTeamKill = !bTeamKill;
 			NoticeTimeRemain = NOTICE_TIME;
@@ -255,16 +261,5 @@ void Hack::ProcessHotkey() {
 
 			NoticeTimeRemain = NOTICE_TIME;
 		}
-	}
-
-	bool bNewCapsLockOn = render.KeyStates[VK_CAPITAL] & 1;
-	if (!bCapsLockOn && bNewCapsLockOn)
-		nEnemyMoveDir = Direction::None;
-	bCapsLockOn = bNewCapsLockOn;
-	if (bCapsLockOn) {
-		if (render.bKeyPushed[VK_UP])		nEnemyMoveDir = Direction::Up;
-		if (render.bKeyPushed[VK_LEFT])		nEnemyMoveDir = Direction::Left;
-		if (render.bKeyPushed[VK_DOWN])		nEnemyMoveDir = Direction::Down;
-		if (render.bKeyPushed[VK_RIGHT])	nEnemyMoveDir = Direction::Right;
 	}
 }

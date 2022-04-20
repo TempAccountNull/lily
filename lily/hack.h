@@ -22,7 +22,7 @@ private:
 	float NoticeTimeRemain = 0.0f;
 
 	bool bFighterMode = false;
-	int nCapsLockMode = 0;
+	int nCapsLockMode = 3;
 	bool bAimToEnemyFocusingMe = false;
 	bool bPlayer = true;
 	bool bVehicle = true;
@@ -34,6 +34,7 @@ private:
 	bool bSilentAim = true;
 	bool bSilentAim_DangerousMode = true;
 	bool bPenetrate = true;
+	bool bMoveEnemy = true;
 	int nRange = 1000;
 
 	enum class Direction {
@@ -90,7 +91,6 @@ private:
 	float RandSilentAimHead = 2.5f;
 	float RandSilentAimBody = 25.0f;
 
-	bool bCapsLockOn = false;
 	bool bShowMenu = true;
 	bool bDebug = false;
 
@@ -243,6 +243,15 @@ public:
 
 		bNeedToScroll = true;
 		debuglog += buf;
+	}
+
+	float LastClickTime = -FLT_MAX;
+	void AutoClick(HWND hWnd) {
+		if (render.TimeSeconds < LastClickTime + 1.0f / 30.0f)
+			return;
+		LastClickTime = render.TimeSeconds;
+		PostMessageA(hWnd, WM_LBUTTONDOWN, 0, 0);
+		PostMessageA(hWnd, WM_LBUTTONUP, 0, 0);
 	}
 
 	void MoveMouse(HWND hWnd, POINT Movement) {

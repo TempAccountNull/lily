@@ -30,14 +30,15 @@ void Hack::Loop() {
 	const FName KeyMouseY("MouseY"e);
 	verify(KeyMouseY.ComparisonIndex);
 
-	//41 0f ? ? 73 ? f3 0f 10 ? ? ? ? ? f3 0f 11 ? ? ? ? 00 00
-	constexpr uintptr_t HookBaseAddress = 0x4F0848;
+	//41 0f ? ? 73 ? f3 0f 10 ? ? ? ? ? f3 0f 11
+	//first result
+	constexpr uintptr_t HookBaseAddress = 0x4DF840;
 	const uintptr_t AimHookAddressVA = pubg.GetBaseAddress() + HookBaseAddress;
 	const PhysicalAddress AimHookAddressPA = dbvm.GetPhysicalAddress(AimHookAddressVA, mapCR3);
 	verify(AimHookAddressPA);
 
 	//e8 ? ? ? ? f2 0f 10 00 f2 0f ? ? ? ? ? 00 00 8b 40 08 89 ? ? ? ? 00 00 48
-	constexpr uintptr_t GunLocScopeHookBaseAddress = 0x4EF7FD;
+	constexpr uintptr_t GunLocScopeHookBaseAddress = 0x4DE879;
 	const uintptr_t GunLocScopeHookAddressVA = pubg.GetBaseAddress() + GunLocScopeHookBaseAddress;
 	const PhysicalAddress GunLocScopeHookAddressPA1 = dbvm.GetPhysicalAddress(GunLocScopeHookAddressVA, mapCR3);
 	const PhysicalAddress GunLocScopeHookAddressPA2 = dbvm.GetPhysicalAddress(GunLocScopeHookAddressVA + 0xC, mapCR3);
@@ -45,7 +46,7 @@ void Hack::Loop() {
 	verify(GunLocScopeHookAddressPA2);
 
 	//74 ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? eb ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? f2 0f 10 00 f2 0f
-	constexpr uintptr_t GunLocNoScopeHookBaseAddress = 0x4EF1EB;
+	constexpr uintptr_t GunLocNoScopeHookBaseAddress = 0x4DE2CA;
 	const uintptr_t GunLocNoScopeHookAddressVA = pubg.GetBaseAddress() + GunLocNoScopeHookBaseAddress;
 	const PhysicalAddress GunLocNoScopeHookAddressPA1 = dbvm.GetPhysicalAddress(GunLocNoScopeHookAddressVA, mapCR3);
 	const PhysicalAddress GunLocNoScopeHookAddressPA2 = dbvm.GetPhysicalAddress(GunLocNoScopeHookAddressVA + 0xC, mapCR3);
@@ -53,7 +54,7 @@ void Hack::Loop() {
 	verify(GunLocNoScopeHookAddressPA2);
 
 	//e8 ? ? ? ? f6 84 ? ? ? ? ? 01 74 ? f3 0f
-	constexpr uintptr_t GunLocNearWallHookBaseAddress = 0x4F170F;
+	constexpr uintptr_t GunLocNearWallHookBaseAddress = 0x4E0605;
 	const uintptr_t GunLocNearWallHookAddressVA = pubg.GetBaseAddress() + GunLocNearWallHookBaseAddress;
 	const PhysicalAddress GunLocNearWallHookAddressPA = dbvm.GetPhysicalAddress(GunLocNearWallHookAddressVA, mapCR3);
 	verify(GunLocNearWallHookAddressPA);
@@ -83,7 +84,10 @@ void Hack::Loop() {
 		bool IsWhiteListed = false;
 		bool IsFPP = false;
 		bool IsWeaponed = false;
-		bool IsFiring = false;
+		float TimeAfterShot = 10.0f;
+		bool IsReloading = false;
+		bool IsWeaponReady = false;
+		bool IsAutoFiring = false;
 		bool IsFocusingMe = false;
 		FRotator AimOffsets;
 		FRotator LastFiringRot;
@@ -136,7 +140,7 @@ void Hack::Loop() {
 
 		struct {
 			int Ammo = -1;
-			float RemainTime = 0.0f;
+			float TimeAfterShot = 0.0f;
 			FRotator AimOffsets;
 		}FiringInfo;
 
@@ -182,6 +186,7 @@ void Hack::Loop() {
 			float DefaultFOV = 0.0f;
 			float MouseXSensitivity = 0.02f;
 			float MouseYSensitivity = 0.02f;
+			const bool IsAutoClickOn = nCapsLockMode == 3 && render.KeyStates[VK_CAPITAL];
 
 			CharacterInfo MyInfo;
 			auto IsPenetrateOn = [&] { return bPenetrate && render.bKeyPushing[VK_CONTROL] && !MyInfo.IsInVehicle; };
@@ -237,6 +242,7 @@ void Hack::Loop() {
 				return true;
 			};
 			auto GetCharacterInfo = [&](NativePtr<ATslCharacter> CharacterPtr, CharacterInfo& Info) -> bool {
+				const bool IsMe = &Info == &MyInfo;
 				const unsigned NameHash = CharacterPtr.GetHash();
 				if (!IsPlayerCharacter(NameHash) && !IsAICharacter(NameHash))
 					return false;
@@ -261,7 +267,23 @@ void Hack::Loop() {
 					return false;
 
 				//MoveEnemy
-				if (&Info != &MyInfo && nCapsLockMode == 3 && bCapsLockOn) {
+				[&] {
+					if (IsMe)
+						return;
+
+					if (!bMoveEnemy)
+						return;
+
+					if (!render.bKeyPushing[VK_CAPITAL]) {
+						nEnemyMoveDir = Direction::None;
+						return;
+					}
+
+					if (render.bKeyPushed[VK_UP])		nEnemyMoveDir = Direction::Up;
+					if (render.bKeyPushed[VK_LEFT])		nEnemyMoveDir = Direction::Left;
+					if (render.bKeyPushed[VK_DOWN])		nEnemyMoveDir = Direction::Down;
+					if (render.bKeyPushed[VK_RIGHT])	nEnemyMoveDir = Direction::Right;
+
 					FVector Dir = [&]()->FVector {
 						FVector Base = Info.RootLocation - MyInfo.RootLocation;
 						switch (nEnemyMoveDir) {
@@ -281,7 +303,7 @@ void Hack::Loop() {
 						offsetof(USceneComponent, ComponentToWorld) +
 						offsetof(FTransform, Translation),
 						&Mesh.ComponentToWorld.Translation);
-				}
+				}();
 
 				Info.Location = Mesh.ComponentToWorld.Translation;
 				Info.IsVisible = Mesh.IsVisible() || IsPenetrateOn();
@@ -316,8 +338,6 @@ void Hack::Loop() {
 					Info.GroggyHealth > 0.0f ? CharacterState::Groggy :
 					CharacterState::Dead;
 
-				Info.AimPoint = render.bKeyPushing[VK_SHIFT] ? Info.BonesPos[forehead] : (Info.BonesPos[neck_01] + Info.BonesPos[spine_02]) * 0.5f;
-
 				wchar_t PlayerName[0x100];
 				if (TslCharacter.CharacterName.GetValues(*PlayerName, 0x100))
 					Info.PlayerName = ws2s(PlayerName);
@@ -334,7 +354,7 @@ void Hack::Loop() {
 					if (!TslCharacter.PlayerState.ReadOtherType(TslPlayerState))
 						return;
 
-					Info.NumKills = TslPlayerState.PlayerStatistics_NumKills;
+					Info.NumKills = TslPlayerState.PlayerStatistics.NumKills;
 					Info.Damage = TslPlayerState.DamageDealtOnEnemy;
 				}();
 
@@ -358,9 +378,16 @@ void Hack::Loop() {
 					if (!LastVehiclePawn.PlayerState.ReadOtherType(TslPlayerState))
 						return;
 
-					Info.NumKills = TslPlayerState.PlayerStatistics_NumKills;
+					Info.NumKills = TslPlayerState.PlayerStatistics.NumKills;
 					Info.Damage = TslPlayerState.DamageDealtOnEnemy;
 				}();
+
+				Info.AimPoint =
+					render.bKeyPushing[VK_SHIFT] ?
+					Info.BonesPos[forehead] :
+					Info.IsInVehicle ?
+					Info.BonesPos[neck_01] * 0.75f + Info.BonesPos[spine_02] * 0.25f :
+					Info.BonesPos[neck_01] * 0.5f + Info.BonesPos[spine_02] * 0.5f;
 
 				//WeaponInfo
 				[&] {
@@ -373,15 +400,6 @@ void Hack::Loop() {
 					Info.WeaponType = WeaopnInfo.WeaponType;
 					if (Info.WeaponName.empty() && bDebug)
 						Info.WeaponName = TslWeapon.GetFName().GetName();
-
-					Info.Ammo = [&] {
-						ATslWeapon_Trajectory TslWeapon;
-						if (!TslCharacter.GetTslWeapon_Trajectory(TslWeapon))
-							return -1;
-						if (HIBYTE(TslWeapon.CurrentAmmoData))
-							return -1;
-						return (int)TslWeapon.CurrentAmmoData;
-					}();
 				}();
 
 				//Weapon
@@ -390,6 +408,10 @@ void Hack::Loop() {
 					if (!TslCharacter.GetTslWeapon_Trajectory(TslWeapon))
 						return;
 
+					Info.IsAutoFiring = TslWeapon.CurrentState == EWeaponState::EWeaponState__Firing || IsAutoClickOn;
+					Info.IsReloading = TslWeapon.CurrentState == EWeaponState::EWeaponState__Reloading;
+					Info.IsWeaponReady = TslWeapon.bWeaponCycleDone;
+					Info.Ammo = TslWeapon.GetCurrentAmmo();
 					Info.IsWeaponed = true;
 					Info.Gravity = TslWeapon.TrajectoryGravityZ;
 					Info.ZeroingDistance = TslWeapon.GetZeroingDistance(Info.IsScoping);
@@ -481,14 +503,14 @@ void Hack::Loop() {
 				auto& FiringInfo = EnemyInfoMap[CharacterPtr].FiringInfo;
 
 				int PrevAmmo = FiringInfo.Ammo;
-				if (Info.Ammo != -1 && PrevAmmo != -1 && Info.Ammo == PrevAmmo - 1) {
-					FiringInfo.RemainTime = FiringTime;
+				if (Info.Ammo != -1 && PrevAmmo != -1 && Info.Ammo < PrevAmmo) {
+					FiringInfo.TimeAfterShot = 0.0f;
 					FiringInfo.AimOffsets = Info.AimOffsets;
 				}
 				else
-					FiringInfo.RemainTime = std::clamp(FiringInfo.RemainTime - TimeStampDelta, 0.0f, 1.0f);
+					FiringInfo.TimeAfterShot += TimeStampDelta;
 
-				Info.IsFiring = FiringInfo.RemainTime > 0.0f;
+				Info.TimeAfterShot = FiringInfo.TimeAfterShot;
 				Info.LastFiringRot = FiringInfo.AimOffsets;
 				FiringInfo.Ammo = Info.Ammo;
 
@@ -525,7 +547,7 @@ void Hack::Loop() {
 
 				//FocusingInfo
 				[&] {
-					if (&Info == &MyInfo)
+					if (IsMe)
 						return;
 
 					float AccTime = EnemyInfoMap[Info.Ptr].FocusTime;
@@ -831,7 +853,7 @@ void Hack::Loop() {
 						render.DrawTriangleFilled(p1, p2, p3, Color);
 						render.DrawCircleFilled(RadarScreenPos, Size, Color);
 
-						if (Info.IsFiring)
+						if (Info.TimeAfterShot < FiringTime)
 							render.DrawLine(RadarScreenPos, RadarScreenPos + Info.LastFiringRot.GetUnitVector() * 500.0f, Color);
 					}
 					else {
@@ -1020,7 +1042,10 @@ void Hack::Loop() {
 						if (Info.WeaponName.size()) {
 							Line += Info.WeaponName;
 							if (Info.Ammo != -1)
-								Line += (std::string)"("e + std::to_string(Info.Ammo) + (std::string)")"e;
+								Line +=
+								(std::string)"("e +
+								(Info.IsReloading ? (std::string)"..."e : std::to_string(Info.Ammo)) +
+								(std::string)")"e;
 						}
 					}
 
@@ -1464,8 +1489,32 @@ void Hack::Loop() {
 				if (hGameWnd != hForeWnd)
 					return;
 
-				if (bAimbot)
+				[&] {
+					if (!bAimbot)
+						return;
+
+					if (!MyInfo.IsWeaponReady)
+						return;
+
+					if (MyInfo.IsReloading)
+						return;
+
+					if (MyInfo.Ammo < 1)
+						return;
+
+					switch (CompileTime::StrHash(MyInfo.WeaponName.c_str())) {
+					case "R45"h:
+					case "Deagle"h:
+					case "R1895"h:
+						if (MyInfo.TimeAfterShot < 0.1f)
+							return;
+					}
+
+					if (!MyInfo.IsAutoFiring && MyInfo.TimeAfterShot < 0.1f && MyInfo.IsScoping)
+						return;
+
 					AImbot_MouseMove();
+				}();
 
 				if (bSilentAim && (bSilentAim_DangerousMode || MyInfo.IsScoping)) {
 					FVector AimPoint2D = WorldToScreen(TargetPos);
@@ -1530,6 +1579,32 @@ void Hack::Loop() {
 					dbvm.ChangeRegisterOnBP(AimHookAddressPA, Info);
 					IsNeedToHookAim = true;
 				}
+			}();
+
+			//AutoClick
+			[&] {
+				if (!IsAutoClickOn)
+					return;
+
+				if (!render.bKeyPushing[VK_LBUTTON])
+					return;
+
+				if (!MyInfo.IsWeaponed)
+					return;
+
+				if (!MyInfo.IsWeaponReady)
+					return;
+
+				if (MyInfo.TimeAfterShot > 0.5f)
+					return;
+
+				if (MyInfo.IsReloading)
+					return;
+
+				if (MyInfo.Ammo < 1)
+					return;
+
+				AutoClick(hGameWnd);
 			}();
 
 			if (!render.bKeyPushing[VK_CAPITAL]) {

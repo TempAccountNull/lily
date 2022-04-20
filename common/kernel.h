@@ -260,8 +260,10 @@ public:
 	CR3 GetMapCR3() const { return mapCR3; }
 
 	static bool MemcpyWithExceptionHandler(void* Dst, const void* Src, size_t Size) {
-		//memcpy(Dst, Src, Size); 
-		return ExceptionHandler::TryExcept([&]() { __movsb((PBYTE)Dst, (const BYTE*)Src, Size); });
+		return ExceptionHandler::TryExcept([&]() { 
+			memcpy(Dst, Src, Size); 
+			//__movsb((PBYTE)Dst, (const BYTE*)Src, Size); 
+			});
 	}
 
 private:

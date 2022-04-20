@@ -128,6 +128,25 @@ using NativePtr = ObjectPtr<ObjectType, uintptr_t>;
 template <class ObjectType>
 using EncryptedPtr = ObjectPtr<ObjectType, XenuinePtr>;
 
+template<class TEnum>
+class TEnumAsByte
+{
+public:
+	typedef TEnum EnumType;
+	TEnumAsByte() = default;
+	TEnumAsByte(const TEnumAsByte&) = default;
+	TEnumAsByte& operator=(const TEnumAsByte&) = default;
+	FORCEINLINE TEnumAsByte(TEnum InValue) : Value(static_cast<uint8>(InValue)) {}
+	explicit FORCEINLINE TEnumAsByte(int32 InValue) : Value(static_cast<uint8>(InValue)) {}
+	explicit FORCEINLINE TEnumAsByte(uint8 InValue) : Value(InValue) {}
+	bool operator==(TEnum InValue) const { return static_cast<TEnum>(Value) == InValue; }
+	bool operator==(TEnumAsByte InValue) const { return Value == InValue.Value; }
+	operator TEnum() const { return (TEnum)Value; }
+	TEnum GetValue() const { return (TEnum)Value; }
+private:
+	uint8 Value;
+};
+
 // ScriptStruct CoreUObject.Vector2D
 // 0x0008
 struct FVector2D
@@ -270,6 +289,15 @@ enum EWeaponAttachmentSlotID {
 	Angled
 };
 
+// Enum TslGame.EWeaponState
+enum class EWeaponState
+{
+	EWeaponState__Idle = 0,
+	EWeaponState__Firing = 1,
+	EWeaponState__Reloading = 2,
+	EWeaponState__EWeaponState_MAX = 3
+};
+
 // ScriptStruct Engine.KeyHandleMap
 // 0x0050
 struct FKeyHandleMap
@@ -339,4 +367,12 @@ struct FRichCurve : public FIndexedCurve
 
 	void RemapTimeValue(float& InTime, float& CycleValueOffset) const;
 	float Eval(float InTime, float InDefaultValue) const;
+};
+
+// ScriptStruct TslGame.TslPlayerStatistics
+// 0x0008
+struct FTslPlayerStatistics
+{
+	int                                                NumKills;                                                 // 0x0000(0x0004) (CPF_ZeroConstructor, CPF_IsPlainOldData)
+	int                                                NumAssists;                                               // 0x0004(0x0004) (CPF_ZeroConstructor, CPF_IsPlainOldData)
 };

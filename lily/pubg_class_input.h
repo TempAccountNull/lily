@@ -8,13 +8,13 @@ class AController
 EncryptedPtr<ACharacter> Character
 EncryptedPtr<APawn> Pawn
 
+class UPlayerInput
+function SetMouseSensitivity
+
 class APlayerController
 NativePtr<APawn> SpectatorPawn
 NativePtr<APlayerCameraManager> PlayerCameraManager
 NativePtr<UPlayerInput> PlayerInput
-
-class UPlayerInput
-function SetMouseSensitivity
 
 class ATslPlayerController
 float DefaultFOV
@@ -61,7 +61,6 @@ float Health
 float HealthMax
 float Fuel
 float FuelMax
-float ExplosionTimer
 
 class USceneComponent
 function K2_GetComponentToWorld
@@ -105,7 +104,7 @@ class UStaticMesh
 TArray<NativePtr<UStaticMeshSocket>> Sockets
 
 class UWeaponMeshComponent
-UNPACK(TMap<uint8_t,NativePtr<UStaticMeshComponent>>) AttachedStaticComponentMap
+UNPACK(TMap<TEnumAsByte<EWeaponAttachmentSlotID>,NativePtr<UStaticMeshComponent>>) AttachedStaticComponentMap
 
 class USkeleton
 TArray<NativePtr<USkeletalMeshSocket>> Sockets
@@ -143,7 +142,9 @@ class ATslWeapon_Gun
 int CurrentZeroLevel
 FName ScopingAttachPoint
 uint16_t CurrentAmmoData
+TEnumAsByte<EWeaponState> CurrentState
 function GetCurrentScopeZeroingLevel
+function WeaponCycleDone
 
 class ATslWeapon_Trajectory
 NativePtr<UWeaponTrajectoryData> WeaponTrajectoryData
@@ -154,8 +155,8 @@ FRotator ControlRotation_CP
 FRotator RecoilADSRotation_CP
 float LeanLeftAlpha_CP
 float LeanRightAlpha_CP
-uint8_t bIsScoping_CP
-uint8_t bLocalFPP_CP
+TEnumAsByte<bool> bIsScoping_CP
+TEnumAsByte<bool> bLocalFPP_CP
 
 class UWeaponTrajectoryData
 FWeaponTrajectoryConfig TrajectoryConfig
@@ -165,7 +166,7 @@ TArray<NativePtr<UItem>> Items
 
 class ATslPlayerState
 float DamageDealtOnEnemy
-int PlayerStatistics + TslPlayerStatistics.NumKills
+FTslPlayerStatistics PlayerStatistics
 
 class UCurveVector
 FRichCurve FloatCurves

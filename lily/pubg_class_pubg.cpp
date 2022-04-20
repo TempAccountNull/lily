@@ -82,7 +82,7 @@ tWeaponInfo ATslWeapon::GetWeaponInfo() const {
 
 float ATslWeapon_Trajectory::GetZeroingDistance(bool IsScoping) const {
 	if (bCantedSighted)
-		return 50.0f;
+		return GetFName().GetHash() == "WeapP90_C"h ? 100.0f : 50.0f;
 
 	auto ZeroingInfo = GetWeaponInfo().ZeroingInfo;
 	int ZeroLevel = IsScoping ? CurrentZeroLevel : 0;
