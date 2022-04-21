@@ -65,7 +65,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Attach_Weapon_Muzzle_Choke_C"h, { "Choke"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Muzzle_Duckbill_C"h, { "Duckbill"e, 2 });
 
-		HASH_CASE("Item_Attach_Weapon_SideRail_DotSight_RMR_C"h, { "Canted"e, 2 });
+		HASH_CASE("Item_Attach_Weapon_SideRail_DotSight_RMR_C"h, { "Canted"e, 4 });
 
 		HASH_CASE("Item_Attach_Weapon_Stock_AR_Composite_C"h, { "ST_AR"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Stock_SniperRifle_CheekPad_C"h, { "ST_SR"e, 3 });

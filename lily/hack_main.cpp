@@ -1454,7 +1454,7 @@ void Hack::Loop() {
 					MoveMouse(hGameWnd, { (int)MouseX, (int)MouseY });
 				};
 
-				auto AImbot_MouseMove = [&] {
+				auto AImbot_MouseMove = [&](bool bMoveX, bool bMoveY) {
 					TimeDeltaAcc += render.TimeDelta;
 					if (WorldTimeSeconds == LastAimUpdateTime)
 						return;
@@ -1465,7 +1465,9 @@ void Hack::Loop() {
 
 					FRotator RotationInput = (PredictedPos - CameraLocation).GetDirectionRotator() - MyInfo.AimRotation;
 					RotationInput.Clamp();
-					const POINT MaxXY = GetMouseXY(RotationInput * AimSpeedMaxFactor);
+					POINT MaxXY = GetMouseXY(RotationInput * AimSpeedMaxFactor);
+					if (!bMoveX) MaxXY.x = 0;
+					if (!bMoveY) MaxXY.y = 0;
 					if (MaxXY.x == 0 && MaxXY.y == 0) {
 						RemainMouseX = RemainMouseY = 0.0f;
 						return;
@@ -1500,20 +1502,25 @@ void Hack::Loop() {
 					if (MyInfo.Ammo < 1)
 						return;
 
-					if (MyInfo.IsScoping) {
+					const bool bMoveY = [&] {
+						if (!MyInfo.IsScoping)
+							return true;
+
 						switch (CompileTime::StrHash(MyInfo.WeaponName.c_str())) {
 						case "R45"h:
 						case "Deagle"h:
 						case "R1895"h:
 							if (MyInfo.TimeAfterShot < 0.15f)
-								return;
+								return false;
 						}
 
 						if (!MyInfo.IsAutoFiring && MyInfo.TimeAfterShot < 0.1f)
-							return;
-					}
+							return false;
 
-					AImbot_MouseMove();
+						return true;
+					}();
+
+					AImbot_MouseMove(true, bMoveY);
 				}();
 
 				if (bSilentAim && (bSilentAim_DangerousMode || MyInfo.IsScoping)) {
