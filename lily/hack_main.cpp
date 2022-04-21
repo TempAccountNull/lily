@@ -88,6 +88,7 @@ void Hack::Loop() {
 		bool IsReloading = false;
 		bool IsWeaponReady = false;
 		bool IsAutoFiring = false;
+		bool IsProperForAutoClick = false;
 		bool IsFocusingMe = false;
 		FRotator AimOffsets;
 		FRotator LastFiringRot;
@@ -415,6 +416,7 @@ void Hack::Loop() {
 					Info.IsWeaponed = true;
 					Info.Gravity = TslWeapon.TrajectoryGravityZ;
 					Info.ZeroingDistance = TslWeapon.GetZeroingDistance(Info.IsScoping);
+					Info.IsProperForAutoClick = TslWeapon.IsProperForAutoClick(Info.IsScoping);
 
 					UWeaponTrajectoryData WeaponTrajectoryData;
 					if (TslWeapon.WeaponTrajectoryData.Read(WeaponTrajectoryData)) {
@@ -1600,6 +1602,9 @@ void Hack::Loop() {
 					return;
 
 				if (!MyInfo.IsWeaponReady)
+					return;
+
+				if (!MyInfo.IsProperForAutoClick)
 					return;
 
 				if (MyInfo.TimeAfterShot > 0.5f)

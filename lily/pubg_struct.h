@@ -298,6 +298,19 @@ enum class EWeaponState
 	EWeaponState__EWeaponState_MAX = 3
 };
 
+enum class ESight
+{
+	Iron,
+	RedDot,
+	Holo,
+	X2,
+	X3,
+	X4,
+	X6,
+	X8,
+	X15
+};
+
 // ScriptStruct Engine.KeyHandleMap
 // 0x0050
 struct FKeyHandleMap

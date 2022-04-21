@@ -385,6 +385,9 @@ DefClass(ATslWeapon_Gun, ATslWeapon,
 	MemberAtOffset(TEnumAsByte<bool>, bWeaponCycleDone, 0xA1D)
 	,
 	int GetCurrentAmmo() const { return HIBYTE(CurrentAmmoData) ? -1 : CurrentAmmoData; }
+	ESight GetSight() const;
+	float GetZeroingDistance(bool IsScoping) const;
+	bool IsProperForAutoClick(bool IsScoping) const;
 )
 
 //TslGame.TslWeapon_Trajectory.WeaponTrajectoryData 
@@ -392,8 +395,6 @@ DefClass(ATslWeapon_Gun, ATslWeapon,
 DefClass(ATslWeapon_Trajectory, ATslWeapon_Gun,
 	MemberAtOffset(NativePtr<UWeaponTrajectoryData>, WeaponTrajectoryData, 0x1008)
 	MemberAtOffset(float, TrajectoryGravityZ, 0xf4c)
-	,
-	float GetZeroingDistance(bool IsScoping) const;
 )
 
 DefClass(ATslWeapon_Throwable, ATslWeapon_Gun, );

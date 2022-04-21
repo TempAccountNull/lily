@@ -80,13 +80,7 @@ tWeaponInfo ATslWeapon::GetWeaponInfo() const {
 	return ::GetWeaponInfo(GetFName().GetHash());
 }
 
-float ATslWeapon_Trajectory::GetZeroingDistance(bool IsScoping) const {
-	if (bCantedSighted)
-		return GetFName().GetHash() == "WeapP90_C"h ? 100.0f : 50.0f;
-
-	auto ZeroingInfo = GetWeaponInfo().ZeroingInfo;
-	int ZeroLevel = IsScoping ? CurrentZeroLevel : 0;
-
+ESight ATslWeapon_Gun::GetSight() const {
 	for (const auto& AttachableItemPtr : AttachedItems.GetVector()) {
 		UAttachableItem AttachableItem;
 		if (!AttachableItemPtr.Read(AttachableItem))
@@ -97,21 +91,61 @@ float ATslWeapon_Trajectory::GetZeroingDistance(bool IsScoping) const {
 			continue;
 
 		switch (ItemTableRowAttachment.ItemID.GetHash()) {
-		case "Item_Attach_Weapon_Upper_PM2_01_C"h:
-		case "Item_Attach_Weapon_Upper_CQBSS_C"h:
-			return ZeroingInfo.BaseScope + ZeroingInfo.Increment * ZeroLevel;
-		case "Item_Attach_Weapon_Upper_Scope6x_C"h:
-		case "Item_Attach_Weapon_Upper_ACOG_01_C"h:
-		case "Item_Attach_Weapon_Upper_Scope3x_C"h:
-		case "Item_Attach_Weapon_Upper_Aimpoint_C"h:
-		case "Item_Attach_Weapon_Upper_DotSight_01_C"h:
-			return ZeroingInfo.BaseScope;
-		case "Item_Attach_Weapon_Upper_Holosight_C"h:
-			return ZeroingInfo.BaseHolo;
+			HASH_CASE("Item_Attach_Weapon_Upper_PM2_01_C"h, ESight::X15);
+			HASH_CASE("Item_Attach_Weapon_Upper_CQBSS_C"h, ESight::X8);
+			HASH_CASE("Item_Attach_Weapon_Upper_Scope6x_C"h, ESight::X6);
+			HASH_CASE("Item_Attach_Weapon_Upper_ACOG_01_C"h, ESight::X4);
+			HASH_CASE("Item_Attach_Weapon_Upper_Scope3x_C"h, ESight::X3);
+			HASH_CASE("Item_Attach_Weapon_Upper_Aimpoint_C"h, ESight::X2);
+			HASH_CASE("Item_Attach_Weapon_Upper_DotSight_01_C"h, ESight::RedDot);
+			HASH_CASE("Item_Attach_Weapon_Upper_Holosight_C"h, ESight::Holo);
 		}
 	}
 
+	return ESight::Iron;
+}
+
+float ATslWeapon_Gun::GetZeroingDistance(bool IsScoping) const {
+	if (bCantedSighted)
+		return GetFName().GetHash() == "WeapP90_C"h ? 100.0f : 50.0f;
+
+	auto ZeroingInfo = GetWeaponInfo().ZeroingInfo;
+	int ZeroLevel = IsScoping ? CurrentZeroLevel : 0;
+
+	switch (GetSight()) {
+	case ESight::X15:
+	case ESight::X8:
+		return ZeroingInfo.BaseScope + ZeroingInfo.Increment * ZeroLevel;
+	case ESight::X6:
+	case ESight::X4:
+	case ESight::X3:
+	case ESight::X2:
+	case ESight::RedDot:
+		return ZeroingInfo.BaseScope;
+	case ESight::Holo:
+		return ZeroingInfo.BaseHolo;
+	}
+
 	return ZeroingInfo.BaseIron + ZeroingInfo.Increment * ZeroLevel;
+}
+
+bool ATslWeapon_Gun::IsProperForAutoClick(bool IsScoping) const {
+	if (!IsScoping)
+		return true;
+
+	if (bCantedSighted)
+		return true;
+
+	switch (GetSight()) {
+	case ESight::X15:
+	case ESight::X8:
+	case ESight::X6:
+	case ESight::X4:
+	case ESight::X3:
+		return false;
+	}
+
+	return true;
 }
 
 NativePtr<UStaticMeshComponent> UWeaponMeshComponent::GetStaticMeshComponentScopeType() const {
