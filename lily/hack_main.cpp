@@ -1501,9 +1501,6 @@ void Hack::Loop() {
 					if (MyInfo.IsReloading)
 						return;
 
-					if (MyInfo.Ammo < 1)
-						return;
-
 					const bool bMoveY = [&] {
 						if (!MyInfo.IsScoping)
 							return true;
@@ -1611,9 +1608,6 @@ void Hack::Loop() {
 					return;
 
 				if (MyInfo.IsReloading)
-					return;
-
-				if (MyInfo.Ammo < 1)
 					return;
 
 				AutoClick(hGameWnd);
