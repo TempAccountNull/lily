@@ -36,6 +36,7 @@ void Hack::Loop() {
 	const uintptr_t AimHookAddressVA = pubg.GetBaseAddress() + HookBaseAddress;
 	const PhysicalAddress AimHookAddressPA = dbvm.GetPhysicalAddress(AimHookAddressVA, mapCR3);
 	verify(AimHookAddressPA);
+	dbvm.CloakActivate(AimHookAddressPA);
 
 	//e8 ? ? ? ? f2 0f 10 00 f2 0f ? ? ? ? ? 00 00 8b 40 08 89 ? ? ? ? 00 00 48
 	constexpr uintptr_t GunLocScopeHookBaseAddress = 0x4DE879;
@@ -43,7 +44,9 @@ void Hack::Loop() {
 	const PhysicalAddress GunLocScopeHookAddressPA1 = dbvm.GetPhysicalAddress(GunLocScopeHookAddressVA, mapCR3);
 	const PhysicalAddress GunLocScopeHookAddressPA2 = dbvm.GetPhysicalAddress(GunLocScopeHookAddressVA + 0xC, mapCR3);
 	verify(GunLocScopeHookAddressPA1);
+	dbvm.CloakActivate(GunLocScopeHookAddressPA1);
 	verify(GunLocScopeHookAddressPA2);
+	dbvm.CloakActivate(GunLocScopeHookAddressPA2);
 
 	//74 ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? eb ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? f2 0f 10 00 f2 0f
 	constexpr uintptr_t GunLocNoScopeHookBaseAddress = 0x4DE2CA;
@@ -51,13 +54,16 @@ void Hack::Loop() {
 	const PhysicalAddress GunLocNoScopeHookAddressPA1 = dbvm.GetPhysicalAddress(GunLocNoScopeHookAddressVA, mapCR3);
 	const PhysicalAddress GunLocNoScopeHookAddressPA2 = dbvm.GetPhysicalAddress(GunLocNoScopeHookAddressVA + 0xC, mapCR3);
 	verify(GunLocNoScopeHookAddressPA1);
+	dbvm.CloakActivate(GunLocNoScopeHookAddressPA1);
 	verify(GunLocNoScopeHookAddressPA2);
+	dbvm.CloakActivate(GunLocNoScopeHookAddressPA2);
 
 	//e8 ? ? ? ? f6 84 ? ? ? ? ? 01 74 ? f3 0f
 	constexpr uintptr_t GunLocNearWallHookBaseAddress = 0x4E0605;
 	const uintptr_t GunLocNearWallHookAddressVA = pubg.GetBaseAddress() + GunLocNearWallHookBaseAddress;
 	const PhysicalAddress GunLocNearWallHookAddressPA = dbvm.GetPhysicalAddress(GunLocNearWallHookAddressVA, mapCR3);
 	verify(GunLocNearWallHookAddressPA);
+	dbvm.CloakActivate(GunLocNearWallHookAddressPA);
 
 	float TimeDeltaAcc = 0.0f;
 	float LastAimUpdateTime = 0.0f;
@@ -1495,7 +1501,7 @@ void Hack::Loop() {
 					if (!bAimbot)
 						return;
 
-					if (!MyInfo.IsWeaponReady)
+					if (MyInfo.WeaponType != tWeaponType::SG && !MyInfo.IsWeaponReady)
 						return;
 
 					if (MyInfo.IsReloading)
@@ -1598,13 +1604,13 @@ void Hack::Loop() {
 				if (!MyInfo.IsWeaponed)
 					return;
 
-				if (!MyInfo.IsWeaponReady)
-					return;
-
 				if (!MyInfo.IsProperForAutoClick)
 					return;
 
-				if (MyInfo.TimeAfterShot > 0.5f)
+				if (MyInfo.WeaponType != tWeaponType::SG && !MyInfo.IsWeaponReady)
+					return;
+
+				if (MyInfo.TimeAfterShot > 1.0f)
 					return;
 
 				if (MyInfo.IsReloading)

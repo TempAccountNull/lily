@@ -134,6 +134,10 @@ bool ATslWeapon_Gun::IsProperForAutoClick(bool IsScoping) const {
 	case "M16"h:
 	case "Mutant"h:
 	case "S12K"h:
+	case "S686"h:
+	case "S1897"h:
+	case "DBS"h:
+	case "Sawnoff"h:
 	case "P1911"h:
 	case "P92"h:
 	case "R1895"h:
