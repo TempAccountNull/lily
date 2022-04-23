@@ -1517,6 +1517,10 @@ void Hack::Loop() {
 						case "R1895"h:
 							if (MyInfo.TimeAfterShot < 0.15f)
 								return false;
+						case "P1911"h:
+						case "P92"h:
+							if (MyInfo.TimeAfterShot < 0.07f)
+								return false;
 						}
 
 						if (!MyInfo.IsAutoFiring && MyInfo.TimeAfterShot < 0.1f)
@@ -1610,7 +1614,7 @@ void Hack::Loop() {
 				if (MyInfo.WeaponType != tWeaponType::SG && !MyInfo.IsWeaponReady)
 					return;
 
-				if (MyInfo.TimeAfterShot > 1.0f)
+				if (MyInfo.TimeAfterShot > 0.8f)
 					return;
 
 				if (MyInfo.IsReloading)
