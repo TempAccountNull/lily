@@ -26,7 +26,6 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		//Attach
 		HASH_CASE("Item_Attach_Weapon_Lower_Foregrip_C"h, { "L_Fore"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Lower_QuickDraw_Large_Crossbow_C"h, { "Q_Cross"e, 3 });
-		HASH_CASE("Item_Attach_Weapon_Lower_Foregrip_Croosbow_C"h, { "L_Fore_Cross"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Lower_AngledForeGrip_C"h, { "L_Angle"e, 2 });
 		HASH_CASE("Item_Attach_Weapon_Lower_HalfGrip_C"h, { "L_Half"e, 2 });
 		HASH_CASE("Item_Attach_Weapon_Lower_LightweightForeGrip_C"h, { "L_Light"e, 2 });
@@ -44,14 +43,10 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Attach_Weapon_Magazine_ExtendedQuickDraw_Medium_C"h, { "EQ_SMG"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Magazine_Extended_Medium_C"h, { "E_SMG"e, 4 });
 		HASH_CASE("Item_Attach_Weapon_Magazine_QuickDraw_Medium_C"h, { "Q_SMG"e, 1 });
-
-		HASH_CASE("Item_Attach_Weapon_Magazine_ExtendedQuickDraw_Small_C"h, { "EQ_P"e, 3 });
-		HASH_CASE("Item_Attach_Weapon_Magazine_Extended_Small_C"h, { "E_P"e, 2 });
-		HASH_CASE("Item_Attach_Weapon_Magazine_QuickDraw_Small_C"h, { "Q_P"e, 1 });
 		
 		HASH_CASE("Item_Attach_Weapon_Muzzle_Compensator_Large_C"h, { "C_AR"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Muzzle_Compensator_Medium_C"h, { "C_SMG"e, 2 });
-		HASH_CASE("Item_Attach_Weapon_Muzzle_Compensator_SniperRifle_C"h, { "C_SR"e, 1 });
+		HASH_CASE("Item_Attach_Weapon_Muzzle_Compensator_SniperRifle_C"h, { "C_SR"e, 2 });
 
 		HASH_CASE("Item_Attach_Weapon_Muzzle_FlashHider_Large_C"h, { "F_AR"e, 1 });
 		HASH_CASE("Item_Attach_Weapon_Muzzle_FlashHider_Medium_C"h, { "F_SMG"e, 1 });
@@ -70,7 +65,6 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Attach_Weapon_Stock_AR_Composite_C"h, { "ST_AR"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Stock_SniperRifle_CheekPad_C"h, { "ST_SR"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Stock_UZI_C"h, { "ST_UZI"e, 2 });
-		HASH_CASE("Item_Attach_Weapon_Stock_Shotgun_BulletLoops_C"h, { "ST_SG"e, 2 });
 		HASH_CASE("Item_Attach_Weapon_Stock_SniperRifle_BulletLoops_C"h, { "Belt"e, 2 });
 		
 		HASH_CASE("Item_Attach_Weapon_Upper_PM2_01_C"h, { "15X"e, 4 });
@@ -81,9 +75,8 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Attach_Weapon_Upper_Aimpoint_C"h, { "2X"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Upper_DotSight_01_C"h, { "U_Dot"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Upper_Holosight_C"h, { "U_Holo"e, 3 });
-		HASH_CASE("Item_Attach_Weapon_Upper_DotSight_Crossbow_C"h, { "U_Dot_Cross"e, 1 });
 
-		HASH_CASE("Item_Back_BackupParachute_C"h, { "Parachute"e, 4 });
+		HASH_CASE("Item_Back_BackupParachute_C"h, { "Parachute"e, 3 });
 		HASH_CASE("Item_Armor_C_01_Lv3_C"h, { "Vest3"e, 4 });
 		HASH_CASE("Item_Armor_D_01_Lv2_C"h, { "Vest2"e, 3 });
 		HASH_CASE("Item_Armor_E_01_Lv1_C"h, { "Vest1"e, 2 });
@@ -126,18 +119,14 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Weapon_Sickle_C"h, { "Sickle"e, 1 });
 
 		//AR
-		HASH_CASE("Item_Weapon_MG3_C"h, { "MG3"e, 4 });
-		HASH_CASE("Item_Weapon_P90_C"h, { "P90"e, 4 });
 		HASH_CASE("Item_Weapon_Groza_C"h, { "Groza"e, 4 });
 		HASH_CASE("Item_Weapon_BerylM762_C"h, { "Beryl"e, 4 });
 		HASH_CASE("Item_Weapon_ACE32_C"h, { "ACE"e, 4 });
-		HASH_CASE("Item_Weapon_Duncans_M416_C"h, { "M4"e, 4 });
 		HASH_CASE("Item_Weapon_HK416_C"h, { "M4"e, 4 });
+		HASH_CASE("Item_Weapon_Duncans_M416_C"h, { "M4"e, 4 });
 		HASH_CASE("Item_Weapon_AUG_C"h, { "AUG"e, 4 });
-		HASH_CASE("Item_Weapon_Lunchmeats_AK47_C"h, { "AK"e, 3 });
 		HASH_CASE("Item_Weapon_AK47_C"h, { "AK"e, 3 });
-		HASH_CASE("Item_Weapon_DP28_C"h, { "DP28"e, 3 });
-		HASH_CASE("Item_Weapon_M249_C"h, { "M249"e, 3 });
+		HASH_CASE("Item_Weapon_Lunchmeats_AK47_C"h, { "AK"e, 3 });
 		HASH_CASE("Item_Weapon_SCAR-L_C"h, { "SCAR"e, 3 });
 		HASH_CASE("Item_Weapon_G36C_C"h, { "G36C"e, 3 });
 		HASH_CASE("Item_Weapon_QBZ95_C"h, { "QBZ"e, 3 });
@@ -145,10 +134,15 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Weapon_Mk47Mutant_C"h, { "Mutant"e, 2 });
 		HASH_CASE("Item_Weapon_M16A4_C"h, { "M16"e, 2 });
 
+		//LMG
+		HASH_CASE("Item_Weapon_MG3_C"h, { "MG3"e, 4 });
+		HASH_CASE("Item_Weapon_DP28_C"h, { "DP28"e, 2 });
+		HASH_CASE("Item_Weapon_M249_C"h, { "M249"e, 2 });
+
 		//SR
 		HASH_CASE("Item_Weapon_L6_C"h, { "Lynx"e, 4 });
 		HASH_CASE("Item_Weapon_AWM_C"h, { "AWM"e, 4 });
-		HASH_CASE("Item_Weapon_M24_C"h, { "M24"e, 4 });
+		HASH_CASE("Item_Weapon_M24_C"h, { "M24"e, 3 });
 		HASH_CASE("Item_Weapon_Julies_Kar98k_C"h, { "K98"e, 3 });
 		HASH_CASE("Item_Weapon_Kar98k_C"h, { "K98"e, 3 });
 		HASH_CASE("Item_Weapon_Mosin_C"h, { "Mosin"e, 3 });
@@ -165,10 +159,10 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Weapon_VSS_C"h, { "VSS"e, 3 });
 		
 		//SG
-		HASH_CASE("Item_Weapon_DP12_C"h, { "DBS"e, 3 });
+		HASH_CASE("Item_Weapon_DP12_C"h, { "DBS"e, 4 });
 		HASH_CASE("Item_Weapon_Winchester_C"h, { "S1897"e, 3 });
+		HASH_CASE("Item_Weapon_Saiga12_C"h, { "S12K"e, 3 });
 		HASH_CASE("Item_Weapon_Berreta686_C"h, { "S686"e, 2 });
-		HASH_CASE("Item_Weapon_Saiga12_C"h, { "S12K"e, 2 });
 
 		//Pistol
 		HASH_CASE("Item_Weapon_G18_C"h, { "P18C"e, 4 });
@@ -181,10 +175,11 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Weapon_Sawnoff_C"h, { "Sawnoff"e, 1 });
 
 		//SMG
-		HASH_CASE("Item_Weapon_Vector_C"h, { "Vec"e, 4 });
+		HASH_CASE("Item_Weapon_P90_C"h, { "P90"e, 4 });
+		HASH_CASE("Item_Weapon_Vector_C"h, { "Vec"e, 3 });
+		HASH_CASE("Item_Weapon_UZI_C"h, { "UZI"e, 3 });
 		HASH_CASE("Item_Weapon_Thompson_C"h, { "Tom"e, 2 });
 		HASH_CASE("Item_Weapon_UMP_C"h, { "UMP"e, 2 });
-		HASH_CASE("Item_Weapon_UZI_C"h, { "UZI"e, 2 });
 		HASH_CASE("Item_Weapon_BizonPP19_C"h, { "Bizon"e, 2 });
 		HASH_CASE("Item_Weapon_MP5K_C"h, { "MP5K"e, 2 });
 
@@ -198,7 +193,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		//Boost
 		HASH_CASE("Item_Boost_AdrenalineSyringe_C"h, { "Syringe"e, 3 });
 		HASH_CASE("Item_Boost_EnergyDrink_C"h, { "Drink"e, 3 });
-		HASH_CASE("Item_Boost_PainKiller_C"h, { "PainKiller"e, 3 });
+		HASH_CASE("Item_Boost_PainKiller_C"h, { "Drug"e, 3 });
 
 		//Heal
 		HASH_CASE("Item_Heal_MedKit_C"h, { "MedKit"e, 4 });
