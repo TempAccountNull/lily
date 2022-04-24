@@ -286,6 +286,10 @@ void Hack::Loop() {
 						return;
 					}
 
+					if (render.bKeyPushing[VK_UP] && render.bKeyPushing[VK_LEFT])		nEnemyMoveDir = Direction::UpLeft;
+					if (render.bKeyPushing[VK_UP] && render.bKeyPushing[VK_RIGHT])		nEnemyMoveDir = Direction::UpRight;
+					if (render.bKeyPushing[VK_DOWN] && render.bKeyPushing[VK_LEFT])		nEnemyMoveDir = Direction::DownLeft;
+					if (render.bKeyPushing[VK_DOWN] && render.bKeyPushing[VK_RIGHT])	nEnemyMoveDir = Direction::DownRight;
 					if (render.bKeyPushed[VK_UP])		nEnemyMoveDir = Direction::Up;
 					if (render.bKeyPushed[VK_LEFT])		nEnemyMoveDir = Direction::Left;
 					if (render.bKeyPushed[VK_DOWN])		nEnemyMoveDir = Direction::Down;
@@ -293,12 +297,20 @@ void Hack::Loop() {
 
 					FVector Dir = [&]()->FVector {
 						FVector Base = Info.RootLocation - MyInfo.RootLocation;
+						FVector Up = { 0.0f, 0.0f, 1.0f };
+						FVector Down = { 0.0f, 0.0f, -1.0f };
+						FVector Left = FVector(Base.Y, -Base.X, 0.0f).GetNormalizedVector();
+						FVector Right = -Left;
 						switch (nEnemyMoveDir) {
-						case Direction::Up:		return { 0.0f, 0.0f, 1.0f };
-						case Direction::Down:	return { 0.0f, 0.0f, -1.0f };
-						case Direction::Left:	return { Base.Y, -Base.X, 0.0f };
-						case Direction::Right:	return { -Base.Y, Base.X, 0.0f };
-						default:				return -Base;
+						case Direction::Up:			return Up;
+						case Direction::Down:		return Down;
+						case Direction::Left:		return Left;
+						case Direction::Right:		return Right;
+						case Direction::UpLeft:		return (Up + Left) * 0.5f;
+						case Direction::UpRight:	return (Up + Right) * 0.5f;
+						case Direction::DownLeft:	return (Down + Left) * 0.5f;;
+						case Direction::DownRight:	return (Down + Right) * 0.5f;
+						default:					return -Base;
 						}
 					}();
 					Dir.Normalize();

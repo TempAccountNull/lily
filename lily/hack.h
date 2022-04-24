@@ -43,7 +43,11 @@ private:
 		Up,
 		Left,
 		Down,
-		Right
+		Right,
+		UpLeft,
+		UpRight,
+		DownLeft,
+		DownRight
 	}nEnemyMoveDir = Direction::None;
 	constexpr static float MoveEnemyDistance = 250.0f;
 
