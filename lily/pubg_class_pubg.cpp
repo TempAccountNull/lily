@@ -130,41 +130,6 @@ float ATslWeapon_Gun::GetZeroingDistance(bool IsScoping) const {
 }
 
 bool ATslWeapon_Gun::IsProperForAutoClick(bool IsScoping) const {
-	switch (CompileTime::StrHash(GetWeaponInfo().WeaponName.data())) {
-		//AR
-	case "M16"h:
-	case "Mutant"h:
-		//SG
-	case "S12K"h:
-	case "S686"h:
-	case "S1897"h:
-	case "DBS"h:
-	case "Sawnoff"h:
-		//PISTOL
-	case "P1911"h:
-	case "P92"h:
-	case "R1895"h:
-	case "R45"h:
-	case "Deagle"h:
-		//DMR
-	case "Mini"h:
-	case "SKS"h:
-	case "SLR"h:
-	case "QBU"h:
-	case "Mk12"h:
-		//SR
-	case "AWM"h:
-	case "M24"h:
-	case "K98"h:
-	case "Win94"h:
-	case "Lynx"h:
-	case "Mosin"h:
-	case "CBow"h:
-		break;
-	default:
-		return false;
-	}
-
 	if (!IsScoping)
 		return true;
 

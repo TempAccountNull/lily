@@ -76,9 +76,6 @@ void Hack::Loop() {
 	bool bPushedCapsLock = false;
 	bool IsFPPOnly = true;
 	bool bPrevLobby = true;
-	bool bPrevReloading = false;
-	bool bPrevWeaponReady = false;
-	int PrevAmmo = -1;
 
 	float LastRadarDistanceUpdateTime = 0.0f;
 	float LastRadarDistance = 200.0f;
@@ -196,7 +193,7 @@ void Hack::Loop() {
 			float DefaultFOV = 0.0f;
 			float MouseXSensitivity = 0.02f;
 			float MouseYSensitivity = 0.02f;
-			const bool IsAutoClickOn = bAutoClick && render.KeyStates[VK_SCROLL];
+			const bool IsAutoClickOn = bAutoClick && render.bKeyPushing[VK_LBUTTON];
 
 			CharacterInfo MyInfo;
 			auto IsPenetrateOn = [&] { return bPenetrate && render.bKeyPushing[VK_CONTROL] && !MyInfo.IsInVehicle; };
@@ -430,7 +427,7 @@ void Hack::Loop() {
 					if (!TslCharacter.GetTslWeapon_Trajectory(TslWeapon))
 						return;
 
-					Info.IsAutoFiring = TslWeapon.CurrentState == EWeaponState::EWeaponState__Firing || IsAutoClickOn;
+					Info.IsAutoFiring = TslWeapon.CurrentState == EWeaponState::EWeaponState__Firing;
 					Info.IsReloading = TslWeapon.CurrentState == EWeaponState::EWeaponState__Reloading;
 					Info.IsWeaponReady = TslWeapon.bWeaponCycleDone;
 					Info.Ammo = TslWeapon.GetCurrentAmmo();
@@ -756,6 +753,8 @@ void Hack::Loop() {
 				if (!MyInfo.IsFPP)
 					IsFPPOnly = false;
 				status += (std::string)"Playing\n"e;
+				if (MyInfo.IsWeaponed)
+					status += (std::string)"Weaponed\n"e;
 				if (MyInfo.IsReloading)
 					status += (std::string)"Reloading\n"e;
 				if (!MyInfo.IsWeaponReady)
@@ -1416,6 +1415,32 @@ void Hack::Loop() {
 					RemoveUserFromList(BlackList, BlackListFile, Name.c_str());
 			}();
 
+			//AutoClick
+			const bool IsAutoClicking = [&] {
+				if (!IsAutoClickOn)
+					return false;
+
+				if (!MyInfo.IsWeaponed)
+					return false;
+
+				if (!MyInfo.IsProperForAutoClick)
+					return false;
+
+				if (MyInfo.WeaponType == tWeaponType::SR && MyInfo.IsScoping) {
+					if (!MyInfo.IsWeaponReady)
+						return false;
+					if (MyInfo.Ammo < 1)
+						return false;
+				}
+
+				CURSORINFO CursorInfo = { .cbSize = sizeof(CURSORINFO) };
+				GetCursorInfo(&CursorInfo);
+				return CursorInfo.flags == 0;
+			}();
+
+			if (IsAutoClicking)
+				AutoClick(hGameWnd);
+
 			//Aimbot
 			[&] {
 				if (!MyInfo.IsWeaponed)
@@ -1546,7 +1571,7 @@ void Hack::Loop() {
 								return false;
 						}
 
-						if (!MyInfo.IsAutoFiring && MyInfo.TimeAfterShot < 0.1f)
+						if (!IsAutoClicking && !MyInfo.IsAutoFiring && MyInfo.TimeAfterShot < 0.1f)
 							return false;
 
 						return true;
@@ -1618,48 +1643,6 @@ void Hack::Loop() {
 					dbvm.ChangeRegisterOnBP(AimHookAddressPA, Info);
 					IsNeedToHookAim = true;
 				}
-			}();
-
-			//AutoClick
-			[&] {
-				if (!IsAutoClickOn)
-					return;
-
-				if (!render.bKeyPushing[VK_LBUTTON])
-					return;
-
-				if (!MyInfo.IsWeaponed)
-					return;
-
-				if (bPrevReloading && !MyInfo.IsReloading)
-					AutoClick(hGameWnd, false);
-
-				bPrevReloading = MyInfo.IsReloading;
-
-				if (PrevAmmo < MyInfo.Ammo)
-					AutoClick(hGameWnd);
-
-				PrevAmmo = MyInfo.Ammo;
-
-				if (!bPrevWeaponReady && MyInfo.IsWeaponReady)
-					AutoClick(hGameWnd);
-
-				bPrevWeaponReady = MyInfo.IsWeaponReady;
-
-				if (MyInfo.WeaponType == tWeaponType::SR && MyInfo.IsScoping) {
-					if (!MyInfo.IsWeaponReady)
-						return;
-					if (MyInfo.Ammo < 1)
-						return;
-				}
-
-				if (!MyInfo.IsProperForAutoClick)
-					return;
-
-				if (MyInfo.TimeAfterShot > 0.8f)
-					return;
-
-				AutoClick(hGameWnd);
 			}();
 
 			if (!render.bKeyPushing[VK_CAPITAL]) {

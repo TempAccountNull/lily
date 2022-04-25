@@ -251,13 +251,12 @@ public:
 	}
 
 	float LastClickTime = -FLT_MAX;
-	void AutoClick(HWND hWnd, bool bBottomUp = true) {
+	void AutoClick(HWND hWnd) {
 		if (render.TimeSeconds < LastClickTime + 0.02f)
 			return;
 		LastClickTime = render.TimeSeconds;
 		PostMessageA(hWnd, WM_LBUTTONDOWN, 0, 0);
-		if (bBottomUp)
-			PostMessageA(hWnd, WM_LBUTTONUP, 0, 0);
+		PostMessageA(hWnd, WM_LBUTTONUP, 0, 0);
 	}
 
 	void MoveMouse(HWND hWnd, POINT Movement) {
