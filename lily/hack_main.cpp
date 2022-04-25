@@ -76,6 +76,9 @@ void Hack::Loop() {
 	bool bPushedCapsLock = false;
 	bool IsFPPOnly = true;
 	bool bPrevLobby = true;
+	bool bPrevReloading = false;
+	bool bPrevWeaponReady = false;
+	int PrevAmmo = -1;
 
 	float LastRadarDistanceUpdateTime = 0.0f;
 	float LastRadarDistance = 200.0f;
@@ -753,6 +756,10 @@ void Hack::Loop() {
 				if (!MyInfo.IsFPP)
 					IsFPPOnly = false;
 				status += (std::string)"Playing\n"e;
+				if (MyInfo.IsReloading)
+					status += (std::string)"Reloading\n"e;
+				if (!MyInfo.IsWeaponReady)
+					status += (std::string)"WeaponNotReady\n"e;
 				status += MyInfo.IsFPP ? (std::string)"FPP\n"e : "TPP\n"e;
 				status += IsFPPOnly ? (std::string)"FPP Only\n"e : "TPP Allowed\n"e;
 				if (MyInfo.IsScoping)
@@ -1513,8 +1520,12 @@ void Hack::Loop() {
 					if (!bAimbot)
 						return;
 
-					if (MyInfo.WeaponType != tWeaponType::SG && !MyInfo.IsWeaponReady)
-						return;
+					if (MyInfo.WeaponType == tWeaponType::SR && MyInfo.IsScoping) {
+						if (!MyInfo.IsWeaponReady)
+							return;
+						if (MyInfo.Ammo < 1)
+							return;
+					}
 
 					if (MyInfo.IsReloading)
 						return;
@@ -1620,16 +1631,32 @@ void Hack::Loop() {
 				if (!MyInfo.IsWeaponed)
 					return;
 
+				if (bPrevReloading && !MyInfo.IsReloading)
+					AutoClick(hGameWnd, false);
+
+				bPrevReloading = MyInfo.IsReloading;
+
+				if (PrevAmmo < MyInfo.Ammo)
+					AutoClick(hGameWnd);
+
+				PrevAmmo = MyInfo.Ammo;
+
+				if (!bPrevWeaponReady && MyInfo.IsWeaponReady)
+					AutoClick(hGameWnd);
+
+				bPrevWeaponReady = MyInfo.IsWeaponReady;
+
+				if (MyInfo.WeaponType == tWeaponType::SR && MyInfo.IsScoping) {
+					if (!MyInfo.IsWeaponReady)
+						return;
+					if (MyInfo.Ammo < 1)
+						return;
+				}
+
 				if (!MyInfo.IsProperForAutoClick)
 					return;
 
-				if (MyInfo.WeaponType != tWeaponType::SG && !MyInfo.IsWeaponReady)
-					return;
-
 				if (MyInfo.TimeAfterShot > 0.8f)
-					return;
-
-				if (MyInfo.IsReloading)
 					return;
 
 				AutoClick(hGameWnd);
