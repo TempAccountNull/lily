@@ -94,7 +94,7 @@ private:
 
 	constexpr static float RandSilentAimMax = 40.0f;
 	float RandSilentAimHead = 2.5f;
-	float RandSilentAimBody = 25.0f;
+	float RandSilentAimBody = 20.0f;
 
 	bool bShowMenu = true;
 	bool bDebug = false;
