@@ -10,7 +10,7 @@ class TNameEntryArray;
 class UObject
 {
 private:
-	uint8_t pad[0x38];
+	uint8_t pad[0x40];
 public:
 	//DWORD64 GetClass() {
 	//	__int64 a1 = (__int64)this;
@@ -28,12 +28,12 @@ public:
 		__int64 v5;
 		__int64 v75;
 
-		v1 = *(_DWORD*)(a1 + 0x24) ^ 0x4FC07812;
-		LODWORD(v5) = __ROL4__(*(_DWORD*)(a1 + 0x20) ^ 0x9FBA4D8D, 2);
-		v2 = int(v5 ^ ((_DWORD)v5 << 0x10) ^ 0x37D27812);
+		v1 = *(_DWORD*)(a1 + 0x38) ^ 0x3BDE88B0;
+		LODWORD(v5) = __ROL4__(*(_DWORD*)(a1 + 0x34) ^ 0x9761F9D2, 7);
+		v2 = int(v5 ^ ((_DWORD)v5 << 0x10) ^ 0xB36E88B0);
 		LODWORD(v75) = v2;
-		v3 = __ROR4__(v1, 6);
-		HIDWORD(v75) = v3 ^ (v3 << 0x10) ^ 0xD2374D8D;
+		v3 = __ROR4__(v1, 1);
+		HIDWORD(v75) = v3 ^ (v3 << 0x10) ^ 0x6EB3F9D2;
 
 		return *(FName*)&v75;
 	}
