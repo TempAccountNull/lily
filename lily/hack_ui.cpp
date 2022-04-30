@@ -106,6 +106,7 @@ void Hack::ProcessImGui() {
 						ImGui::TableNextColumn(); ImGui::Checkbox("Weapon"e, &ESP_PlayerSetting.bWeapon);
 						ImGui::TableNextColumn(); ImGui::Checkbox("Distance"e, &ESP_PlayerSetting.bDistance);
 						ImGui::TableNextColumn(); ImGui::Checkbox("Kill"e, &ESP_PlayerSetting.bKill);
+						ImGui::TableNextColumn(); ImGui::Checkbox("Spectator"e, &ESP_PlayerSetting.bSpectatedCount);
 						ImGui::TableNextColumn(); ImGui::Checkbox("Damage"e, &ESP_PlayerSetting.bDamage);
 						ImGui::EndTable();
 					}

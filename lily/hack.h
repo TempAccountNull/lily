@@ -82,6 +82,7 @@ private:
 		bool bWeapon = true;
 		bool bDistance = true;
 		bool bKill = true;
+		bool bSpectatedCount = true;
 		bool bDamage = true;
 	}ESP_PlayerSetting;
 

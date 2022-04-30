@@ -25,12 +25,13 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 
 		//Attach
 		HASH_CASE("Item_Attach_Weapon_Lower_Foregrip_C"h, { "L_Fore"e, 3 });
-		HASH_CASE("Item_Attach_Weapon_Lower_QuickDraw_Large_Crossbow_C"h, { "Q_Cross"e, 3 });
 		HASH_CASE("Item_Attach_Weapon_Lower_AngledForeGrip_C"h, { "L_Angle"e, 2 });
 		HASH_CASE("Item_Attach_Weapon_Lower_HalfGrip_C"h, { "L_Half"e, 2 });
 		HASH_CASE("Item_Attach_Weapon_Lower_LightweightForeGrip_C"h, { "L_Light"e, 2 });
 		HASH_CASE("Item_Attach_Weapon_Lower_ThumbGrip_C"h, { "L_Thumb"e, 2 });
 		HASH_CASE("Item_Attach_Weapon_Lower_LaserPointer_C"h, { "L_Laser"e, 1 });
+
+		HASH_CASE("Item_Attach_Weapon_Lower_QuickDraw_Large_Crossbow_C"h, { "Q_CBow"e, 3 });
 
 		HASH_CASE("Item_Attach_Weapon_Magazine_ExtendedQuickDraw_Large_C"h, { "EQ_AR"e, 4 });
 		HASH_CASE("Item_Attach_Weapon_Magazine_Extended_Large_C"h, { "E_AR"e, 3 });
@@ -53,10 +54,10 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Attach_Weapon_Muzzle_FlashHider_SniperRifle_C"h, { "F_SR"e, 1 });
 
 		HASH_CASE("Item_Attach_Weapon_Muzzle_Suppressor_SniperRifle_C"h, { "S_SR"e, 4 });
-		HASH_CASE("Item_Attach_Weapon_Muzzle_Suppressor_Large_C"h, { "S_AR"e, 3 });
+		HASH_CASE("Item_Attach_Weapon_Muzzle_Suppressor_Large_C"h, { "S_AR"e, 4 });
 		HASH_CASE("Item_Attach_Weapon_Muzzle_Suppressor_Medium_C"h, { "S_SMG"e, 3 });
 
-		HASH_CASE("Item_Attach_Weapon_Muzzle_Choke_C"h, { "Choke"e, 3 });
+		HASH_CASE("Item_Attach_Weapon_Muzzle_Choke_C"h, { "Choke"e, 2 });
 		HASH_CASE("Item_Attach_Weapon_Muzzle_Duckbill_C"h, { "Duckbill"e, 2 });
 
 		HASH_CASE("Item_Attach_Weapon_SideRail_DotSight_RMR_C"h, { "Canted"e, 4 });
@@ -87,12 +88,12 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Back_E_01_Lv1_C"h, { "Back1"e, 2 });
 		HASH_CASE("Item_Back_E_02_Lv1_C"h, { "Back1"e, 2 });
 		HASH_CASE("Item_Back_BlueBlocker"h, { "JammerPack"e, 4 });
-		HASH_CASE("Item_Ghillie_01_C"h, { "Ghillie"e, 4 });
-		HASH_CASE("Item_Ghillie_02_C"h, { "Ghillie"e, 4 });
-		HASH_CASE("Item_Ghillie_03_C"h, { "Ghillie"e, 4 });
-		HASH_CASE("Item_Ghillie_04_C"h, { "Ghillie"e, 4 });
-		HASH_CASE("Item_Ghillie_05_C"h, { "Ghillie"e, 4 });
-		HASH_CASE("Item_Ghillie_06_C"h, { "Ghillie"e, 4 });
+		HASH_CASE("Item_Ghillie_01_C"h, { "GhillieG"e, 4 });
+		HASH_CASE("Item_Ghillie_02_C"h, { "GhillieB"e, 4 });
+		HASH_CASE("Item_Ghillie_03_C"h, { "GhillieB"e, 4 });
+		HASH_CASE("Item_Ghillie_04_C"h, { "GhillieW"e, 4 });
+		HASH_CASE("Item_Ghillie_05_C"h, { "CamoSuit"e, 4 });
+		HASH_CASE("Item_Ghillie_06_C"h, { "GhillieD"e, 4 });
 		HASH_CASE("Item_Head_E_01_Lv1_C"h, { "Head1"e, 2 });
 		HASH_CASE("Item_Head_E_02_Lv1_C"h, { "Head1"e, 2 });
 		HASH_CASE("Item_Head_F_01_Lv2_C"h, { "Head2"e, 3 });

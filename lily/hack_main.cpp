@@ -224,9 +224,8 @@ void Hack::Loop() {
 					return false;
 
 				auto ItemInfo = Item.GetInfo();
-				auto& ItemName = ItemInfo.Name;
-
-				if (!ItemName[0] && !Item.GetItemID().GetName(ItemName.data(), sizeof(ItemName)))
+				const std::string ItemName = bDebug || ItemInfo.Name.empty() ? Item.GetItemID().GetName() : ItemInfo.Name.data();
+				if (ItemName.empty())
 					return false;
 
 				const int ItemPriority = ItemInfo.ItemPriority;
@@ -246,7 +245,7 @@ void Hack::Loop() {
 					}
 				}();
 
-				DrawString(ItemLocation, ItemName.data(), ItemColor, false);
+				DrawString(ItemLocation, ItemName.c_str(), ItemColor, false);
 				return true;
 			};
 			auto GetCharacterInfo = [&](NativePtr<ATslCharacter> CharacterPtr, CharacterInfo& Info) -> bool {
@@ -1085,16 +1084,22 @@ void Hack::Loop() {
 						Line += (std::string)"M"e;
 					}
 
-					if (ESP_PlayerSetting.bKill) {
+					if (ESP_PlayerSetting.bKill && Info.NumKills) {
 						if (!Line.empty())
 							Line += (std::string)" "e;
-						Line += std::to_string(Info.NumKills);
+						Line += std::to_string(Info.NumKills) + (std::string)"K"e;
 					}
 
-					if (ESP_PlayerSetting.bDamage && !bShortNick) {
+					if (ESP_PlayerSetting.bSpectatedCount && Info.SpectatedCount) {
 						if (!Line.empty())
 							Line += (std::string)" "e;
-						Line += std::to_string((int)Info.Damage);
+						Line += std::to_string(Info.SpectatedCount) + (std::string)"W"e;
+					}
+
+					if (ESP_PlayerSetting.bDamage && Info.Damage && !bShortNick) {
+						if (!Line.empty())
+							Line += (std::string)" "e;
+						Line += std::to_string((int)Info.Damage) + (std::string)"D"e;
 					}
 
 					if (!Line.empty()) {

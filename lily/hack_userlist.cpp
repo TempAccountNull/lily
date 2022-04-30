@@ -2,14 +2,15 @@
 
 FILE* Hack::OpenDesktopFile(const char* szFileName, const char* Mode) {
 	GetDesktopPath(szBuf, szFileName);
-	FILE* fp = fopen(szBuf, Mode);
-	if (!fp) error(szFileName);
-	return fp;
+	return fopen(szBuf, Mode);
 }
 
 void Hack::LoadList(std::vector<unsigned>& List, const char* szFileName) {
 	FILE* fp = OpenDesktopFile(szFileName, "r"e);
 	List.clear();
+
+	if (!fp)
+		return;
 
 	while (fgets(szBuf, sizeof(szBuf), fp)) {
 		char* pNewLine = strchr(szBuf, '\n');
