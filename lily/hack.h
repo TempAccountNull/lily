@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <string>
 #include <map>
+#include <format>
 
 #include "common/render.h"
 #include "kernel_lily.h"
@@ -103,8 +104,6 @@ private:
 	Render& render;
 	bool& bESP = render.bRender = true;
 	bool& bIgnoreInput = render.bIgnoreInput = false;
-
-	mutable char szBuf[0x100];
 
 	constexpr static unsigned DEBUGLOG_MAXSIZE = 0x4000;
 	constexpr static unsigned DEBUGLOG_REMOVESIZE = 0x1000;
@@ -209,26 +208,38 @@ public:
 		return ::WorldToScreen(WorldLocation, RotationMatrix, CameraLocation, CameraFOV, render.Width, render.Height);
 	}
 
-	void DrawString(const FVector& pos, const char* szText, ImColor Color, bool bShowAlways) const {
-		render.DrawString(pos, Hack::MARGIN, szText, FONTSIZE, Color, true, true, bShowAlways);
-	}
-
 	void DrawNotice(const char* szText, ImColor Color) const {
 		render.DrawString({ 30.0f, 30.0f , 0.0f }, Hack::MARGIN, szText, Hack::FONTSIZE_NORMAL, Color, false, false, true);
 	}
 
+	void DrawString(const FVector& pos, const char* szText, ImColor Color, bool bShowAlways, float Size = FONTSIZE) const {
+		render.DrawString(pos, Hack::MARGIN, szText, Size, Color, true, true, bShowAlways);
+	}
+
+	void DrawString(const FVector& pos, const std::string Text, ImColor Color, bool bShowAlways, float Size = FONTSIZE) const {
+		DrawString(pos, Text.c_str(), Color, bShowAlways);
+	}
+
 	void DrawFPS(float FPS, ImColor Color) const {
-		sprintf(szBuf, "FPS : %.0f"e, FPS);
-		render.DrawString({ render.Width * 0.6f, 0.0f , 0.0f }, Hack::MARGIN, szBuf, Hack::FONTSIZE_SMALL, Color, true, true, true);
+		auto Output = std::format((const char*)"FPS : {}"e, (unsigned)FPS);
+		DrawString({ render.Width * 0.6f, 0.0f , 0.0f }, Output, Color, Hack::FONTSIZE_SMALL);
 	}
 
 	void DrawEnemiesFocusingMe(const char* szPlayers, ImColor Color) const {
-		render.DrawString({ render.Width * 0.5f, 0.0f , 0.0f }, Hack::MARGIN, szPlayers, Hack::FONTSIZE_NORMAL, Color, true, true, true);
+		DrawString({ render.Width * 0.5f, 0.0f , 0.0f }, szPlayers, Color, Hack::FONTSIZE_NORMAL);
 	}
 
 	void DrawSpectatedCount(unsigned SpectatedCount, ImColor Color) const {
-		sprintf(szBuf, "Spectators : %d"e, SpectatedCount);
-		render.DrawString({ render.Width * 0.4f, 0.0f , 0.0f }, Hack::MARGIN, szBuf, Hack::FONTSIZE_SMALL, Color, true, true, true);
+		auto Output = std::format((const char*)"Spectators : {}"e, SpectatedCount);
+		DrawString({ render.Width * 0.4f, 0.0f , 0.0f }, Output, Color, Hack::FONTSIZE_SMALL);
+	}
+
+	float GetTextHeight(const char* szText, float FontSize = FONTSIZE) const {
+		return render.GetTextSize(FontSize, szText).y;
+	}
+
+	float GetTextHeight(std::string Text, float FontSize = FONTSIZE) const {
+		return GetTextHeight(Text.c_str());
 	}
 
 	void DrawHotkey() const;

@@ -151,7 +151,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		//DMR
 		HASH_CASE("Item_Weapon_Mk14_C"h, { "Mk14"e, 4 });
 		HASH_CASE("Item_Weapon_FNFal_C"h, { "SLR"e, 4 });
-		HASH_CASE("Item_Weapon_Mk12_C"h, { "Mk12"e, 4 });
+		HASH_CASE("Item_Weapon_Mk12_C"h, { "Mk12"e, 3 });
 		HASH_CASE("Item_Weapon_SKS_C"h, { "SKS"e, 3 });
 		HASH_CASE("Item_Weapon_Mads_QBU88_C"h, { "QBU"e, 3 });
 		HASH_CASE("Item_Weapon_QBU88_C"h, { "QBU"e, 3 });
@@ -160,13 +160,13 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		
 		//SG
 		HASH_CASE("Item_Weapon_DP12_C"h, { "DBS"e, 4 });
-		HASH_CASE("Item_Weapon_Winchester_C"h, { "S1897"e, 3 });
 		HASH_CASE("Item_Weapon_Saiga12_C"h, { "S12K"e, 3 });
+		HASH_CASE("Item_Weapon_Winchester_C"h, { "S1897"e, 2 });
 		HASH_CASE("Item_Weapon_Berreta686_C"h, { "S686"e, 2 });
 
 		//Pistol
 		HASH_CASE("Item_Weapon_G18_C"h, { "P18C"e, 4 });
-		HASH_CASE("Item_Weapon_DesertEagle_C"h, { "Deagle"e, 4 });
+		HASH_CASE("Item_Weapon_DesertEagle_C"h, { "Deagle"e, 3 });
 		HASH_CASE("Item_Weapon_Rhino_C"h, { "R45"e, 3 });
 		HASH_CASE("Item_Weapon_NagantM1895_C"h, { "R1895"e, 3 });
 		HASH_CASE("Item_Weapon_vz61Skorpion_C"h, { "Skorpion"e, 3 });
@@ -178,8 +178,8 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		HASH_CASE("Item_Weapon_P90_C"h, { "P90"e, 4 });
 		HASH_CASE("Item_Weapon_Vector_C"h, { "Vec"e, 3 });
 		HASH_CASE("Item_Weapon_UZI_C"h, { "UZI"e, 3 });
+		HASH_CASE("Item_Weapon_UMP_C"h, { "UMP"e, 3 });
 		HASH_CASE("Item_Weapon_Thompson_C"h, { "Tom"e, 2 });
-		HASH_CASE("Item_Weapon_UMP_C"h, { "UMP"e, 2 });
 		HASH_CASE("Item_Weapon_BizonPP19_C"h, { "Bizon"e, 2 });
 		HASH_CASE("Item_Weapon_MP5K_C"h, { "MP5K"e, 2 });
 

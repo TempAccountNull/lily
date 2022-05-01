@@ -245,7 +245,7 @@ void Hack::Loop() {
 					}
 				}();
 
-				DrawString(ItemLocation, ItemName.c_str(), ItemColor, false);
+				DrawString(ItemLocation, ItemName, ItemColor, false);
 				return true;
 			};
 			auto GetCharacterInfo = [&](NativePtr<ATslCharacter> CharacterPtr, CharacterInfo& Info) -> bool {
@@ -357,10 +357,7 @@ void Hack::Loop() {
 					Info.GroggyHealth > 0.0f ? CharacterState::Groggy :
 					CharacterState::Dead;
 
-				wchar_t PlayerName[0x100];
-				if (TslCharacter.CharacterName.GetValues(*PlayerName, 0x100))
-					Info.PlayerName = ws2s(PlayerName);
-
+				Info.PlayerName = ws2s(TslCharacter.CharacterName.GetString());
 				Info.IsBlackListed = IsUserInList(BlackList, Info.PlayerName.c_str());
 				Info.IsWhiteListed = IsUserInList(WhiteList, Info.PlayerName.c_str());
 
@@ -1109,8 +1106,8 @@ void Hack::Loop() {
 					}
 
 					DrawString(
-						{ HealthBarScreenPos.X, HealthBarScreenPos.Y - HealthBarScreenLengthY - render.GetTextSize(FONTSIZE, PlayerInfo.c_str()).y / 2.0f, HealthBarScreenPos.Z },
-						PlayerInfo.c_str(), Color, true);
+						{ HealthBarScreenPos.X, HealthBarScreenPos.Y - HealthBarScreenLengthY - GetTextHeight(PlayerInfo) / 2.0f, HealthBarScreenPos.Z },
+						PlayerInfo, Color, true);
 				}();
 			};
 
@@ -1160,7 +1157,7 @@ void Hack::Loop() {
 					if (bDebug) {
 						FVector v2_DebugLoc = ActorLocationScreen;
 						v2_DebugLoc.Y += 15.0;
-						DrawString(v2_DebugLoc, ActorName.c_str(), Render::COLOR_WHITE, false);
+						DrawString(v2_DebugLoc, ActorName, Render::COLOR_WHITE, false);
 					}
 
 					return true;
@@ -1173,8 +1170,8 @@ void Hack::Loop() {
 					if (!bAircraftCarePackage)
 						return;
 
-					sprintf(szBuf, "%s\n%.0fM"e, (const char*)"Aircraft"e, DistanceToActor);
-					DrawString(ActorLocationScreen, szBuf, Render::COLOR_TEAL, false);
+					auto Output = std::format((const char*)"{}\n{}M"e, (const char*)"Aircraft"e, (unsigned)DistanceToActor);
+					DrawString(ActorLocationScreen, Output, Render::COLOR_TEAL, false);
 				}();
 
 				//DrawObject
@@ -1187,8 +1184,8 @@ void Hack::Loop() {
 					if (!ObjectInfo.IsLong && DistanceToActor > 300.0f)
 						return;
 
-					sprintf(szBuf, "%s\n%.0fM"e, ObjectName.data(), DistanceToActor);
-					DrawString(ActorLocationScreen, szBuf, ObjectInfo.bFrendly ? Render::COLOR_TEAL : Render::COLOR_RED, false);
+					auto Output = std::format((const char*)"{}\n{}M"e, ObjectName.data(), (unsigned)DistanceToActor);
+					DrawString(ActorLocationScreen, Output, ObjectInfo.bFrendly ? Render::COLOR_TEAL : Render::COLOR_RED, false);
 				}();
 
 				//DrawVehicle
@@ -1197,8 +1194,8 @@ void Hack::Loop() {
 						return;
 
 					if (ActorNameHash == "BP_VehicleDrop_BRDM_C"h) {
-						sprintf(szBuf, "BRDM\n%.0fM"e, DistanceToActor);
-						DrawString(ActorLocationScreen, szBuf, Render::COLOR_TEAL, false);
+						auto Output = std::format((const char*)"BRDM\n{}M"e, (unsigned)DistanceToActor);
+						DrawString(ActorLocationScreen, Output, Render::COLOR_TEAL, false);
 						return;
 					}
 
@@ -1258,8 +1255,8 @@ void Hack::Loop() {
 					if (Health <= 0.0f || Fuel <= 0.0f)
 						Color = Render::COLOR_GRAY;
 
-					sprintf(szBuf, "%s\n%.0fM"e, VehicleName.data(), DistanceToActor);
-					DrawString(ActorLocationScreen, szBuf, Color, false);
+					auto Output = std::format((const char*)"{}\n{}M"e, VehicleName.data(), (unsigned)DistanceToActor);
+					DrawString(ActorLocationScreen, Output, Color, false);
 
 					//Draw vehicle health, fuel
 					[&] {
@@ -1267,7 +1264,7 @@ void Hack::Loop() {
 							return;
 
 						FVector VehicleBarScreenPos = ActorLocationScreen;
-						VehicleBarScreenPos.Y += render.GetTextSize(FONTSIZE, szBuf).y / 2.0f + 4.0f;
+						VehicleBarScreenPos.Y += GetTextHeight(Output) / 2.0f + 4.0f;
 						const float CameraDistance = CameraLocation.Distance(ActorLocation) / 100.0f;
 						if (Health <= 0.0f)
 							return;
@@ -1293,12 +1290,11 @@ void Hack::Loop() {
 					if (PackageInfo.IsSmall && DistanceToActor > 300.0f)
 						return;
 
-					if (PackageInfo.IsSmall)
-						sprintf(szBuf, "%s"e, PackageName.data());
-					else
-						sprintf(szBuf, "%s\n%.0fM"e, PackageName.data(), DistanceToActor);
-					
-					DrawString(ActorLocationScreen, szBuf, Render::COLOR_TEAL, false);
+					auto Output = PackageInfo.IsSmall ?
+						std::string(PackageName.data()) :
+						std::format((const char*)"{}\n{}M"e, PackageName.data(), (unsigned)DistanceToActor);
+
+					DrawString(ActorLocationScreen, Output, Render::COLOR_TEAL, false);
 
 					//DrawBoxContents
 					[&] {
@@ -1309,15 +1305,14 @@ void Hack::Loop() {
 						if (!ActorPtr.ReadOtherType(ItemPackage))
 							return;
 
+						const float TextHeight = GetTextHeight((const char*)""e);
 						FVector PackageLocationScreen = ActorLocationScreen;
-
-						const float TextLineHeight = render.GetTextSize(FONTSIZE, ""e).y;
-						PackageLocationScreen.Y += TextLineHeight * 1.5f;
+						PackageLocationScreen.Y += (GetTextHeight(Output) + TextHeight) / 2.0f;
 
 						for (const auto& ItemPtr : ItemPackage.Items.GetVector()) {
 							if (!DrawItem(ItemPtr, PackageLocationScreen))
 								continue;
-							PackageLocationScreen.Y += TextLineHeight - 1.0f;
+							PackageLocationScreen.Y += TextHeight - 1.0f;
 						}
 					}();
 				}();

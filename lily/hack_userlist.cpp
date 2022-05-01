@@ -1,6 +1,7 @@
 #include "hack.h"
 
 FILE* Hack::OpenDesktopFile(const char* szFileName, const char* Mode) {
+	char szBuf[0x100];
 	GetDesktopPath(szBuf, szFileName);
 	return fopen(szBuf, Mode);
 }
@@ -12,6 +13,7 @@ void Hack::LoadList(std::vector<unsigned>& List, const char* szFileName) {
 	if (!fp)
 		return;
 
+	char szBuf[0x100];
 	while (fgets(szBuf, sizeof(szBuf), fp)) {
 		char* pNewLine = strchr(szBuf, '\n');
 		if (pNewLine)
@@ -45,6 +47,7 @@ void Hack::RemoveUserFromList(std::vector<unsigned>& List, const char* szFileNam
 		return;
 
 	std::vector<std::string> Names;
+	char szBuf[0x100];
 
 	FILE* fp = OpenDesktopFile(szFileName, "r"e);
 	while (fgets(szBuf, sizeof(szBuf), fp)) {

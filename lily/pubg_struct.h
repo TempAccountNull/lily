@@ -62,7 +62,12 @@ public:
 	}
 };
 
-struct FString : public TArray<wchar_t> {};
+struct FString : public TArray<wchar_t> {
+	std::wstring GetString() const {
+		wchar_t wBuffer[0x100] = {};
+		return GetValues(*wBuffer, 0x100) ? wBuffer : std::wstring();
+	}
+};
 
 template<class T>
 struct TSetElement {
